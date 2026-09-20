@@ -246,12 +246,31 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="hscBatch">HSC Batch Tag</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="hscBatch">HSC Batch Tag / ক্যাটাগরি</Label>
+              <span className="text-[11px] text-muted-foreground">ক্লিক করে সিলেক্ট করুন</span>
+            </div>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              {(["HSC 26", "HSC 27", "Admission"] as const).map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setHscBatch(tag)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                    hscBatch === tag
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-muted/50 hover:bg-muted text-muted-foreground border-border"
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
             <Input
               id="hscBatch"
               value={hscBatch}
               onChange={(e) => setHscBatch(e.target.value)}
-              placeholder="e.g. HSC 26"
+              placeholder="e.g. HSC 26 / HSC 27 / Admission"
               className="rounded-xl"
             />
           </div>

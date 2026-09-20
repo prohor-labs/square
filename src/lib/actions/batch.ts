@@ -26,23 +26,47 @@ export async function getBatchesAction() {
   }
 }
 
+export function normalizeHscBatch(raw?: string | null): string {
+  if (!raw || typeof raw !== "string") return "HSC 26";
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (lower.includes("27") || lower.includes("সাতাস") || lower.includes("২৭")) {
+    return "HSC 27";
+  }
+  if (lower.includes("26") || lower.includes("ছাব্বিশ") || lower.includes("২৬")) {
+    return "HSC 26";
+  }
+  if (
+    lower.includes("admi") ||
+    lower.includes("এডমিশন") ||
+    lower.includes("এডমি") ||
+    lower.includes("ভর্তি") ||
+    lower.includes("varsity")
+  ) {
+    return "Admission";
+  }
+  return trimmed;
+}
+
 export async function createBatchAction(formData: FormData) {
   try {
     const id = nanoid();
     const slug = formData.get("slug") as string;
+    const isPublished = formData.get("isPublished") === "false" ? false : true;
 
     await db.transaction(async (tx) => {
       await tx.insert(batches).values({
         id,
         name: formData.get("title") as string,
         slug,
-        hscBatch: formData.get("hscBatch") as string,
+        hscBatch: normalizeHscBatch(formData.get("hscBatch") as string),
         price: parseInt(formData.get("price") as string, 10),
         originalPrice:
           parseInt(formData.get("originalPrice") as string, 10) || null,
         description: formData.get("description") as string,
         image: formData.get("image") as string,
-        isPublished: false,
+        isPublished,
         isActive: true,
       });
 
@@ -79,13 +103,14 @@ export async function updateBatchAction(formData: FormData) {
   try {
     const batchId = formData.get("batchId") as string;
     const originalPriceRaw = formData.get("originalPrice") as string;
+    const rawHscBatch = formData.get("hscBatch") as string;
 
     await db
       .update(batches)
       .set({
         name: formData.get("title") as string,
         slug: formData.get("slug") as string,
-        hscBatch: formData.get("hscBatch") as string,
+        hscBatch: normalizeHscBatch(rawHscBatch),
         price: parseInt(formData.get("price") as string, 10),
         originalPrice: originalPriceRaw ? parseInt(originalPriceRaw, 10) : null,
         description: formData.get("description") as string,
@@ -135,7 +160,8 @@ export async function updateBatchDetailsAction(
       if (payload.name !== undefined) batchUpdate.name = payload.name;
       if (payload.slug !== undefined) batchUpdate.slug = payload.slug;
       if (payload.subtitle !== undefined) batchUpdate.subtitle = payload.subtitle;
-      if (payload.hscBatch !== undefined) batchUpdate.hscBatch = payload.hscBatch;
+      if (payload.hscBatch !== undefined)
+        batchUpdate.hscBatch = normalizeHscBatch(payload.hscBatch);
       if (payload.price !== undefined) batchUpdate.price = payload.price;
       if (payload.originalPrice !== undefined)
         batchUpdate.originalPrice = payload.originalPrice;

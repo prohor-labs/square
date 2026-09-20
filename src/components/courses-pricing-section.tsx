@@ -90,7 +90,7 @@ export function CoursesPricingSection() {
             <Spinner className="size-8 text-primary" />
             <span className="text-sm font-medium">কোর্সসমূহ লোড হচ্ছে...</span>
           </div>
-        ) : selectedBatch === "HSC 26" ? (
+        ) : coursesList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {coursesList.map((course) => (
               <Card
@@ -195,7 +195,7 @@ export function CoursesPricingSection() {
               </a>
             </Button>
           </Card>
-        ) : (
+        ) : selectedBatch === "Admission" ? (
           <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs">
             <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
               <Star className="size-6 fill-amber-500" />
@@ -219,6 +219,15 @@ export function CoursesPricingSection() {
                 নোটিফিকেশনের জন্য যুক্ত থাকুন &rarr;
               </a>
             </Button>
+          </Card>
+        ) : (
+          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs">
+            <h3 className="font-bold text-lg sm:text-xl text-foreground">
+              কোনো কোর্স পাওয়া যায়নি
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
+              এই ক্যাটাগরিতে বর্তমানে কোনো কোর্স যুক্ত করা হয়নি।
+            </p>
           </Card>
         )}
       </div>

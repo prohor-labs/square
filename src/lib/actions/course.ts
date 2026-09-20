@@ -10,13 +10,14 @@ import {
   batchEnrollments,
   batches,
 } from "@/db/schema";
+import { normalizeHscBatch } from "@/lib/actions/batch";
 import { auth } from "@/lib/auth";
 
 export async function getCourses(batch?: string) {
   let condition: SQL | undefined = eq(batches.isPublished, true);
 
   if (batch) {
-    condition = and(condition, eq(batches.hscBatch, batch));
+    condition = and(condition, eq(batches.hscBatch, normalizeHscBatch(batch)));
   }
 
   const results = await db.query.batches.findMany({

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { assignExamToBatchAction } from "@/lib/actions/batch";
+import { formatBanglaDateTime } from "@/lib/date";
 import type { BatchExamDetail } from "@/types";
 
 interface BatchExamsTabProps {
@@ -72,7 +73,7 @@ export function BatchExamsTab({ batchId, batchExams }: BatchExamsTabProps) {
           <QuickList
             items={batchExams.map((be) => ({
               title: be.exam?.title || "অজানা",
-              description: `সময়সূচি: ${be.startsAt ? new Date(be.startsAt).toLocaleString("bn-BD") : "যেকোনো সময়"} — ${be.endsAt ? new Date(be.endsAt).toLocaleString("bn-BD") : "যেকোনো সময়"}`,
+              description: `সময়সূচি: ${be.startsAt ? formatBanglaDateTime(be.startsAt) : "যেকোনো সময়"} — ${be.endsAt ? formatBanglaDateTime(be.endsAt) : "যেকোনো সময়"}`,
               icon: TaskSquare,
               iconBg: "bg-primary/10",
               text: "text-primary",

@@ -12,6 +12,7 @@ export default function NewBatchPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hscBatchTag, setHscBatchTag] = useState("HSC 26");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -74,16 +75,49 @@ export default function NewBatchPage() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="hscBatch" className="text-sm font-medium">
-            HSC Batch Tag
+          <label htmlFor="hscBatch" className="text-sm font-medium flex items-center justify-between">
+            <span>HSC Batch / ক্যাটাগরি</span>
+            <span className="text-xs text-muted-foreground">ক্লিক করে সিলেক্ট করুন</span>
           </label>
+          <div className="flex items-center gap-2 mb-2">
+            {(["HSC 26", "HSC 27", "Admission"] as const).map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setHscBatchTag(tag)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  hscBatchTag === tag
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                    : "bg-muted/50 hover:bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
           <Input
             id="hscBatch"
             name="hscBatch"
+            value={hscBatchTag}
+            onChange={(e) => setHscBatchTag(e.target.value)}
             required
-            placeholder="e.g. HSC 26"
+            placeholder="e.g. HSC 26 / HSC 27 / Admission"
             className="rounded-xl"
           />
+        </div>
+
+        <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-xl border border-border/50">
+          <input
+            type="checkbox"
+            id="isPublished"
+            name="isPublished"
+            value="true"
+            defaultChecked
+            className="size-4 rounded border-border text-primary cursor-pointer"
+          />
+          <label htmlFor="isPublished" className="text-sm font-medium cursor-pointer select-none">
+            অবিলম্বে ওয়েবসাইটে প্রকাশ করুন (Publish Course Immediately)
+          </label>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

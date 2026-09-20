@@ -27,25 +27,9 @@ export default async function QbSubjectsPage({
 
   const qb = accessInfo.container;
 
-  // Access check
+  // Access check: non-enrolled users cannot see restricted question banks
   if (!accessInfo.hasAccess) {
-    return (
-      <div className="flex flex-col w-full max-w-7xl mx-auto pb-8 pt-2 md:py-8">
-        <div className="flex items-center gap-2 text-xs md:text-sm font-medium text-muted-foreground mb-4">
-          <Link href="/qb" className="hover:text-primary transition-colors">
-            প্রশ্নব্যাংক
-          </Link>
-          <span>/</span>
-          <span className="text-foreground">{qb.title}</span>
-        </div>
-        <QbAccessRestrictedCard
-          title={qb.title}
-          containerSlug={containerSlug}
-          assignedBatches={accessInfo.assignedBatches}
-          isAdmin={accessInfo.isAdmin}
-        />
-      </div>
-    );
+    notFound();
   }
 
   const itemList = await db.query.items.findMany({

@@ -260,7 +260,7 @@ export async function getUserQbContainers(userId?: string) {
       );
     }
 
-    return allContainers.map((c) => {
+    const mappedContainers = allContainers.map((c) => {
       const assignedBatches =
         c.batchAccess?.map((ba) => ({
           id: ba.batch.id,
@@ -310,6 +310,10 @@ export async function getUserQbContainers(userId?: string) {
         assignedBatches,
       };
     });
+
+    // Only return question banks the user has access to (public, enrolled in assigned batch, or admin).
+    // Locked/unauthorized question banks are completely hidden from non-enrolled students.
+    return mappedContainers.filter((c) => c.hasAccess || c.isAdmin);
   } catch (error) {
     console.error("Error fetching user QB containers:", error);
     return [];

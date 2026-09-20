@@ -13,6 +13,7 @@ import {
   removeExamFromBatchAction,
   updateBatchExamAction,
 } from "@/lib/actions/batch";
+import { fromDatetimeLocalToDhakaIso, toDatetimeLocal } from "@/lib/date";
 
 interface BatchExamEditModalProps {
   batchExam: {
@@ -40,14 +41,6 @@ export function BatchExamEditModal({ batchExam }: BatchExamEditModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function toDatetimeLocal(val?: string | null) {
-    if (!val) return "";
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return "";
-    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -59,8 +52,8 @@ export function BatchExamEditModal({ batchExam }: BatchExamEditModalProps) {
     const isRequired = fd.get("isRequired") === "true";
 
     const res = await updateBatchExamAction(batchExam.id, batchExam.batchId, {
-      startsAt: startsAt ? new Date(startsAt).toISOString() : null,
-      endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+      startsAt: fromDatetimeLocalToDhakaIso(startsAt),
+      endsAt: fromDatetimeLocalToDhakaIso(endsAt),
       maxAttempts: maxAttempts ? parseInt(maxAttempts, 10) : null,
       isRequired,
     });
