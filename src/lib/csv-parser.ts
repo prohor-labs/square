@@ -109,15 +109,112 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
     return header.findIndex((h) => names.some((n) => h === n || h.includes(n)));
   };
 
-  const qCol = findCol("question", "questions", "questiontext", "প্রশ্ন");
-  const opt1Col = findCol("option1", "option_1", "opt1", "অপশন ১", "ক");
-  const opt2Col = findCol("option2", "option_2", "opt2", "অপশন ২", "খ");
-  const opt3Col = findCol("option3", "option_3", "opt3", "অপশন ৩", "গ");
-  const opt4Col = findCol("option4", "option_4", "opt4", "অপশন ৪", "ঘ");
-  const opt5Col = findCol("option5", "option_5", "opt5", "অপশন ৫");
-  const ansCol = findCol("answer", "correct", "correctoption", "correctidx", "উত্তর");
-  const expCol = findCol("explanation", "solution", "ব্যাখ্যা");
-  const typeCol = findCol("type", "ধরণ");
+  const qCol = findCol(
+    "question",
+    "questions",
+    "questiontext",
+    "question_text",
+    "q",
+    "প্রশ্ন",
+  );
+  const opt1Col = findCol(
+    "option1",
+    "option_1",
+    "option 1",
+    "opt1",
+    "opt_1",
+    "optiona",
+    "option_a",
+    "option a",
+    "a",
+    "অপশন ১",
+    "অপশন ১:",
+    "অপশন ক",
+    "ক",
+  );
+  const opt2Col = findCol(
+    "option2",
+    "option_2",
+    "option 2",
+    "opt2",
+    "opt_2",
+    "optionb",
+    "option_b",
+    "option b",
+    "b",
+    "অপশন ২",
+    "অপশন ২:",
+    "অপশন খ",
+    "খ",
+  );
+  const opt3Col = findCol(
+    "option3",
+    "option_3",
+    "option 3",
+    "opt3",
+    "opt_3",
+    "optionc",
+    "option_c",
+    "option c",
+    "c",
+    "অপশন ৩",
+    "অপশন ৩:",
+    "অপশন গ",
+    "গ",
+  );
+  const opt4Col = findCol(
+    "option4",
+    "option_4",
+    "option 4",
+    "opt4",
+    "opt_4",
+    "optiond",
+    "option_d",
+    "option d",
+    "d",
+    "অপশন ৪",
+    "অপশন ৪:",
+    "অপশন ঘ",
+    "ঘ",
+  );
+  const opt5Col = findCol(
+    "option5",
+    "option_5",
+    "option 5",
+    "opt5",
+    "opt_5",
+    "optione",
+    "option_e",
+    "option e",
+    "e",
+    "অপশন ৫",
+    "অপশন ৫:",
+    "অপশন ঙ",
+    "ঙ",
+  );
+  const ansCol = findCol(
+    "answer",
+    "correct",
+    "correctoption",
+    "correct_option",
+    "correctindex",
+    "correct_index",
+    "correctidx",
+    "correct_idx",
+    "correct_ans",
+    "correctans",
+    "ans",
+    "উত্তর",
+    "সঠিক উত্তর",
+  );
+  const expCol = findCol(
+    "explanation",
+    "solution",
+    "exp",
+    "ব্যাখ্যা",
+    "সমাধান",
+  );
+  const typeCol = findCol("type", "ধরণ", "ধরন");
   const secCol = findCol("section", "source", "উৎস");
   const stdCol = findCol("standard", "মান");
   const marksCol = findCol("marks", "মার্কস", "মার্ক");

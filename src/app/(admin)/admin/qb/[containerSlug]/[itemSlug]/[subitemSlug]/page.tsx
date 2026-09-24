@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { AdminTopicsManager } from "@/components/admin/admin-topics-manager";
 import { db } from "@/db";
@@ -21,15 +21,19 @@ export default async function AdminQbTopicsPage({
     where: eq(containers.slug, containerSlug),
   });
 
+  if (!qb) notFound();
+
   const subject = await db.query.items.findFirst({
-    where: eq(items.slug, itemSlug),
+    where: and(eq(items.containerId, qb.id), eq(items.slug, itemSlug)),
   });
+
+  if (!subject) notFound();
 
   const chapter = await db.query.subitems.findFirst({
-    where: eq(subitems.slug, subitemSlug),
+    where: and(eq(subitems.itemId, subject.id), eq(subitems.slug, subitemSlug)),
   });
 
-  if (!qb || !subject || !chapter) notFound();
+  if (!chapter) notFound();
 
   const topicList = await db.query.topics.findMany({
     where: eq(topics.subitemId, chapter.id),

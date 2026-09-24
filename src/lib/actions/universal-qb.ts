@@ -281,8 +281,18 @@ export async function importYearBasedQuestionsAction(
 
     // 1. Find or create the root/general item for this container
     let targetItem = await db.query.items.findFirst({
-      where: eq(items.containerId, container.id),
+      where: (items, { and, eq, or }) =>
+        and(
+          eq(items.containerId, container.id),
+          or(eq(items.code, "YEARS"), eq(items.name, "সালসমূহ")),
+        ),
     });
+
+    if (!targetItem) {
+      targetItem = await db.query.items.findFirst({
+        where: eq(items.containerId, container.id),
+      });
+    }
 
     if (!targetItem) {
       const newItemId = crypto.randomUUID();
@@ -475,6 +485,14 @@ export async function importYearBasedQuestionsAction(
 
       return count;
     });
+
+    if (insertedCount === 0) {
+      return {
+        success: false,
+        error:
+          "কোনো প্রশ্ন সংরক্ষণ করা যায়নি। অনুগ্রহ করে নিশ্চিত করুন যে ফাইলের প্রতিটি প্রশ্নে সঠিক questionText ও বিকল্পসমূহ রয়েছে।",
+      };
+    }
 
     try {
       revalidatePath("/admin/qb");

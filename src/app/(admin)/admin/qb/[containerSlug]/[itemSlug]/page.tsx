@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { AdminSubitemsManager } from "@/components/admin/admin-subitems-manager";
 import { db } from "@/db";
@@ -17,11 +17,13 @@ export default async function AdminQbChaptersPage({
     where: eq(containers.slug, containerSlug),
   });
 
+  if (!qb) notFound();
+
   const subject = await db.query.items.findFirst({
-    where: eq(items.slug, itemSlug),
+    where: and(eq(items.containerId, qb.id), eq(items.slug, itemSlug)),
   });
 
-  if (!qb || !subject) notFound();
+  if (!subject) notFound();
 
   const chapterList = await db.query.subitems.findMany({
     where: eq(subitems.itemId, subject.id),

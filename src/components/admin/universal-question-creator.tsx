@@ -112,7 +112,7 @@ export function UniversalQuestionCreator({
     }
   }, [qbList, selectedContainerId]);
 
-  // Load container years when selected container changes
+  // Load container years only when selected container changes
   useEffect(() => {
     if (selectedContainerId) {
       getContainerYearsAction(selectedContainerId).then(setContainerYears);
@@ -135,7 +135,7 @@ export function UniversalQuestionCreator({
         setSource(`${cont.title} ${yearInput}`);
       }
     }
-  }, [selectedContainerId, qbList, yearInput]);
+  }, [selectedContainerId]);
 
   const refreshHierarchy = async () => {
     const fresh = await getFullQbHierarchy();

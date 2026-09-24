@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminQuestionsManager } from "@/components/admin/admin-questions-manager";
@@ -22,19 +22,25 @@ export default async function AdminQbQuestionsPage({
     where: eq(containers.slug, containerSlug),
   });
 
+  if (!qb) notFound();
+
   const subject = await db.query.items.findFirst({
-    where: eq(items.slug, itemSlug),
+    where: and(eq(items.containerId, qb.id), eq(items.slug, itemSlug)),
   });
+
+  if (!subject) notFound();
 
   const chapter = await db.query.subitems.findFirst({
-    where: eq(subitems.slug, subitemSlug),
+    where: and(eq(subitems.itemId, subject.id), eq(subitems.slug, subitemSlug)),
   });
+
+  if (!chapter) notFound();
 
   const topic = await db.query.topics.findFirst({
-    where: eq(topics.slug, topicSlug),
+    where: and(eq(topics.subitemId, chapter.id), eq(topics.slug, topicSlug)),
   });
 
-  if (!qb || !subject || !chapter || !topic) notFound();
+  if (!topic) notFound();
 
   return (
     <div className="flex flex-col gap-6">

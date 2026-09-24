@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -33,7 +33,7 @@ export default async function QbChaptersPage({
   }
 
   const subject = await db.query.items.findFirst({
-    where: eq(items.slug, itemSlug),
+    where: and(eq(items.containerId, qb.id), eq(items.slug, itemSlug)),
   });
 
   if (!subject) notFound();
