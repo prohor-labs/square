@@ -10,8 +10,8 @@ import {
   batchEnrollments,
   batches,
 } from "@/db/schema";
-import { normalizeHscBatch } from "@/lib/actions/batch";
 import { auth } from "@/lib/auth";
+import { normalizeHscBatch } from "@/lib/utils";
 
 export async function getCourses(batch?: string) {
   let condition: SQL | undefined = eq(batches.isPublished, true);
