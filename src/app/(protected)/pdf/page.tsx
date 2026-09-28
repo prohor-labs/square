@@ -6,7 +6,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 
 export default function PDFSuggestionsPage() {
   return (
-    <div className="flex flex-col min-h-screen pb-20 max-w-7xl mx-auto w-full gap-6">
+    <div className="flex flex-col min-h-screen pb-20 max-w-7xl mx-auto w-full pt-0 gap-6 font-sans">
       <PdfSuggestionView />
     </div>
   );

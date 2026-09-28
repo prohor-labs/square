@@ -20,19 +20,48 @@ const ToggleGroupContext = React.createContext<
   orientation: "horizontal",
 })
 
+export type ToggleGroupProps = Omit<
+  ToggleGroupPrimitive.Props,
+  "value" | "onValueChange"
+> &
+  VariantProps<typeof toggleVariants> & {
+    spacing?: number
+    orientation?: "horizontal" | "vertical"
+    type?: "single" | "multiple"
+    value?: string | readonly string[]
+    onValueChange?: (value: any, eventDetails?: any) => void
+  }
+
 function ToggleGroup({
   className,
   variant,
   size,
   spacing = 2,
   orientation = "horizontal",
+  type = "single",
+  value,
+  onValueChange,
   children,
   ...props
-}: ToggleGroupPrimitive.Props &
-  VariantProps<typeof toggleVariants> & {
-    spacing?: number
-    orientation?: "horizontal" | "vertical"
-  }) {
+}: ToggleGroupProps) {
+  const normalizedValue = React.useMemo(() => {
+    if (value === undefined) return undefined
+    if (Array.isArray(value)) return value
+    return [value]
+  }, [value])
+
+  const handleValueChange = React.useCallback(
+    (vals: readonly string[], details: any) => {
+      if (!onValueChange) return
+      if (type === "single") {
+        onValueChange(vals[vals.length - 1] || "", details)
+      } else {
+        onValueChange(vals, details)
+      }
+    },
+    [onValueChange, type]
+  )
+
   return (
     <ToggleGroupPrimitive
       data-slot="toggle-group"
@@ -40,6 +69,8 @@ function ToggleGroup({
       data-size={size}
       data-spacing={spacing}
       data-orientation={orientation}
+      value={normalizedValue}
+      onValueChange={handleValueChange}
       style={{ "--gap": spacing } as React.CSSProperties}
       className={cn(
         "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-md data-[spacing=0]:data-[variant=outline]:shadow-xs data-vertical:flex-col data-vertical:items-stretch",

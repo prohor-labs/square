@@ -7,12 +7,14 @@ import {
   Chart,
   FileDown,
   FileText,
+  Flame,
   Star,
 } from "@/components/icons";
 import { Card } from "@/components/ui/card";
 
 interface ServiceItem {
   readonly title: string;
+  readonly description: string;
   readonly href: string;
   readonly icon: typeof Chart;
   readonly bgClass: string;
@@ -21,21 +23,16 @@ interface ServiceItem {
 
 const services: readonly ServiceItem[] = [
   {
-    title: "লাইভ পোল",
-    href: "/poll",
-    icon: Chart,
-    bgClass: "bg-blue-500/10 dark:bg-blue-500/20",
-    textClass: "text-blue-600 dark:text-blue-400",
-  },
-  {
     title: "আমাদের স্পেশাল কোর্স",
-    href: "#courses-section",
+    description: "লাইভ ক্লাস ও এক্সাম",
+    href: "/#courses-section",
     icon: BookOpen,
     bgClass: "bg-emerald-500/10 dark:bg-emerald-500/20",
     textClass: "text-emerald-600 dark:text-emerald-400",
   },
   {
     title: "ফ্রী এক্সাম",
+    description: "সবার জন্য উন্মুক্ত টেস্ট",
     href: "/free-exam",
     icon: FileText,
     bgClass: "bg-violet-500/10 dark:bg-violet-500/20",
@@ -43,13 +40,23 @@ const services: readonly ServiceItem[] = [
   },
   {
     title: "প্রশ্ন ব্যাংক",
+    description: "বোর্ড ও ভার্সিটি সলভ",
     href: "/qb",
     icon: Star,
     bgClass: "bg-amber-500/10 dark:bg-amber-500/20",
     textClass: "text-amber-600 dark:text-amber-400",
   },
   {
+    title: "লাইভ পোল",
+    description: "এমসিকিউ কুইজ প্র্যাকটিস",
+    href: "/poll",
+    icon: Chart,
+    bgClass: "bg-blue-500/10 dark:bg-blue-500/20",
+    textClass: "text-blue-600 dark:text-blue-400",
+  },
+  {
     title: "সাজেশন পোর্টাল",
+    description: "এক্সক্লুসিভ পিডিএফ",
     href: "/pdf",
     icon: FileDown,
     bgClass: "bg-rose-500/10 dark:bg-rose-500/20",
@@ -59,30 +66,35 @@ const services: readonly ServiceItem[] = [
 
 export function ServicesGridSection() {
   return (
-    <section className="max-w-7xl mx-auto px-4 md:px-8 pt-12 w-full">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 w-full">
       <div className="text-center mb-10">
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-foreground mb-1">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight">
           এক নজরে সকল সার্ভিস
         </h2>
-        <div className="h-1.5 w-12 bg-primary mt-3 mx-auto rounded-full" />
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+          তোমার একাডেমিক ও এডমিশন জার্নিকে সহজ ও গোছানো করার ডিজিটাল টুলস
+        </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4 md:gap-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-5">
         {services.map((service) => {
           const Icon = service.icon;
 
           return (
             <Link key={service.title} href={service.href} className="group">
-              <Card className="flex flex-col items-center justify-center gap-2 md:gap-5 p-3 sm:p-5 md:p-8 bg-card border-border/70 rounded-2xl md:rounded-3xl shadow-xs group-hover:shadow-xl group-hover:border-primary transition-all group-hover:-translate-y-1 text-center cursor-pointer active:scale-98 overflow-hidden relative">
+              <Card className="h-full flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-card/90 hover:bg-card border-border/70 group-hover:border-primary/50 rounded-2xl sm:rounded-3xl shadow-2xs group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1 cursor-pointer active:scale-98 overflow-hidden relative">
                 <div
-                  className={`${service.bgClass} p-2 sm:p-4 md:p-5 rounded-xl md:rounded-2xl group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 transform group-hover:rotate-6 flex items-center justify-center shrink-0`}
+                  className={`${service.bgClass} p-3 sm:p-4 rounded-2xl group-hover:bg-primary transition-all duration-300 transform group-hover:scale-110 flex items-center justify-center shrink-0 mb-3`}
                 >
                   <Icon
-                    className={`${service.textClass} group-hover:text-primary-foreground transition-colors size-5 sm:size-7 md:size-9 shrink-0`}
+                    className={`${service.textClass} group-hover:text-primary-foreground transition-colors size-6 sm:size-7 shrink-0`}
                   />
                 </div>
-                <span className="text-[11px] sm:text-xs md:text-lg lg:text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight mb-1">
                   {service.title}
+                </h3>
+                <span className="text-[10px] sm:text-xs text-muted-foreground font-medium line-clamp-1">
+                  {service.description}
                 </span>
               </Card>
             </Link>

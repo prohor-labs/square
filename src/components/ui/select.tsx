@@ -5,7 +5,112 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "cn"
 import { CaretDownIcon, CheckIcon, CaretUpIcon } from "@phosphor-icons/react"
 
-const Select = SelectPrimitive.Root
+interface SelectContextValue {
+  itemMap: Map<any, React.ReactNode>
+  registerItem: (value: any, label: React.ReactNode) => void
+  unregisterItem: (value: any) => void
+}
+
+const SelectContext = React.createContext<SelectContextValue | null>(null)
+
+function extractItemsFromChildren(
+  children: React.ReactNode,
+  map: Map<any, React.ReactNode>
+) {
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+    const props = child.props as any
+    if (props) {
+      if (props.value !== undefined && props.children !== undefined) {
+        map.set(props.value, props.children)
+      }
+      if (props.children) {
+        extractItemsFromChildren(props.children, map)
+      }
+    }
+  })
+}
+
+export type SelectProps<Value = any, Multiple extends boolean | undefined = false> = Omit<
+  SelectPrimitive.Root.Props<Value, Multiple>,
+  "onValueChange" | "value"
+> & {
+  value?: any
+  onValueChange?: (value: any, eventDetails?: any) => void
+}
+
+function Select<Value = any, Multiple extends boolean | undefined = false>({
+  children,
+  items,
+  onValueChange,
+  ...props
+}: SelectProps<Value, Multiple>) {
+  const [dynamicMap, setDynamicMap] = React.useState<Map<any, React.ReactNode>>(
+    () => new Map()
+  )
+
+  // Statically parse children for item values and labels
+  const staticMap = React.useMemo(() => {
+    const map = new Map<any, React.ReactNode>()
+    extractItemsFromChildren(children, map)
+    if (items) {
+      if (Array.isArray(items)) {
+        items.forEach((it: any) => {
+          if (it && typeof it === "object" && "value" in it) {
+            map.set(it.value, it.label)
+          }
+        })
+      } else if (typeof items === "object") {
+        Object.entries(items).forEach(([k, v]) => {
+          map.set(k, v)
+        })
+      }
+    }
+    return map
+  }, [children, items])
+
+  const registerItem = React.useCallback((val: any, label: React.ReactNode) => {
+    setDynamicMap((prev) => {
+      if (prev.get(val) === label) return prev
+      const next = new Map(prev)
+      next.set(val, label)
+      return next
+    })
+  }, [])
+
+  const unregisterItem = React.useCallback((val: any) => {
+    setDynamicMap((prev) => {
+      if (!prev.has(val)) return prev
+      const next = new Map(prev)
+      next.delete(val)
+      return next
+    })
+  }, [])
+
+  const mergedMap = React.useMemo(() => {
+    const map = new Map(staticMap)
+    dynamicMap.forEach((v, k) => map.set(k, v))
+    return map
+  }, [staticMap, dynamicMap])
+
+  return (
+    <SelectContext.Provider
+      value={{
+        itemMap: mergedMap,
+        registerItem,
+        unregisterItem,
+      }}
+    >
+      <SelectPrimitive.Root
+        items={items}
+        onValueChange={onValueChange as any}
+        {...props}
+      >
+        {children}
+      </SelectPrimitive.Root>
+    </SelectContext.Provider>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -17,13 +122,38 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({
+  className,
+  placeholder,
+  children,
+  ...props
+}: SelectPrimitive.Value.Props) {
+  const ctx = React.useContext(SelectContext)
+
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
-      className={cn("flex flex-1 text-left", className)}
+      placeholder={placeholder}
+      className={cn("flex flex-1 text-left truncate", className)}
       {...props}
-    />
+    >
+      {(value: any) => {
+        if (typeof children === "function") {
+          return children(value)
+        }
+        if (children) {
+          return children
+        }
+        if (value === null || value === undefined || value === "") {
+          return placeholder ?? null
+        }
+        const label = ctx?.itemMap.get(value)
+        if (label !== undefined && label !== null) {
+          return label
+        }
+        return String(value)
+      }}
+    </SelectPrimitive.Value>
   )
 }
 
@@ -63,12 +193,15 @@ function SelectContent({
   align = "center",
   alignOffset = 0,
   alignItemWithTrigger = true,
+  position,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
-  >) {
+  > & {
+    position?: string
+  }) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Positioner
@@ -110,11 +243,22 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  value,
   ...props
 }: SelectPrimitive.Item.Props) {
+  const ctx = React.useContext(SelectContext)
+
+  React.useEffect(() => {
+    if (ctx && value !== undefined) {
+      ctx.registerItem(value, children)
+      return () => ctx.unregisterItem(value)
+    }
+  }, [ctx, value, children])
+
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      value={value}
       className={cn(
         "relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className

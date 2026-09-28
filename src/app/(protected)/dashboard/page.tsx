@@ -4,38 +4,50 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight2,
+  Award,
   BookOpen,
+  CalendarTick,
+  Clock,
+  DocumentDownload,
+  FileText,
+  Flame,
   Lock,
+  Star,
   TaskSquare,
+  Teacher,
+  TickCircle,
+  Trophy,
+  User,
 } from "@/components/icons";
+import { CourseCard } from "@/components/shared/course-card";
+import { ExamCard } from "@/components/shared/exam-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
 import { db } from "@/db";
 import {
   batchEnrollments,
   batchExams,
   batchMembers,
   batches,
+  examSubmissions,
   exams,
 } from "@/db/schema";
 import { getUserQbContainers } from "@/lib/actions/qb-access";
 import { auth } from "@/lib/auth";
-
-
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const user = session?.user;
   const userId = user?.id;
 
-  // 1. Fetch Question Banks with real access status (only show accessible ones)
+  // 1. Fetch Question Banks with real access status
   const userContainers = await getUserQbContainers(userId);
   const displayContainers = userContainers
     .filter((c) => c.hasAccess || c.isAdmin)
     .slice(0, 4);
 
-  // 2. Fetch User's Enrolled Batches (from both active enrollments & batch memberships)
+  // 2. Fetch User's Enrolled Batches
   let userEnrolledBatchIds: string[] = [];
   let userEnrolledCourses: (typeof batches.$inferSelect)[] = [];
 
@@ -50,8 +62,8 @@ export default async function DashboardPage() {
         .where(
           and(
             eq(batchEnrollments.userId, userId),
-            eq(batchEnrollments.status, "active"),
-          ),
+            eq(batchEnrollments.status, "active")
+          )
         ),
       db
         .select({
@@ -62,8 +74,8 @@ export default async function DashboardPage() {
         .where(
           and(
             eq(batchMembers.userId, userId),
-            eq(batchMembers.status, "active"),
-          ),
+            eq(batchMembers.status, "active")
+          )
         ),
     ]);
 
@@ -79,7 +91,17 @@ export default async function DashboardPage() {
     userEnrolledBatchIds = Array.from(courseMap.keys());
   }
 
-  // 3. If user has no enrollments, fetch popular batches to show
+  // 3. User stats & submissions count
+  let userSubmissionsCount = 0;
+  if (userId) {
+    const userSubmissions = await db
+      .select({ id: examSubmissions.id })
+      .from(examSubmissions)
+      .where(eq(examSubmissions.userId, userId));
+    userSubmissionsCount = userSubmissions.length;
+  }
+
+  // 4. Featured / Enrolled Courses
   const featuredCourses =
     userEnrolledCourses.length > 0
       ? userEnrolledCourses.slice(0, 3)
@@ -89,7 +111,7 @@ export default async function DashboardPage() {
           .where(eq(batches.isPublished, true))
           .limit(3);
 
-  // 4. Fetch Upcoming / Live Exams (Only for user's enrolled batches; if not enrolled in any course, do NOT show course batch exams)
+  // 5. Fetch Upcoming / Live Exams
   let liveExams: (typeof exams.$inferSelect)[] = [];
   if (userEnrolledBatchIds.length > 0) {
     const studentBatchExams = await db.query.batchExams.findMany({
@@ -104,7 +126,6 @@ export default async function DashboardPage() {
       .map((be) => be.exam)
       .filter((e): e is typeof exams.$inferSelect => Boolean(e && e.isPublished));
   } else {
-    // If student is NOT enrolled in any course, only show standalone public practice exams that are NOT assigned to any batch
     const allAssignedBatchExams = await db
       .select({ examId: batchExams.examId })
       .from(batchExams);
@@ -126,186 +147,144 @@ export default async function DashboardPage() {
     const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
     return String(str).replace(
       /[0-9]/g,
-      (digit) => bnDigits[Number(digit)] || digit,
+      (digit) => bnDigits[Number(digit)] || digit
     );
   };
 
-  return (
-    <div className="flex flex-col w-full max-w-7xl mx-auto pb-16 pt-1 sm:pt-4 md:py-6 gap-6 sm:gap-8 px-2 sm:px-4 md:px-6">
+  const studentName = user?.name?.split(" ")[0] || "শিক্ষার্থী";
 
+  return (
+    <div className="flex flex-col w-full max-w-7xl mx-auto pb-16 pt-2 sm:pt-4 md:py-6 gap-9 px-3 sm:px-6">
       {/* ─── Live / Active Exams Section ───────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-lg font-bold text-foreground">
-              চলমান পরীক্ষাসমূহ
-            </h2>
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            </span>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                চলমান পরীক্ষাসমূহ
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                তোমার জন্য নির্ধারিত লাইভ এবং প্র্যাকটিস টেস্টসমূহ
+              </p>
+            </div>
           </div>
           <Link
             href="/exams"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            className="text-xs sm:text-sm font-bold text-primary hover:underline flex items-center gap-1 group shrink-0"
           >
-            সকল পরীক্ষা <ArrowRight2 className="size-3" />
+            <span>সকল পরীক্ষা</span>
+            <ArrowRight2 className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch">
           {liveExams.length === 0 ? (
-            <div className="col-span-full p-8 text-center rounded-2xl border border-dashed border-border/80 bg-muted/20 text-muted-foreground text-xs">
-              বর্তমানে কোনো প্রকাশিত পরীক্ষা নেই
+            <div className="col-span-full p-10 text-center rounded-3xl border border-dashed border-border/80 bg-card/50 text-muted-foreground text-xs sm:text-sm">
+              বর্তমানে কোনো প্রকাশিত পরীক্ষা নেই। নতুন পরীক্ষা খুব শীঘ্রই যুক্ত হবে।
             </div>
           ) : (
             liveExams.map((exam) => (
-              <div
-                key={exam.id}
-                className="p-4 sm:p-5 rounded-2xl border border-border/70 bg-card hover:border-primary/40 transition-all shadow-2xs flex flex-col justify-between gap-4"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary">
-                      {exam.type === "practice" ? "প্র্যাকটিস" : "মডেল টেস্ট"}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      সময়: {toBanglaDigits(exam.durationMinutes)} মিনিট
-                    </span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
-                    {exam.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    মোট মার্কস: {toBanglaDigits(exam.totalMarks)} • নেগেটিভ:{" "}
-                    {toBanglaDigits(exam.negativeMarking)}
-                  </p>
-                </div>
-
-                <Button
-                  asChild
-                  size="sm"
-                  className="rounded-xl font-bold text-xs h-9 px-4 w-full shadow-xs"
-                >
-                  <Link href={`/exams/${exam.slug}`}>অংশ নিন</Link>
-                </Button>
-              </div>
+              <ExamCard key={exam.id} exam={exam} />
             ))
           )}
         </div>
-      </div>
+      </section>
 
       {/* ─── Courses Section ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
-              {userEnrolledCourses.length > 0
-                ? "আমার কোর্সসমূহ"
-                : "জনপ্রিয় ও প্রস্তাবিত কোর্স"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {userEnrolledCourses.length > 0
-                ? "চলমান কোর্সের ক্লাসে অংশগ্রহণ করুন"
-                : "আপনার একাডেমিক ও এডমিশন প্রস্তুতির কোর্সসমূহ"}
-            </p>
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <BookOpen className="size-4" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                {userEnrolledCourses.length > 0
+                  ? "আমার কোর্সসমূহ"
+                  : "জনপ্রিয় ও প্রস্তাবিত কোর্স"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {userEnrolledCourses.length > 0
+                  ? "চলমান কোর্সের ক্লাসে অংশগ্রহণ ও রুটিন দেখুন"
+                  : "তোমার পছন্দের ব্যাচে যুক্ত হয়ে সম্পূর্ণ প্রস্তুতি শুরু করো"}
+              </p>
+            </div>
           </div>
           <Link
-            href={userEnrolledCourses.length > 0 ? "/my-courses" : "/#courses-section"}
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            href={
+              userEnrolledCourses.length > 0
+                ? "/my-courses"
+                : "/#courses-section"
+            }
+            className="text-xs sm:text-sm font-bold text-primary hover:underline flex items-center gap-1 group shrink-0"
           >
-            সকল কোর্স <ArrowRight2 className="size-3" />
+            <span>{userEnrolledCourses.length > 0 ? "সকল কোর্স" : "কোর্স ভিউ"}</span>
+            <ArrowRight2 className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {featuredCourses.map((batch) => (
-            <Card
-              key={batch.id}
-              className="bg-card rounded-[22px] overflow-hidden border border-border/70 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between p-0 group"
-            >
-              <div className="relative aspect-video overflow-hidden bg-muted">
-                <Image
-                  alt={batch.name}
-                  className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  src={batch.image || "/images/image.png"}
-                  width={500}
-                  height={280}
-                  unoptimized
-                />
-              </div>
-
-              <div className="p-5 flex-1 flex flex-col justify-between gap-4">
-                <div>
-                  <span className="text-[11px] font-semibold text-primary uppercase tracking-wider block mb-1">
-                    ব্যাচ: {batch.hscBatch}
-                  </span>
-                  <h3 className="text-sm sm:text-base font-extrabold text-foreground line-clamp-2 leading-snug">
-                    {batch.name}
-                  </h3>
-                </div>
-
-                <div className="pt-2 border-t flex items-center justify-between">
-                  <span className="text-base font-black text-foreground">
-                    ৳{toBanglaDigits(batch.price)}
-                  </span>
-                  <Button
-                    asChild
-                    size="sm"
-                    className="rounded-xl font-bold text-xs h-8.5 px-4 shadow-xs"
-                  >
-                    <Link
-                      href={
-                        userEnrolledCourses.some((c) => c.id === batch.id)
-                          ? `/my-courses/${batch.id}`
-                          : `/courses/${batch.slug}`
-                      }
-                    >
-                      {userEnrolledCourses.some((c) => c.id === batch.id)
-                        ? "কোর্সে প্রবেশ"
-                        : "বিস্তারিত দেখুন"}
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {featuredCourses.map((batch) => {
+            const isEnrolled = userEnrolledCourses.some((c) => c.id === batch.id);
+            return (
+              <CourseCard
+                key={batch.id}
+                course={batch as any}
+                isEnrolled={isEnrolled}
+                enrollmentHref={`/my-courses/${batch.id}`}
+              />
+            );
+          })}
         </div>
-      </div>
+      </section>
 
       {/* ─── Question Banks Quick Selector ────────────────────────────────────── */}
       {displayContainers.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
-                প্রশ্নব্যাংক সংকলন
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                অধ্যায় ও টপিকভিত্তিক প্রশ্ন সরাসরি সমাধান করুন
-              </p>
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <TaskSquare className="size-4" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                  প্রশ্নব্যাংক সংকলন
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  অধ্যায় ও টপিকভিত্তিক প্রশ্ন সরাসরি সমাধান ও প্র্যাকটিস করুন
+                </p>
+              </div>
             </div>
             <Link
               href="/qb"
-              className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+              className="text-xs sm:text-sm font-bold text-primary hover:underline flex items-center gap-1 group shrink-0"
             >
-              সকল প্রশ্নব্যাংক <ArrowRight2 className="size-3" />
+              <span>সকল প্রশ্নব্যাংক</span>
+              <ArrowRight2 className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-5">
             {displayContainers.map((qb) => (
               <Link href={`/qb/${qb.slug}`} key={qb.id} className="group">
-                <div className="rounded-2xl p-4 md:p-5 border transition-all text-center flex flex-col items-center justify-center min-h-[105px] gap-1.5 border-border/70 bg-card hover:border-primary/50 shadow-2xs hover:shadow-md">
-                  <div className="size-8 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform bg-primary/10 text-primary">
-                    <TaskSquare className="size-4" />
+                <Card className="rounded-3xl p-5 sm:p-6 border border-border/80 bg-card hover:border-primary/50 shadow-2xs hover:shadow-md transition-all duration-300 text-center flex flex-col items-center justify-center min-h-[130px] gap-3 cursor-pointer group-hover:-translate-y-1">
+                  <div className="size-12 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform bg-primary/10 text-primary border border-primary/15 shadow-2xs">
+                    <TaskSquare className="size-6" />
                   </div>
-                  <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                  <span className="font-extrabold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">
                     {qb.title}
                   </span>
-                </div>
+                </Card>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
 }
+

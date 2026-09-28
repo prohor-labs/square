@@ -1,23 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  ArrowRight2,
-  Calendar,
-  Clock,
-  DocumentDownload,
-  Flame,
-  Information,
-  Star,
-  Teacher,
-  TickCircle,
-} from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useState } from "react";
+import { Flame, Star } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { CourseCard } from "@/components/shared/course-card";
+import { CustomTabBar } from "@/components/shared/custom-tab-bar";
 import { getCourses } from "@/lib/actions/course";
 
 type CourseItem = {
@@ -46,21 +36,69 @@ type CourseItem = {
 };
 
 export function CoursesPricingSection() {
-  const [selectedBatch, setSelectedBatch] = useState<
-    "HSC 26" | "HSC 27" | "Admission"
-  >("HSC 26");
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [coursesList, setCoursesList] = useState<readonly CourseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadCourses() {
       setIsLoading(true);
-      const data = await getCourses(selectedBatch);
+      const data = await getCourses();
       setCoursesList(data as any);
       setIsLoading(false);
     }
     loadCourses();
-  }, [selectedBatch]);
+  }, []);
+
+  const toBanglaDigits = (str: string | number) => {
+    const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+    return String(str).replace(
+      /[0-9]/g,
+      (digit) => bnDigits[Number(digit)] || digit
+    );
+  };
+
+  const countHsc26 = coursesList.filter((c) => (c.hscBatch || "").includes("26")).length;
+  const countHsc27 = coursesList.filter((c) => (c.hscBatch || "").includes("27")).length;
+  const countAdmission = coursesList.filter((c) => {
+    const b = (c.hscBatch || "").toLowerCase();
+    const t = (c.name || c.title || "").toLowerCase();
+    return b.includes("admission") || t.includes("admission") || t.includes("এডমিশন");
+  }).length;
+
+  const tabs = [
+    { id: "all", label: "সকল কোর্স", count: coursesList.length },
+    { id: "HSC 26", label: "HSC 26", count: countHsc26 },
+    { id: "HSC 27", label: "HSC 27", count: countHsc27 },
+    { id: "Admission", label: "এডমিশন", count: countAdmission },
+  ];
+
+  const filteredCourses = useMemo(() => {
+    return coursesList.filter((course) => {
+      // Tab matching
+      if (activeTab === "HSC 26") {
+        if (!(course.hscBatch || "").includes("26")) return false;
+      } else if (activeTab === "HSC 27") {
+        if (!(course.hscBatch || "").includes("27")) return false;
+      } else if (activeTab === "Admission") {
+        const b = (course.hscBatch || "").toLowerCase();
+        const t = (course.name || course.title || "").toLowerCase();
+        if (!b.includes("admission") && !t.includes("admission") && !t.includes("এডমিশন")) {
+          return false;
+        }
+      }
+
+      // Search matching
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) return true;
+      const title = (course.name || course.title || "").toLowerCase();
+      const subtitle = (course.subtitle || "").toLowerCase();
+      const desc = (course.description || "").toLowerCase();
+      const batch = (course.hscBatch || "").toLowerCase();
+      return title.includes(query) || subtitle.includes(query) || desc.includes(query) || batch.includes(query);
+    });
+  }, [coursesList, activeTab, searchQuery]);
 
   return (
     <section
@@ -70,39 +108,27 @@ export function CoursesPricingSection() {
       {/* Background soft glow accents */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/5 blur-[120px] pointer-events-none -z-10" />
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="text-center space-y-2">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground tracking-tight">
             আমাদের এক্সক্লুসিভ কোর্সসমূহ
           </h2>
-          <p className="text-sm md:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
+          <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
             দেশের শীর্ষ মেন্টরদের তত্ত্বাবধানে সাজানো সেরা এক্সাম ও একাডেমিক কোর্স
           </p>
-
-          {/* Batch Selector Tabs */}
-          <div className="flex justify-center mt-8">
-            <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-muted/80 dark:bg-muted/40 border border-border/60 backdrop-blur-md shadow-xs">
-              {(["HSC 26", "HSC 27", "Admission"] as const).map((batch) => {
-                const isSelected = selectedBatch === batch;
-                return (
-                  <button
-                    key={batch}
-                    type="button"
-                    onClick={() => setSelectedBatch(batch)}
-                    className={`px-5 sm:px-7 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? "bg-background text-foreground shadow-sm border border-border/40"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    }`}
-                  >
-                    {batch}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
+
+        {/* Custom Tab Bar Filter */}
+        <CustomTabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          searchPlaceholder="কোর্স খুঁজুন..."
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          toBanglaDigits={toBanglaDigits}
+        />
 
         {/* Courses Listing Content */}
         {isLoading ? (
@@ -110,189 +136,14 @@ export function CoursesPricingSection() {
             <Spinner className="size-8 text-primary" />
             <span className="text-sm font-medium">কোর্সসমূহ লোড হচ্ছে...</span>
           </div>
-        ) : coursesList.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-            {coursesList.map((course) => {
-              const displayTitle = course.name || course.title || "কোর্স";
-              const discountPercent =
-                course.originalPrice && course.originalPrice > course.price
-                  ? Math.round(
-                      ((course.originalPrice - course.price) /
-                        course.originalPrice) *
-                        100
-                    )
-                  : null;
-              const hasDiscount = Boolean(discountPercent && discountPercent > 0);
-              const topFeatures = (course.features || []).slice(0, 3);
-              const leadInstructor = course.instructors?.[0];
-
-              return (
-                <Card
-                  key={course.slug}
-                  className="group relative bg-card/95 hover:bg-card border border-border/70 hover:border-primary/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between p-0"
-                >
-                  {/* Card Media Header */}
-                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                    <Image
-                      alt={displayTitle}
-                      className="size-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      src={course.image || "/images/image.png"}
-                      width={600}
-                      height={338}
-                      unoptimized
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
-
-                    {/* Top Badges */}
-                    <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 pointer-events-none">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold bg-primary text-primary-foreground px-3 py-1 rounded-full shadow-md backdrop-blur-md">
-                        {course.badge || "স্পেশাল ব্যাচ"}
-                      </span>
-
-                      {hasDiscount && (
-                        <span className="text-[11px] font-extrabold bg-rose-500 text-white px-2.5 py-1 rounded-full shadow-md">
-                          {discountPercent}% ছাড়
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Bottom Metadata inside Image */}
-                    <div className="absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between text-white text-xs font-semibold pointer-events-none">
-                      <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15">
-                        <Clock className="size-3.5 text-primary" />
-                        <span className="text-[11px]">
-                          {course.duration || "১ বছর এক্সেস"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15 text-amber-400">
-                        <Star className="size-3.5 fill-current" />
-                        <span className="text-[11px] font-bold">
-                          {course.rating || "5.0"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Content Body */}
-                  <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between gap-5">
-                    <div className="space-y-3.5">
-                      {/* Course Title */}
-                      <Link href={`/courses/${course.slug}`}>
-                        <h3 className="text-lg sm:text-xl font-extrabold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-                          {displayTitle}
-                        </h3>
-                      </Link>
-
-                      {/* Instructor Tag */}
-                      {leadInstructor && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Teacher className="size-3.5" />
-                          </div>
-                          <span className="font-semibold text-foreground/80 truncate">
-                            {leadInstructor.name}
-                            {leadInstructor.institution && (
-                              <span className="text-muted-foreground font-normal">
-                                {" "}
-                                • {leadInstructor.institution}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Feature Highlights Pills */}
-                      {topFeatures.length > 0 && (
-                        <div className="space-y-1.5 pt-1">
-                          {topFeatures.map((feat, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2 text-xs text-muted-foreground"
-                            >
-                              <TickCircle className="size-3.5 text-emerald-500 shrink-0" />
-                              <span className="truncate">{feat}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Price & Action Section */}
-                    <div className="space-y-3 pt-3 border-t border-border/50">
-                      {/* Price Strip */}
-                      <div className="flex items-baseline justify-between">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-black text-foreground">
-                            {course.price === 0 ? "ফ্রী" : `৳${course.price}`}
-                          </span>
-                          {course.originalPrice &&
-                            course.originalPrice > course.price && (
-                              <span className="text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground/60">
-                                ৳{course.originalPrice}
-                              </span>
-                            )}
-                        </div>
-                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider bg-muted px-2.5 py-0.5 rounded-md">
-                          এককালীন ফি
-                        </span>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="space-y-2">
-                        <Button
-                          render={<Link href={`/courses/${course.slug}`} />}
-                          className="w-full bg-primary text-primary-foreground py-2.5 h-auto rounded-xl font-bold text-sm hover:bg-primary/90 transition-all text-center shadow-xs hover:shadow-md cursor-pointer group/btn flex items-center justify-center gap-1.5"
-                        >
-                          <span>এনরোল করুন</span>
-                          <ArrowRight2 className="size-3.5 transition-transform group-hover/btn:translate-x-1" />
-                        </Button>
-
-                        {/* Secondary Actions (Routine & Details) */}
-                        <div className="grid grid-cols-2 gap-2.5 pt-1">
-                          {course.routinePdfUrl ? (
-                            <Link
-                              href={course.routinePdfUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group/routine inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/90 hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-400 text-foreground/80 font-bold text-xs transition-all duration-200 active:scale-[0.98] shadow-2xs"
-                            >
-                              <span className="size-5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover/routine:scale-110 group-hover/routine:bg-indigo-500 group-hover/routine:text-white transition-all duration-200 shrink-0">
-                                <Calendar className="size-3" />
-                              </span>
-                              <span>রুটিন</span>
-                            </Link>
-                          ) : (
-                            <Link
-                              href={`/courses/${course.slug}`}
-                              className="group/routine inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/90 hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-400 text-foreground/80 font-bold text-xs transition-all duration-200 active:scale-[0.98] shadow-2xs"
-                            >
-                              <span className="size-5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover/routine:scale-110 group-hover/routine:bg-indigo-500 group-hover/routine:text-white transition-all duration-200 shrink-0">
-                                <Calendar className="size-3" />
-                              </span>
-                              <span>রুটিন</span>
-                            </Link>
-                          )}
-
-                          <Link
-                            href={`/courses/${course.slug}`}
-                            className="group/details inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/90 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-blue-400 text-foreground/80 font-bold text-xs transition-all duration-200 active:scale-[0.98] shadow-2xs"
-                          >
-                            <span className="size-5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover/details:scale-110 group-hover/details:bg-blue-500 group-hover/details:text-white transition-all duration-200 shrink-0">
-                              <Information className="size-3" />
-                            </span>
-                            <span>বিস্তারিত</span>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+        ) : filteredCourses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch animate-in fade-in duration-200">
+            {filteredCourses.map((course) => (
+              <CourseCard key={course.slug || course.id} course={course} />
+            ))}
           </div>
-        ) : selectedBatch === "HSC 27" ? (
-          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs max-w-xl mx-auto">
+        ) : activeTab === "HSC 27" ? (
+          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs max-w-xl mx-auto animate-in fade-in duration-200">
             <div className="size-12 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
               <Flame className="size-6" />
             </div>
@@ -317,8 +168,8 @@ export function CoursesPricingSection() {
               <span>টেলিগ্রাম গ্রুপে যুক্ত হোন &rarr;</span>
             </Button>
           </Card>
-        ) : selectedBatch === "Admission" ? (
-          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs max-w-xl mx-auto">
+        ) : activeTab === "Admission" ? (
+          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs max-w-xl mx-auto animate-in fade-in duration-200">
             <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
               <Star className="size-6 fill-amber-500" />
             </div>
@@ -344,12 +195,16 @@ export function CoursesPricingSection() {
             </Button>
           </Card>
         ) : (
-          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs max-w-xl mx-auto">
+          <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs max-w-xl mx-auto animate-in fade-in duration-200">
             <h3 className="font-bold text-lg sm:text-xl text-foreground">
-              কোনো কোর্স পাওয়া যায়নি
+              {searchQuery
+                ? "আপনার অনুসন্ধান অনুযায়ী কোনো কোর্স পাওয়া যায়নি"
+                : "কোনো কোর্স পাওয়া যায়নি"}
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
-              এই ক্যাটাগরিতে বর্তমানে কোনো কোর্স যুক্ত করা হয়নি।
+              {searchQuery
+                ? "অনুগ্রহ করে অন্য কোনো নাম বা কিওয়ার্ড দিয়ে খুঁজুন।"
+                : "এই ক্যাটাগরিতে বর্তমানে কোনো কোর্স যুক্ত করা হয়নি।"}
             </p>
           </Card>
         )}
@@ -357,4 +212,5 @@ export function CoursesPricingSection() {
     </section>
   );
 }
+
 
