@@ -34,8 +34,6 @@ export async function getPollItemsAction(containerId?: string) {
   }
 }
 
-export const getPollSubjectsAction = getPollItemsAction;
-
 export async function getPollSubitemsAction(itemId: string, paper?: string) {
   try {
     const list = await db.query.subitems.findMany({

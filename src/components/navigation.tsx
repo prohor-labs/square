@@ -257,20 +257,22 @@ export function MobileBottomNav({ dict }: MobileBottomNavProps) {
         {/* 5th Tab: Udvash-style Three-Line Menu Trigger */}
         {moreNavItems.length > 0 && (
           <Drawer open={isMoreOpen} onOpenChange={setIsMoreOpen}>
-            <DrawerTrigger asChild>
-              <button
-                type="button"
-                className={`flex flex-1 flex-col items-center justify-center py-[7px] px-[2px] rounded-[18px] transition-all duration-200 outline-none cursor-pointer ${
-                  isMoreActive || isMoreOpen
-                    ? "bg-foreground text-background shadow-xs font-bold"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                <HambergerMenu size={22} className="mb-[3px]" />
-                <span className="text-[11px] tracking-tight whitespace-nowrap">
-                  মেনু
-                </span>
-              </button>
+            <DrawerTrigger
+              render={
+                <button
+                  type="button"
+                  className={`flex flex-1 flex-col items-center justify-center py-[7px] px-[2px] rounded-[18px] transition-all duration-200 outline-none cursor-pointer ${
+                    isMoreActive || isMoreOpen
+                      ? "bg-foreground text-background shadow-xs font-bold"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                />
+              }
+            >
+              <HambergerMenu size={22} className="mb-[3px]" />
+              <span className="text-[11px] tracking-tight whitespace-nowrap">
+                মেনু
+              </span>
             </DrawerTrigger>
 
             <DrawerContent className="px-4 sm:px-6 pb-8 pt-3 bg-card border-t border-border rounded-t-[28px] max-w-lg mx-auto">

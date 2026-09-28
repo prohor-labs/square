@@ -652,7 +652,7 @@ export function CourseClassroomView({
                 সাধারণ জিজ্ঞাসাসমূহ (FAQ)
               </h2>
               <div className="bg-card rounded-2xl p-4 sm:p-6 border border-border/60">
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion className="w-full">
                   {faqs.map((faq: any, idx: number) => (
                     <AccordionItem
                       key={faq.question}

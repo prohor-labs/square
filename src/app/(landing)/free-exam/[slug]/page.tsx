@@ -137,14 +137,12 @@ export default async function FreeExamOverviewPage({
               {/* View Leaderboard Link */}
               <div className="pt-2">
                 <Button
-                  asChild
+                  render={<Link href={`/free-exam/${exam.slug}/leaderboard`} />}
                   variant="outline"
                   className="w-full rounded-2xl font-bold text-xs h-10 border-border/80 gap-2 cursor-pointer"
                 >
-                  <Link href={`/free-exam/${exam.slug}/leaderboard`}>
-                    <Award className="size-4 text-amber-500" />
-                    <span>এই পরীক্ষার লাইভ লিডারবোর্ড দেখুন</span>
-                  </Link>
+                  <Award className="size-4 text-amber-500" />
+                  <span>এই পরীক্ষার লাইভ লিডারবোর্ড দেখুন</span>
                 </Button>
               </div>
             </div>

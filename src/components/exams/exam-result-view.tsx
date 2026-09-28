@@ -123,21 +123,17 @@ export function ExamResultView({ submission, slug }: ExamResultViewProps) {
         {/* Navigation & Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2 w-full max-w-md">
           <Button
-            asChild
+            render={<Link href={`/exams/${slug}/leaderboard`} />}
             variant="outline"
             className="flex-1 rounded-xl font-bold h-11 text-xs sm:text-sm"
           >
-            <Link href={`/exams/${slug}/leaderboard`}>
-              <StatusUp className="size-4 mr-2" /> লিডারবোর্ড দেখুন
-            </Link>
+            <StatusUp className="size-4 mr-2" /> লিডারবোর্ড দেখুন
           </Button>
           <Button
-            asChild
+            render={<Link href="/exams" />}
             className="flex-1 rounded-xl font-bold h-11 text-xs sm:text-sm shadow-xs"
           >
-            <Link href="/exams">
-              <ArrowLeft2 className="size-4 mr-2" /> সকল পরীক্ষা
-            </Link>
+            <ArrowLeft2 className="size-4 mr-2" /> সকল পরীক্ষা
           </Button>
         </div>
       </div>

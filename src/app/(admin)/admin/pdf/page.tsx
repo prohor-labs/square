@@ -293,15 +293,15 @@ export default function AdminPdfPage() {
                       size="sm"
                       variant="outline"
                       className="h-8 gap-1.5 text-xs rounded-lg"
-                      asChild
+                      render={
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
+                      }
                     >
-                      <a
-                        href={previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Export className="size-3.5" /> প্রিভিউ
-                      </a>
+                      <Export className="size-3.5" /> প্রিভিউ
                     </Button>
 
                     <DeleteConfirmDialog

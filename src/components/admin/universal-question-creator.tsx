@@ -433,15 +433,13 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2.5 sm:gap-3">
             <Button
-              asChild
+              render={<Link href="/admin/qb" />}
               variant="outline"
               size="icon"
               className="size-8 sm:size-9 rounded-xl shrink-0"
               title="প্রশ্নব্যাংক তালিকায় ফিরুন"
             >
-              <Link href="/admin/qb">
-                <ArrowLeft2 className="size-4" />
-              </Link>
+              <ArrowLeft2 className="size-4" />
             </Button>
             <div>
               <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
@@ -456,11 +454,14 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto pl-10 sm:pl-0">
-          <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 h-8 sm:h-9">
-            <Link href="/admin/qb">
-              <span>প্রশ্নব্যাংক তালিকা</span>
-              <ArrowLeft2 className="size-3.5 rotate-180" />
-            </Link>
+          <Button
+            render={<Link href="/admin/qb" />}
+            variant="outline"
+            size="sm"
+            className="rounded-xl text-xs font-bold gap-1.5 h-8 sm:h-9"
+          >
+            <span>প্রশ্নব্যাংক তালিকা</span>
+            <ArrowLeft2 className="size-3.5 rotate-180" />
           </Button>
         </div>
       </div>
@@ -530,17 +531,17 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
             </div>
           </div>
           <Button
-            asChild
+            render={
+              <Link
+                href={`/qb/${uploadedResult.containerSlug}/${uploadedResult.itemSlug}/${uploadedResult.yearSlug}`}
+                target="_blank"
+              />
+            }
             size="sm"
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shrink-0"
           >
-            <Link
-              href={`/qb/${uploadedResult.containerSlug}/${uploadedResult.itemSlug}/${uploadedResult.yearSlug}`}
-              target="_blank"
-            >
-              <span>প্রশ্নসমূহ দেখুন</span>
-              <ArrowLeft2 className="size-3.5 rotate-180" />
-            </Link>
+            <span>প্রশ্নসমূহ দেখুন</span>
+            <ArrowLeft2 className="size-3.5 rotate-180" />
           </Button>
         </div>
       )}

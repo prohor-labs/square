@@ -2,8 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  getPollItemsAction,
   getPollSubitemsAction,
-  getPollSubjectsAction,
   votePollAction,
 } from "@/lib/actions/poll";
 
@@ -11,7 +11,7 @@ export function usePollSubjects() {
   return useQuery({
     queryKey: ["pollSubjects"],
     queryFn: async () => {
-      return await getPollSubjectsAction();
+      return await getPollItemsAction();
     },
   });
 }

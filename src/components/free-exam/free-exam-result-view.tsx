@@ -81,13 +81,11 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
         </Link>
 
         <Button
-          asChild
+          render={<Link href={`/free-exam/${slug}/leaderboard`} />}
           className="rounded-2xl font-black text-xs h-10 px-5 bg-amber-500 text-white hover:bg-amber-600 shadow-md cursor-pointer gap-2"
         >
-          <Link href={`/free-exam/${slug}/leaderboard`}>
-            <Award className="size-4" />
-            <span>লাইভ লিডারবোর্ড দেখুন</span>
-          </Link>
+          <Award className="size-4" />
+          <span>লাইভ লিডারবোর্ড দেখুন</span>
         </Button>
       </div>
 
@@ -370,23 +368,19 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
       {/* Bottom Actions */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-6 border-t border-border">
         <Button
-          asChild
+          render={<Link href="/free-exam" />}
           variant="outline"
           className="rounded-2xl font-bold text-xs h-11 px-6 border-border/80 cursor-pointer"
         >
-          <Link href="/free-exam">
-            <span>সকল ফ্রি এক্সাম দেখুন</span>
-          </Link>
+          <span>সকল ফ্রি এক্সাম দেখুন</span>
         </Button>
 
         <Button
-          asChild
+          render={<Link href={`/free-exam/${slug}/leaderboard`} />}
           className="rounded-2xl font-black text-xs h-11 px-8 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer gap-2"
         >
-          <Link href={`/free-exam/${slug}/leaderboard`}>
-            <Award className="size-4" />
-            <span>লাইভ লিডারবোর্ড দেখুন</span>
-          </Link>
+          <Award className="size-4" />
+          <span>লাইভ লিডারবোর্ড দেখুন</span>
         </Button>
       </div>
     </div>

@@ -72,13 +72,11 @@ export function FreeExamLeaderboardView({
         </Link>
 
         <Button
-          asChild
+          render={<Link href={`/free-exam/${slug}`} />}
           className="rounded-2xl font-black text-xs h-10 px-6 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer gap-2"
         >
-          <Link href={`/free-exam/${slug}`}>
-            <Flash className="size-4" />
-            <span>নিজে পরীক্ষা দিন (ফ্রি)</span>
-          </Link>
+          <Flash className="size-4" />
+          <span>নিজে পরীক্ষা দিন (ফ্রি)</span>
         </Button>
       </div>
 

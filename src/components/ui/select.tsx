@@ -5,32 +5,6 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "cn"
 import { CaretDownIcon, CheckIcon, CaretUpIcon } from "@phosphor-icons/react"
 
-interface SelectContextValue {
-  itemMap: Map<any, React.ReactNode>
-  registerItem: (value: any, label: React.ReactNode) => void
-  unregisterItem: (value: any) => void
-}
-
-const SelectContext = React.createContext<SelectContextValue | null>(null)
-
-function extractItemsFromChildren(
-  children: React.ReactNode,
-  map: Map<any, React.ReactNode>
-) {
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return
-    const props = child.props as any
-    if (props) {
-      if (props.value !== undefined && props.children !== undefined) {
-        map.set(props.value, props.children)
-      }
-      if (props.children) {
-        extractItemsFromChildren(props.children, map)
-      }
-    }
-  })
-}
-
 export type SelectProps<Value = any, Multiple extends boolean | undefined = false> = Omit<
   SelectPrimitive.Root.Props<Value, Multiple>,
   "onValueChange" | "value"
@@ -39,76 +13,64 @@ export type SelectProps<Value = any, Multiple extends boolean | undefined = fals
   onValueChange?: (value: any, eventDetails?: any) => void
 }
 
+function extractItemsFromChildren(
+  children: React.ReactNode
+): Array<{ value: any; label: React.ReactNode }> {
+  const items: Array<{ value: any; label: React.ReactNode }> = []
+
+  function walk(node: React.ReactNode) {
+    if (!node) return
+
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        walk(child)
+      }
+      return
+    }
+
+    if (React.isValidElement(node)) {
+      const props = node.props as Record<string, any> | undefined
+      if (props) {
+        if ("value" in props && props.value !== undefined) {
+          items.push({
+            value: props.value,
+            label:
+              typeof props.children === "function"
+                ? String(props.value)
+                : (props.children ?? String(props.value)),
+          })
+        }
+        if (props.children && typeof props.children !== "function") {
+          walk(props.children)
+        }
+      }
+    }
+  }
+
+  walk(children)
+  return items
+}
+
 function Select<Value = any, Multiple extends boolean | undefined = false>({
   children,
   items,
   onValueChange,
   ...props
 }: SelectProps<Value, Multiple>) {
-  const [dynamicMap, setDynamicMap] = React.useState<Map<any, React.ReactNode>>(
-    () => new Map()
-  )
-
-  // Statically parse children for item values and labels
-  const staticMap = React.useMemo(() => {
-    const map = new Map<any, React.ReactNode>()
-    extractItemsFromChildren(children, map)
-    if (items) {
-      if (Array.isArray(items)) {
-        items.forEach((it: any) => {
-          if (it && typeof it === "object" && "value" in it) {
-            map.set(it.value, it.label)
-          }
-        })
-      } else if (typeof items === "object") {
-        Object.entries(items).forEach(([k, v]) => {
-          map.set(k, v)
-        })
-      }
-    }
-    return map
+  const derivedItems = React.useMemo(() => {
+    if (items) return items
+    const extracted = extractItemsFromChildren(children)
+    return extracted.length > 0 ? extracted : undefined
   }, [children, items])
 
-  const registerItem = React.useCallback((val: any, label: React.ReactNode) => {
-    setDynamicMap((prev) => {
-      if (prev.get(val) === label) return prev
-      const next = new Map(prev)
-      next.set(val, label)
-      return next
-    })
-  }, [])
-
-  const unregisterItem = React.useCallback((val: any) => {
-    setDynamicMap((prev) => {
-      if (!prev.has(val)) return prev
-      const next = new Map(prev)
-      next.delete(val)
-      return next
-    })
-  }, [])
-
-  const mergedMap = React.useMemo(() => {
-    const map = new Map(staticMap)
-    dynamicMap.forEach((v, k) => map.set(k, v))
-    return map
-  }, [staticMap, dynamicMap])
-
   return (
-    <SelectContext.Provider
-      value={{
-        itemMap: mergedMap,
-        registerItem,
-        unregisterItem,
-      }}
+    <SelectPrimitive.Root
+      items={derivedItems}
+      onValueChange={onValueChange as any}
+      {...props}
     >
-      <SelectPrimitive.Root
-        items={items}
-        onValueChange={onValueChange as any}
-        {...props}
-      >
-        {children}
-      </SelectPrimitive.Root>
-    </SelectContext.Provider>
+      {children}
+    </SelectPrimitive.Root>
   )
 }
 
@@ -128,8 +90,6 @@ function SelectValue({
   children,
   ...props
 }: SelectPrimitive.Value.Props) {
-  const ctx = React.useContext(SelectContext)
-
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
@@ -137,22 +97,7 @@ function SelectValue({
       className={cn("flex flex-1 text-left truncate", className)}
       {...props}
     >
-      {(value: any) => {
-        if (typeof children === "function") {
-          return children(value)
-        }
-        if (children) {
-          return children
-        }
-        if (value === null || value === undefined || value === "") {
-          return placeholder ?? null
-        }
-        const label = ctx?.itemMap.get(value)
-        if (label !== undefined && label !== null) {
-          return label
-        }
-        return String(value)
-      }}
+      {children}
     </SelectPrimitive.Value>
   )
 }
@@ -246,15 +191,6 @@ function SelectItem({
   value,
   ...props
 }: SelectPrimitive.Item.Props) {
-  const ctx = React.useContext(SelectContext)
-
-  React.useEffect(() => {
-    if (ctx && value !== undefined) {
-      ctx.registerItem(value, children)
-      return () => ctx.unregisterItem(value)
-    }
-  }, [ctx, value, children])
-
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -305,8 +241,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <CaretUpIcon
-      />
+      <CaretUpIcon />
     </SelectPrimitive.ScrollUpArrow>
   )
 }
@@ -324,8 +259,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <CaretDownIcon
-      />
+      <CaretDownIcon />
     </SelectPrimitive.ScrollDownArrow>
   )
 }

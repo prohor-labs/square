@@ -23,8 +23,8 @@ export default function NotFound() {
               </p>
             </div>
 
-            <Button asChild size="lg" className="mt-2">
-              <Link href="/">Return Home</Link>
+            <Button render={<Link href="/" />} size="lg" className="mt-2">
+              Return Home
             </Button>
           </div>
         </main>

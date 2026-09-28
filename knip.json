@@ -1,0 +1,40 @@
+{
+  "$schema": "https://unpkg.com/knip@5/overview/configuration-types.json",
+  "entry": [
+    "src/app/**/{page,layout,loading,error,not-found,global-error,route,template,default}.{js,jsx,ts,tsx}",
+    "src/app/api/**/*.{js,ts}",
+    "src/scripts/**/*.{js,ts}"
+  ],
+  "project": [
+    "src/**/*.{js,jsx,ts,tsx}",
+    "src/app/globals.css"
+  ],
+  "ignore": [
+    "src/components/ui/**",
+    "src/components/admin/admin-qb-manager.tsx",
+    "src/components/admin/admin-sidebar.tsx",
+    "src/components/cobe-globe.tsx",
+    "src/components/examples/**",
+    "src/components/feature-section.tsx",
+    "src/components/theme-toggler.tsx",
+    "src/hooks/**",
+    "src/lib/actions/user.ts",
+    "src/lib/routine.ts"
+  ],
+  "ignoreDependencies": [
+    "cobe",
+    "embla-carousel-react",
+    "input-otp",
+    "react-day-picker",
+    "react-resizable-panels",
+    "recharts",
+    "vaul",
+    "@shadcn/react",
+    "radix-ui",
+    "cmdk"
+  ],
+  "rules": {
+    "types": "off",
+    "exports": "off"
+  }
+}

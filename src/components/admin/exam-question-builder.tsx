@@ -347,11 +347,11 @@ export function ExamQuestionBuilder({
           </Button>
 
           <Button
-            asChild
+            render={<Link href="/admin/exams" />}
             variant="secondary"
             className="rounded-xl font-bold text-xs h-9 sm:h-10"
           >
-            <Link href="/admin/exams">সম্পন্ন</Link>
+            সম্পন্ন
           </Button>
         </div>
       </div>

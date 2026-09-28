@@ -267,7 +267,7 @@ export function UniversalQuestionCard({
       {/* CQ Parts */}
       {type === "cq" && (question.cq_parts || question.cqParts) && (
         <Accordion
-          type="multiple"
+          multiple
           defaultValue={
             showCorrectAnswer || isSolutionOpen
               ? ((question.cq_parts || question.cqParts) ?? []).map(

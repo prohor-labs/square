@@ -118,13 +118,11 @@ export function AdminContainersManager({
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <Button
-            asChild
+            render={<Link href="/admin/qb/add-question" />}
             className="rounded-xl gap-1.5 font-bold shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer text-xs h-10 px-4"
           >
-            <Link href="/admin/qb/add-question">
-              <Flash className="size-4" />
-              <span>এক পেজে প্রশ্ন আপলোড</span>
-            </Link>
+            <Flash className="size-4" />
+            <span>এক পেজে প্রশ্ন আপলোড</span>
           </Button>
 
           <Button
