@@ -272,9 +272,13 @@ export function CourseClassroomView({
                           {examTypeLabel}
                         </span>
                         <span className="text-xs text-muted-foreground font-medium">
-                          {be.startsAt
-                            ? `শুরু: ${formatBanglaDateTime(be.startsAt)}`
-                            : "যেকোনো সময়"}
+                          {be.startsAt && be.endsAt
+                            ? `${formatBanglaDateTime(be.startsAt)} — ${formatBanglaDateTime(be.endsAt)}`
+                            : be.startsAt
+                              ? `শুরু: ${formatBanglaDateTime(be.startsAt)}`
+                              : be.endsAt
+                                ? `শেষ: ${formatBanglaDateTime(be.endsAt)}`
+                                : "যেকোনো সময়"}
                         </span>
                       </div>
 

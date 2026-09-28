@@ -30,13 +30,11 @@ export default async function DashboardPage() {
   const user = session?.user;
   const userId = user?.id;
 
-  // 1. Fetch Question Banks with real access status
+  // 1. Fetch Question Banks with real access status (only show accessible ones)
   const userContainers = await getUserQbContainers(userId);
-  const accessibleContainers = userContainers.filter((c) => c.hasAccess);
-  const displayContainers =
-    accessibleContainers.length > 0
-      ? accessibleContainers.slice(0, 4)
-      : userContainers.slice(0, 4);
+  const displayContainers = userContainers
+    .filter((c) => c.hasAccess || c.isAdmin)
+    .slice(0, 4);
 
   // 2. Fetch User's Enrolled Batches (from both active enrollments & batch memberships)
   let userEnrolledBatchIds: string[] = [];
@@ -296,25 +294,9 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             {displayContainers.map((qb) => (
               <Link href={`/qb/${qb.slug}`} key={qb.id} className="group">
-                <div
-                  className={`rounded-2xl p-4 md:p-5 border transition-all text-center flex flex-col items-center justify-center min-h-[105px] gap-1.5 ${
-                    qb.hasAccess
-                      ? "border-border/70 bg-card hover:border-primary/50 shadow-2xs hover:shadow-md"
-                      : "border-dashed border-border/80 bg-muted/20 opacity-80 hover:opacity-100"
-                  }`}
-                >
-                  <div
-                    className={`size-8 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${
-                      qb.hasAccess
-                        ? "bg-primary/10 text-primary"
-                        : "bg-amber-500/10 text-amber-600"
-                    }`}
-                  >
-                    {qb.hasAccess ? (
-                      <TaskSquare className="size-4" />
-                    ) : (
-                      <Lock className="size-4" />
-                    )}
+                <div className="rounded-2xl p-4 md:p-5 border transition-all text-center flex flex-col items-center justify-center min-h-[105px] gap-1.5 border-border/70 bg-card hover:border-primary/50 shadow-2xs hover:shadow-md">
+                  <div className="size-8 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform bg-primary/10 text-primary">
+                    <TaskSquare className="size-4" />
                   </div>
                   <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">
                     {qb.title}
