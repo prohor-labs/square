@@ -118,6 +118,8 @@ export default function PollTakePage() {
           questionIndex={currentQuestionIndex}
           selectedOptionId={selectedOptId}
           onSelectOption={handleSelectAnswer}
+          hideExplanation={true}
+          hideControls={true}
         />
       </div>
     </div>
