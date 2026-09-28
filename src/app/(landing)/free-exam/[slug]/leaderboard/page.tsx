@@ -4,7 +4,6 @@ import { FreeExamLeaderboardView } from "@/components/free-exam/free-exam-leader
 import { LandingFooter, LandingHeader } from "@/components/landing-nav";
 import { getFreeExamLeaderboardAction } from "@/lib/actions/free-exam";
 
-export const dynamic = "force-dynamic";
 
 interface FreeExamLeaderboardPageProps {
   readonly params: Promise<{ readonly slug: string }>;

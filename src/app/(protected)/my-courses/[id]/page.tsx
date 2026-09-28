@@ -8,7 +8,6 @@ import { getUserCourseById } from "@/lib/actions/course";
 import { getBatchClassroomData } from "@/lib/actions/course-content";
 import { auth } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
 
 interface CourseDetailPageProps {
   params: Promise<{ id: string }>;

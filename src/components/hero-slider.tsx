@@ -49,7 +49,7 @@ export function HeroSlider({ slides }: { slides?: SliderItem[] }) {
   return (
     <section
       className="relative overflow-hidden w-full bg-black group"
-      style={{ aspectRatio: "16 / 9", maxHeight: "500px" }}
+      style={{ aspectRatio: "16 / 9" }}
     >
       <div className="relative w-full h-full">
         {sliderImages.map((slide, index) => {

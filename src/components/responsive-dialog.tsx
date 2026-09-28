@@ -57,7 +57,7 @@ export function ResponsiveDialog({
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
+        {trigger && <DrawerTrigger render={trigger as any} />}
         <DrawerContent className={cn("max-h-[92vh] flex flex-col", className)}>
           <div className="overflow-y-auto flex flex-col gap-5 px-6 pb-8 pt-4">
             {(title || description) && (
@@ -77,7 +77,7 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger render={trigger as any} />}
       <DialogContent
         className={cn(
           "sm:rounded-2xl max-h-[90vh] p-0 flex flex-col",

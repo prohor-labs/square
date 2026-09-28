@@ -4,7 +4,6 @@ import {
   getRecentUploadedQuestions,
 } from "@/lib/actions/universal-qb";
 
-export const dynamic = "force-dynamic";
 
 export default async function AdminAddQuestionPage() {
   const [hierarchy, recentQuestions] = await Promise.all([

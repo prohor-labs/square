@@ -4,7 +4,6 @@ import { LandingFooter, LandingHeader } from "@/components/landing-nav";
 import { FreeExamsClientView } from "@/components/free-exam/free-exams-client-view";
 import { getPublicFreeExamsListAction } from "@/lib/actions/free-exam";
 
-export const dynamic = "force-dynamic";
 
 export default async function FreeExamsPortalPage(): Promise<ReactElement> {
   const { data: examsList = [] } = await getPublicFreeExamsListAction();

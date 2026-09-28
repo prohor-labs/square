@@ -5,7 +5,6 @@ import { Lock, TickCircle } from "@/components/icons";
 import { getUserQbContainers } from "@/lib/actions/qb-access";
 import { auth } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
 
 export default async function QuestionBankPage(): Promise<ReactElement> {
   const session = await auth.api.getSession({ headers: await headers() });

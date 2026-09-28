@@ -26,7 +26,6 @@ import {
 import { getPublicFreeExamDetailsAction } from "@/lib/actions/free-exam";
 import { FreeExamStartForm } from "@/components/free-exam/free-exam-start-form";
 
-export const dynamic = "force-dynamic";
 
 interface FreeExamOverviewPageProps {
   readonly params: Promise<{ readonly slug: string }>;

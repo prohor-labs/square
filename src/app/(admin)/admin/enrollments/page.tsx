@@ -3,7 +3,6 @@ import { EnrollmentRequestsList } from "@/components/admin/enrollment-requests-l
 import { db } from "@/db";
 import { batchEnrollmentRequests, batches, user } from "@/db/schema";
 
-export const dynamic = "force-dynamic";
 
 export default async function AdminEnrollmentsPage() {
   const requests = await db

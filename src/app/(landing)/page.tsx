@@ -4,7 +4,6 @@ import { LandingFooter, LandingHeader } from "@/components/landing-nav";
 import { ServicesGridSection } from "@/components/services-grid-section";
 import { getHeroSliders } from "@/lib/actions/settings";
 
-export const dynamic = "force-dynamic";
 
 export default async function LandingHomePage() {
   const slides = await getHeroSliders();

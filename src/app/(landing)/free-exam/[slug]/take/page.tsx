@@ -4,7 +4,6 @@ import { FreeExamTakingRoom } from "@/components/free-exam/free-exam-taking-room
 import { LandingHeader } from "@/components/landing-nav";
 import { getFreeExamQuestionsForTakingAction } from "@/lib/actions/free-exam";
 
-export const dynamic = "force-dynamic";
 
 interface FreeExamTakePageProps {
   readonly params: Promise<{ readonly slug: string }>;

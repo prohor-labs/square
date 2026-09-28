@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { getMyCourses } from "@/lib/actions/course";
 import { auth } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
 
 export default async function MyCoursesPage() {
   const session = await auth.api.getSession({ headers: await headers() });

@@ -4,7 +4,6 @@ import { FreeExamResultView } from "@/components/free-exam/free-exam-result-view
 import { LandingFooter, LandingHeader } from "@/components/landing-nav";
 import { getFreeExamResultAction } from "@/lib/actions/free-exam";
 
-export const dynamic = "force-dynamic";
 
 interface FreeExamResultPageProps {
   readonly params: Promise<{ readonly slug: string }>;

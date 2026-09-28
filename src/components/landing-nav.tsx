@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Calendar, Chart, FileDown, Send, User } from "@/components/icons";
+import { BookOpen, Calendar, Chart, FileDown, Login, Send, User } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-
 import { useSession } from "@/lib/auth-client";
 
 export function LandingHeader() {
@@ -39,26 +38,22 @@ export function LandingHeader() {
         {/* Action Controls */}
         <div className="flex items-center gap-3">
           {isPending ? (
-            <div className="w-24 h-10 rounded-full bg-muted animate-pulse" />
+            <div className="w-24 h-9 rounded-xl bg-muted animate-pulse" />
           ) : session?.user ? (
             <Button
-              asChild
-              className="rounded-full px-6 py-2.5 font-bold shadow-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-102 text-sm cursor-pointer"
+              render={<Link href="/dashboard" />}
+              className="rounded-xl px-4 sm:px-5 py-2 font-bold shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-xs sm:text-sm cursor-pointer flex items-center gap-1.5"
             >
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <User data-icon="inline-start" className="size-4" />
-                <span>ড্যাশবোর্ড</span>
-              </Link>
+              <User className="size-3.5 shrink-0" />
+              <span>ড্যাশবোর্ড</span>
             </Button>
           ) : (
             <Button
-              asChild
-              className="rounded-full px-6 py-2.5 font-bold shadow-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-102 text-sm cursor-pointer"
+              render={<Link href="/login" />}
+              className="rounded-xl px-4 sm:px-5 py-2 font-bold shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-xs sm:text-sm cursor-pointer flex items-center gap-1.5"
             >
-              <Link href="/login" className="flex items-center gap-2">
-                <User data-icon="inline-start" className="size-4" />
-                <span>লগইন</span>
-              </Link>
+              <Login className="size-3.5 shrink-0" />
+              <span>লগইন</span>
             </Button>
           )}
         </div>

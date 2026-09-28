@@ -1,6 +1,6 @@
 "use server";
 
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -173,48 +173,104 @@ export async function createQuickQuestionAction(payload: CreateQuestionPayload) 
 
 export async function getRecentUploadedQuestions(limit = 10) {
   try {
-    const rawQuestions = await db.query.questions.findMany({
-      limit,
-      orderBy: (questions, { desc }) => [desc(questions.createdAt)],
-      with: {
-        mcqOptions: true,
-        cqParts: true,
-        subitem: {
-          with: {
-            item: {
-              with: {
-                container: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const rawQuestions = await db
+      .select({
+        id: questions.id,
+        type: questions.type,
+        source: questions.source,
+        standard: questions.standard,
+        questionText: questions.questionText,
+        explanation: questions.explanation,
+        isFree: questions.isFree,
+        createdAt: questions.createdAt,
+        chapterName: subitems.name,
+        subjectName: items.name,
+        containerTitle: containers.title,
+      })
+      .from(questions)
+      .leftJoin(subitems, eq(questions.subitemId, subitems.id))
+      .leftJoin(items, eq(subitems.itemId, items.id))
+      .leftJoin(containers, eq(items.containerId, containers.id))
+      .orderBy(desc(questions.createdAt))
+      .limit(limit);
 
-    return rawQuestions.map((q) => ({
-      id: q.id,
-      type: q.type,
-      source: q.source,
-      standard: q.standard,
-      questionText: q.questionText,
-      explanation: q.explanation,
-      isFree: q.isFree,
-      createdAt: q.createdAt,
-      chapterName: q.subitem?.name || "অজ্ঞাত অধ্যায়",
-      subjectName: q.subitem?.item?.name || "অজ্ঞাত বিষয়",
-      containerTitle: q.subitem?.item?.container?.title || "অজ্ঞাত প্রশ্নব্যাংক",
-      mcqOptions: q.mcqOptions.map((o) => ({
-        id: o.id,
-        optionText: o.optionText,
-        isCorrect: o.isCorrect,
-      })),
-      cqParts: q.cqParts.map((p) => ({
-        id: p.id,
-        partKey: p.partKey,
-        questionText: p.questionText,
-        marks: p.marks,
-      })),
-    }));
+    if (rawQuestions.length === 0) {
+      return [];
+    }
+
+    const questionIds = rawQuestions.map((q) => q.id);
+
+    const [allOptions, allParts] = await Promise.all([
+      db
+        .select({
+          id: mcqOptions.id,
+          questionId: mcqOptions.questionId,
+          optionText: mcqOptions.optionText,
+          isCorrect: mcqOptions.isCorrect,
+          orderNo: mcqOptions.orderNo,
+        })
+        .from(mcqOptions)
+        .where(inArray(mcqOptions.questionId, questionIds)),
+      db
+        .select({
+          id: cqParts.id,
+          questionId: cqParts.questionId,
+          partKey: cqParts.partKey,
+          questionText: cqParts.questionText,
+          marks: cqParts.marks,
+          orderNo: cqParts.orderNo,
+        })
+        .from(cqParts)
+        .where(inArray(cqParts.questionId, questionIds)),
+    ]);
+
+    const optionsByQuestionId = new Map<string, typeof allOptions>();
+    for (const opt of allOptions) {
+      const list = optionsByQuestionId.get(opt.questionId) || [];
+      list.push(opt);
+      optionsByQuestionId.set(opt.questionId, list);
+    }
+
+    const partsByQuestionId = new Map<string, typeof allParts>();
+    for (const pt of allParts) {
+      const list = partsByQuestionId.get(pt.questionId) || [];
+      list.push(pt);
+      partsByQuestionId.set(pt.questionId, list);
+    }
+
+    return rawQuestions.map((q) => {
+      const qOpts = (optionsByQuestionId.get(q.id) || []).sort(
+        (a, b) => (a.orderNo || 0) - (b.orderNo || 0)
+      );
+      const qParts = (partsByQuestionId.get(q.id) || []).sort(
+        (a, b) => (a.orderNo || 0) - (b.orderNo || 0)
+      );
+
+      return {
+        id: q.id,
+        type: q.type,
+        source: q.source,
+        standard: q.standard,
+        questionText: q.questionText,
+        explanation: q.explanation,
+        isFree: q.isFree,
+        createdAt: q.createdAt,
+        chapterName: q.chapterName || "অজ্ঞাত অধ্যায়",
+        subjectName: q.subjectName || "অজ্ঞাত বিষয়",
+        containerTitle: q.containerTitle || "অজ্ঞাত প্রশ্নব্যাংক",
+        mcqOptions: qOpts.map((o) => ({
+          id: o.id,
+          optionText: o.optionText,
+          isCorrect: o.isCorrect,
+        })),
+        cqParts: qParts.map((p) => ({
+          id: p.id,
+          partKey: p.partKey,
+          questionText: p.questionText,
+          marks: p.marks,
+        })),
+      };
+    });
   } catch (error) {
     console.error("Error fetching recent questions:", error);
     return [];

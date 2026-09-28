@@ -10,7 +10,6 @@ import { containers, items, questions, subitems, topics } from "@/db/schema";
 import { checkQbContainerAccess } from "@/lib/actions/qb-access";
 import { auth } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
 
 export default async function QbChapterPage({
   params,
