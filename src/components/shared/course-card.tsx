@@ -3,10 +3,8 @@ import Link from "next/link";
 import {
   ArrowRight2,
   Calendar,
-  Clock,
   Information,
   Send,
-  Star,
   Teacher,
   TickCircle,
 } from "@/components/icons";
@@ -82,7 +80,6 @@ export function CourseCard({
           height={338}
           unoptimized
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
         {/* Top Badges */}
         <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 pointer-events-none">
@@ -101,23 +98,6 @@ export function CourseCard({
               </span>
             )
           )}
-        </div>
-
-        {/* Bottom Metadata inside Image */}
-        <div className="absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between text-white text-xs font-semibold pointer-events-none">
-          <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15">
-            <Clock className="size-3.5 text-primary" />
-            <span className="text-[11px]">
-              {course.duration || "১ বছর এক্সেস"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15 text-amber-400">
-            <Star className="size-3.5 fill-current" />
-            <span className="text-[11px] font-bold">
-              {course.rating || "5.0"}
-            </span>
-          </div>
         </div>
       </div>
 

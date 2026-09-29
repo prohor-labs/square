@@ -82,20 +82,17 @@ export function ServicesGridSection() {
 
           return (
             <Link key={service.title} href={service.href} className="group">
-              <Card className="h-full flex flex-col items-center justify-center text-center p-4 sm:p-6 bg-card/90 hover:bg-card border-border/70 group-hover:border-primary/50 rounded-2xl sm:rounded-3xl shadow-2xs group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1 cursor-pointer active:scale-98 overflow-hidden relative">
+              <Card className="h-full flex flex-col items-center justify-center text-center p-4 sm:p-5 bg-card/90 hover:bg-card border-border/70 group-hover:border-primary/50 rounded-2xl sm:rounded-3xl shadow-2xs group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1 cursor-pointer active:scale-98 overflow-hidden relative">
                 <div
-                  className={`${service.bgClass} p-3 sm:p-4 rounded-2xl group-hover:bg-primary transition-all duration-300 transform group-hover:scale-110 flex items-center justify-center shrink-0 mb-3`}
+                  className={`${service.bgClass} p-3 sm:p-4 rounded-2xl group-hover:bg-primary transition-all duration-300 transform group-hover:scale-110 flex items-center justify-center shrink-0 mb-2.5 sm:mb-3`}
                 >
                   <Icon
                     className={`${service.textClass} group-hover:text-primary-foreground transition-colors size-6 sm:size-7 shrink-0`}
                   />
                 </div>
-                <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight mb-1">
+                <h3 className="text-xs sm:text-sm lg:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
                   {service.title}
                 </h3>
-                <span className="text-[10px] sm:text-xs text-muted-foreground font-medium line-clamp-1">
-                  {service.description}
-                </span>
               </Card>
             </Link>
           );

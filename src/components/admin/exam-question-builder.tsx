@@ -100,13 +100,20 @@ export function ExamQuestionBuilder({
   );
 
   const availableQuestions = useMemo(() => {
+    const allowedChapterIds =
+      selectedSubjectId !== "all"
+        ? new Set(availableChapters.map((c) => c.id))
+        : null;
+
     return questions.filter((q) => {
       if (assignedQuestionIds.has(q.id)) return false;
 
       if (selectedType !== "all" && q.type !== selectedType) return false;
 
-      if (selectedChapterId !== "all" && q.subitemId !== selectedChapterId) {
-        return false;
+      if (selectedChapterId !== "all") {
+        if (q.subitemId !== selectedChapterId) return false;
+      } else if (allowedChapterIds !== null) {
+        if (!q.subitemId || !allowedChapterIds.has(q.subitemId)) return false;
       }
 
       if (searchQuery.trim()) {
@@ -118,7 +125,15 @@ export function ExamQuestionBuilder({
 
       return true;
     });
-  }, [questions, assignedQuestionIds, selectedType, selectedChapterId, searchQuery]);
+  }, [
+    questions,
+    assignedQuestionIds,
+    selectedType,
+    selectedSubjectId,
+    selectedChapterId,
+    availableChapters,
+    searchQuery,
+  ]);
 
   // Bulk toggle
   const toggleSelectQuestion = (id: string) => {

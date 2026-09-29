@@ -608,12 +608,9 @@ export async function getQuestionsAdminAction(filters?: {
   topicId?: string;
   subjectId?: string;
   type?: string;
+  limit?: number;
 }) {
   try {
-    const hasSpecificFilter = Boolean(
-      filters?.chapterId || filters?.topicId || filters?.subjectId,
-    );
-
     const list = await db.query.questions.findMany({
       where: (questions, { and, eq, isNull }) => {
         const conditions = [];
@@ -632,7 +629,7 @@ export async function getQuestionsAdminAction(filters?: {
         }
         return conditions.length > 0 ? and(...conditions) : undefined;
       },
-      limit: hasSpecificFilter ? undefined : 100,
+      limit: filters?.limit,
       with: {
         mcqOptions: true,
         cqParts: true,
