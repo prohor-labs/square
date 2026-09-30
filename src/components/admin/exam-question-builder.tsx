@@ -62,6 +62,7 @@ export function ExamQuestionBuilder({
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedContainerId, setSelectedContainerId] = useState("all");
   const [selectedSubjectId, setSelectedSubjectId] = useState("all");
   const [selectedChapterId, setSelectedChapterId] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
@@ -76,28 +77,55 @@ export function ExamQuestionBuilder({
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [jsonImporting, setJsonImporting] = useState(false);
 
-  // Extract all subjects and chapters from hierarchy for filters
-  const { allSubjects, allChapters } = useMemo(() => {
-    const subs: Array<{ id: string; name: string }> = [];
-    const chaps: Array<{ id: string; name: string; subjectId: string }> = [];
+  // Extract containers, subjects, and chapters from hierarchy for filters
+  const { allContainers, allSubjects, allChapters } = useMemo(() => {
+    const conts: Array<{ id: string; title: string }> = [];
+    const subs: Array<{ id: string; name: string; containerId: string }> = [];
+    const chaps: Array<{
+      id: string;
+      name: string;
+      subjectId: string;
+      containerId: string;
+    }> = [];
 
     for (const container of hierarchy) {
+      conts.push({ id: container.id, title: container.title });
       for (const sub of container.subjects || []) {
-        subs.push({ id: sub.id, name: sub.name });
+        subs.push({
+          id: sub.id,
+          name: `${container.title} → ${sub.name}`,
+          containerId: container.id,
+        });
         for (const ch of sub.chapters || []) {
-          chaps.push({ id: ch.id, name: ch.name, subjectId: sub.id });
+          chaps.push({
+            id: ch.id,
+            name: ch.name,
+            subjectId: sub.id,
+            containerId: container.id,
+          });
         }
       }
     }
 
-    return { allSubjects: subs, allChapters: chaps };
+    return { allContainers: conts, allSubjects: subs, allChapters: chaps };
   }, [hierarchy]);
 
-  // Filtered chapters based on selected subject
+  // Filtered subjects based on selected container
+  const availableSubjects = useMemo(() => {
+    if (selectedContainerId === "all") return allSubjects;
+    return allSubjects.filter((s) => s.containerId === selectedContainerId);
+  }, [allSubjects, selectedContainerId]);
+
+  // Filtered chapters based on selected subject or container
   const availableChapters = useMemo(() => {
-    if (selectedSubjectId === "all") return allChapters;
-    return allChapters.filter((c) => c.subjectId === selectedSubjectId);
-  }, [allChapters, selectedSubjectId]);
+    if (selectedSubjectId !== "all") {
+      return allChapters.filter((c) => c.subjectId === selectedSubjectId);
+    }
+    if (selectedContainerId !== "all") {
+      return allChapters.filter((c) => c.containerId === selectedContainerId);
+    }
+    return allChapters;
+  }, [allChapters, selectedContainerId, selectedSubjectId]);
 
   // Fetch questions whenever filter options change
   useEffect(() => {
@@ -105,10 +133,13 @@ export function ExamQuestionBuilder({
     setIsFetchingQb(true);
 
     const timer = setTimeout(async () => {
-      const chapterIds =
-        selectedSubjectId !== "all" && selectedChapterId === "all"
-          ? availableChapters.map((c) => c.id)
-          : undefined;
+      let chapterIds: string[] | undefined = undefined;
+
+      if (selectedChapterId !== "all") {
+        chapterIds = [selectedChapterId];
+      } else if (selectedSubjectId !== "all" || selectedContainerId !== "all") {
+        chapterIds = availableChapters.map((c) => c.id);
+      }
 
       const results = await getQuestionsAdminAction({
         chapterId: selectedChapterId !== "all" ? selectedChapterId : undefined,
@@ -129,6 +160,7 @@ export function ExamQuestionBuilder({
       clearTimeout(timer);
     };
   }, [
+    selectedContainerId,
     selectedSubjectId,
     selectedChapterId,
     selectedType,
@@ -452,8 +484,25 @@ export function ExamQuestionBuilder({
               </div>
             </div>
 
-            {/* Filter Row 2: Subject & Chapter */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Filter Row 2: Container, Subject & Chapter */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <select
+                value={selectedContainerId}
+                onChange={(e) => {
+                  setSelectedContainerId(e.target.value);
+                  setSelectedSubjectId("all");
+                  setSelectedChapterId("all");
+                }}
+                className="w-full h-9 px-3 rounded-xl border bg-background text-xs font-medium"
+              >
+                <option value="all">সকল প্রশ্নব্যাংক (All QB)</option>
+                {allContainers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={selectedSubjectId}
                 onChange={(e) => {
@@ -463,7 +512,7 @@ export function ExamQuestionBuilder({
                 className="w-full h-9 px-3 rounded-xl border bg-background text-xs"
               >
                 <option value="all">সকল বিষয় (All Subjects)</option>
-                {allSubjects.map((s) => (
+                {availableSubjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -475,7 +524,7 @@ export function ExamQuestionBuilder({
                 onChange={(e) => setSelectedChapterId(e.target.value)}
                 className="w-full h-9 px-3 rounded-xl border bg-background text-xs"
               >
-                <option value="all">সকল অধ্যায় (All Chapters)</option>
+                <option value="all">সকল অধ্যায় / সাল</option>
                 {availableChapters.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

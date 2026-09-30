@@ -1,6 +1,6 @@
 "use server";
 
-import { desc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -48,43 +48,85 @@ export interface HierarchyContainer {
 
 export async function getFullQbHierarchy(): Promise<HierarchyContainer[]> {
   try {
-    const rawContainers = await db.query.containers.findMany({
-      with: {
-        items: {
-          with: {
-            subitems: {
-              with: {
-                topics: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: (containers, { asc }) => [asc(containers.createdAt)],
-    });
+    const [cList, iList, sList, tList] = await Promise.all([
+      db
+        .select({
+          id: containers.id,
+          title: containers.title,
+          slug: containers.slug,
+          isPublic: containers.isPublic,
+        })
+        .from(containers)
+        .orderBy(asc(containers.createdAt)),
+      db
+        .select({
+          id: items.id,
+          containerId: items.containerId,
+          name: items.name,
+          slug: items.slug,
+          code: items.code,
+        })
+        .from(items),
+      db
+        .select({
+          id: subitems.id,
+          itemId: subitems.itemId,
+          name: subitems.name,
+          slug: subitems.slug,
+          paper: subitems.paper,
+          orderNo: subitems.orderNo,
+        })
+        .from(subitems)
+        .orderBy(asc(subitems.orderNo)),
+      db
+        .select({
+          id: topics.id,
+          subitemId: topics.subitemId,
+          name: topics.name,
+          slug: topics.slug,
+        })
+        .from(topics),
+    ]);
 
-    return rawContainers.map((c) => ({
-      id: c.id,
-      title: c.title,
-      slug: c.slug,
-      isPublic: c.isPublic,
-      subjects: (c.items || []).map((itm) => ({
+    const topicsBySubitemId = new Map<string, HierarchyTopic[]>();
+    for (const tp of tList) {
+      const list = topicsBySubitemId.get(tp.subitemId) || [];
+      list.push({ id: tp.id, name: tp.name, slug: tp.slug });
+      topicsBySubitemId.set(tp.subitemId, list);
+    }
+
+    const subitemsByItemId = new Map<string, HierarchyChapter[]>();
+    for (const sub of sList) {
+      const list = subitemsByItemId.get(sub.itemId) || [];
+      list.push({
+        id: sub.id,
+        name: sub.name,
+        slug: sub.slug,
+        paper: sub.paper,
+        topics: topicsBySubitemId.get(sub.id) || [],
+      });
+      subitemsByItemId.set(sub.itemId, list);
+    }
+
+    const itemsByContainerId = new Map<string, HierarchySubject[]>();
+    for (const itm of iList) {
+      const list = itemsByContainerId.get(itm.containerId) || [];
+      list.push({
         id: itm.id,
         name: itm.name,
         slug: itm.slug,
         code: itm.code,
-        chapters: (itm.subitems || []).map((ch) => ({
-          id: ch.id,
-          name: ch.name,
-          slug: ch.slug,
-          paper: ch.paper,
-          topics: (ch.topics || []).map((tp) => ({
-            id: tp.id,
-            name: tp.name,
-            slug: tp.slug,
-          })),
-        })),
-      })),
+        chapters: subitemsByItemId.get(itm.id) || [],
+      });
+      itemsByContainerId.set(itm.containerId, list);
+    }
+
+    return cList.map((c) => ({
+      id: c.id,
+      title: c.title,
+      slug: c.slug,
+      isPublic: c.isPublic,
+      subjects: itemsByContainerId.get(c.id) || [],
     }));
   } catch (error) {
     console.error("Error fetching QB hierarchy:", error);

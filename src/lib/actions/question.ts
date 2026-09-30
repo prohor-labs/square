@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -613,44 +613,113 @@ export async function getQuestionsAdminAction(filters?: {
   limit?: number;
 }) {
   try {
-    const list = await db.query.questions.findMany({
-      where: (questions, { and, eq, isNull, inArray, or, ilike }) => {
-        const conditions = [];
-        if (filters?.chapterId && filters.chapterId !== "all") {
-          conditions.push(eq(questions.subitemId, filters.chapterId));
-        } else if (filters?.chapterIds && filters.chapterIds.length > 0) {
-          conditions.push(inArray(questions.subitemId, filters.chapterIds));
-        }
-        if (filters?.topicId) {
-          if (filters.topicId === "unassigned") {
-            conditions.push(isNull(questions.topicId));
-          } else if (filters.topicId !== "all") {
-            conditions.push(eq(questions.topicId, filters.topicId));
-          }
-        }
-        if (filters?.type && filters.type !== "all") {
-          conditions.push(eq(questions.type, filters.type as "mcq" | "cq"));
-        }
-        if (filters?.search && filters.search.trim()) {
-          const s = `%${filters.search.trim()}%`;
-          conditions.push(
-            or(
-              ilike(questions.questionText, s),
-              ilike(questions.source, s),
-            ),
-          );
-        }
-        return conditions.length > 0 ? and(...conditions) : undefined;
-      },
-      limit: filters?.limit,
-      with: {
-        mcqOptions: true,
-        cqParts: true,
-        topic: true,
-      },
-      orderBy: (questions, { desc }) => [desc(questions.createdAt)],
-    });
-    return list || [];
+    const conditions = [];
+    if (filters?.chapterId && filters.chapterId !== "all") {
+      conditions.push(eq(questions.subitemId, filters.chapterId));
+    } else if (filters?.chapterIds && filters.chapterIds.length > 0) {
+      conditions.push(inArray(questions.subitemId, filters.chapterIds));
+    }
+    if (filters?.topicId) {
+      if (filters.topicId === "unassigned") {
+        conditions.push(isNull(questions.topicId));
+      } else if (filters.topicId !== "all") {
+        conditions.push(eq(questions.topicId, filters.topicId));
+      }
+    }
+    if (filters?.type && filters.type !== "all") {
+      conditions.push(eq(questions.type, filters.type as "mcq" | "cq"));
+    }
+    if (filters?.search && filters.search.trim()) {
+      const s = `%${filters.search.trim()}%`;
+      conditions.push(
+        or(
+          ilike(questions.questionText, s),
+          ilike(questions.source, s),
+        ),
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const limit = filters?.limit || 50;
+
+    let baseQuery = db
+      .select({
+        id: questions.id,
+        subitemId: questions.subitemId,
+        topicId: questions.topicId,
+        type: questions.type,
+        source: questions.source,
+        standard: questions.standard,
+        questionText: questions.questionText,
+        explanation: questions.explanation,
+        isFree: questions.isFree,
+        createdAt: questions.createdAt,
+      })
+      .from(questions);
+
+    const rawQuestions = whereClause
+      ? await baseQuery
+          .where(whereClause)
+          .orderBy(desc(questions.createdAt))
+          .limit(limit)
+      : await baseQuery
+          .orderBy(desc(questions.createdAt))
+          .limit(limit);
+
+    if (rawQuestions.length === 0) {
+      return [];
+    }
+
+    const qIds = rawQuestions.map((q) => q.id);
+
+    const [allOptions, allParts] = await Promise.all([
+      db
+        .select({
+          id: mcqOptions.id,
+          questionId: mcqOptions.questionId,
+          optionText: mcqOptions.optionText,
+          isCorrect: mcqOptions.isCorrect,
+          orderNo: mcqOptions.orderNo,
+        })
+        .from(mcqOptions)
+        .where(inArray(mcqOptions.questionId, qIds)),
+      db
+        .select({
+          id: cqParts.id,
+          questionId: cqParts.questionId,
+          partKey: cqParts.partKey,
+          questionText: cqParts.questionText,
+          answerText: cqParts.answerText,
+          marks: cqParts.marks,
+          orderNo: cqParts.orderNo,
+        })
+        .from(cqParts)
+        .where(inArray(cqParts.questionId, qIds)),
+    ]);
+
+    const optionsByQuestionId = new Map<string, typeof allOptions>();
+    for (const opt of allOptions) {
+      const list = optionsByQuestionId.get(opt.questionId) || [];
+      list.push(opt);
+      optionsByQuestionId.set(opt.questionId, list);
+    }
+
+    const partsByQuestionId = new Map<string, typeof allParts>();
+    for (const pt of allParts) {
+      const list = partsByQuestionId.get(pt.questionId) || [];
+      list.push(pt);
+      partsByQuestionId.set(pt.questionId, list);
+    }
+
+    return rawQuestions.map((q) => ({
+      ...q,
+      mcqOptions: (optionsByQuestionId.get(q.id) || []).sort(
+        (a, b) => (a.orderNo || 0) - (b.orderNo || 0),
+      ),
+      cqParts: (partsByQuestionId.get(q.id) || []).sort(
+        (a, b) => (a.orderNo || 0) - (b.orderNo || 0),
+      ),
+    }));
   } catch (error: unknown) {
     console.error("Error fetching questions:", error);
     return [];
