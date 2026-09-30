@@ -11,11 +11,11 @@ export default async function ExamQuestionsPage({
 }) {
   const { id } = await params;
 
-  // Fetch exam, questions, and full hierarchy in parallel
+  // Fetch exam, initial questions, and full hierarchy in parallel
   const [{ success: examSuccess, data: exam }, questions, hierarchy] =
     await Promise.all([
       getExamWithQuestionsAdmin(id),
-      getQuestionsAdminAction(),
+      getQuestionsAdminAction({ limit: 50 }),
       getFullQbHierarchy(),
     ]);
 

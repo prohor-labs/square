@@ -120,13 +120,16 @@ export function LiveExamView({
   };
 
   const handleSelectMcq = (examQuestionId: string, optionId: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [examQuestionId]: {
-        ...prev[examQuestionId],
-        selectedOptionId: optionId,
-      },
-    }));
+    setAnswers((prev) => {
+      const isAlreadySelected = prev[examQuestionId]?.selectedOptionId === optionId;
+      return {
+        ...prev,
+        [examQuestionId]: {
+          ...prev[examQuestionId],
+          selectedOptionId: isAlreadySelected ? undefined : optionId,
+        },
+      };
+    });
   };
 
   const handleCqTextChange = (examQuestionId: string, text: string) => {

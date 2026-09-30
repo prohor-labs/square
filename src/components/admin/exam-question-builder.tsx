@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Add,
   ArrowLeft2,
@@ -32,6 +32,7 @@ import {
   reorderExamQuestionsAction,
   togglePublishExamAction,
 } from "@/lib/actions/admin-exam";
+import { getQuestionsAdminAction } from "@/lib/actions/question";
 import type { HierarchyContainer } from "@/lib/actions/universal-qb";
 import type { ExamDetail, ExamQuestion, Question } from "@/types";
 
@@ -47,13 +48,17 @@ interface ExamQuestionBuilderProps {
 
 export function ExamQuestionBuilder({
   exam,
-  questions,
+  questions: initialQuestions,
   hierarchy = [],
 }: ExamQuestionBuilderProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [publishLoading, setPublishLoading] = useState(false);
   const [isPublished, setIsPublished] = useState(Boolean(exam.isPublished));
+
+  // Dynamic Question Bank list & loading state
+  const [qbQuestions, setQbQuestions] = useState<Question[]>(initialQuestions);
+  const [isFetchingQb, setIsFetchingQb] = useState(false);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,46 +99,54 @@ export function ExamQuestionBuilder({
     return allChapters.filter((c) => c.subjectId === selectedSubjectId);
   }, [allChapters, selectedSubjectId]);
 
+  // Fetch questions whenever filter options change
+  useEffect(() => {
+    let isCurrent = true;
+    setIsFetchingQb(true);
+
+    const timer = setTimeout(async () => {
+      const chapterIds =
+        selectedSubjectId !== "all" && selectedChapterId === "all"
+          ? availableChapters.map((c) => c.id)
+          : undefined;
+
+      const results = await getQuestionsAdminAction({
+        chapterId: selectedChapterId !== "all" ? selectedChapterId : undefined,
+        chapterIds,
+        type: selectedType !== "all" ? selectedType : undefined,
+        search: searchQuery || undefined,
+        limit: 150,
+      });
+
+      if (isCurrent) {
+        setQbQuestions((results as Question[]) || []);
+        setIsFetchingQb(false);
+      }
+    }, 250);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [
+    selectedSubjectId,
+    selectedChapterId,
+    selectedType,
+    searchQuery,
+    availableChapters,
+  ]);
+
   const assignedQuestionIds = useMemo(
     () => new Set(exam.examQuestions.map((eq) => eq.questionId)),
     [exam.examQuestions],
   );
 
   const availableQuestions = useMemo(() => {
-    const allowedChapterIds =
-      selectedSubjectId !== "all"
-        ? new Set(availableChapters.map((c) => c.id))
-        : null;
-
-    return questions.filter((q) => {
+    return qbQuestions.filter((q) => {
       if (assignedQuestionIds.has(q.id)) return false;
-
-      if (selectedType !== "all" && q.type !== selectedType) return false;
-
-      if (selectedChapterId !== "all") {
-        if (q.subitemId !== selectedChapterId) return false;
-      } else if (allowedChapterIds !== null) {
-        if (!q.subitemId || !allowedChapterIds.has(q.subitemId)) return false;
-      }
-
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const textMatch = q.questionText?.toLowerCase().includes(query);
-        const sourceMatch = q.source?.toLowerCase().includes(query);
-        if (!textMatch && !sourceMatch) return false;
-      }
-
       return true;
     });
-  }, [
-    questions,
-    assignedQuestionIds,
-    selectedType,
-    selectedSubjectId,
-    selectedChapterId,
-    availableChapters,
-    searchQuery,
-  ]);
+  }, [qbQuestions, assignedQuestionIds]);
 
   // Bulk toggle
   const toggleSelectQuestion = (id: string) => {
@@ -380,8 +393,9 @@ export function ExamQuestionBuilder({
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Category className="size-4 text-primary" />
-                <h3 className="font-bold text-sm">
-                  প্রশ্ন ব্যাংক ({availableQuestions.length} টি প্রশ্ন পাওয়া গেছে)
+                <h3 className="font-bold text-sm flex items-center gap-2">
+                  <span>প্রশ্ন ব্যাংক ({availableQuestions.length} টি প্রশ্ন পাওয়া গেছে)</span>
+                  {isFetchingQb && <Spinner className="size-3.5 text-primary" />}
                 </h3>
               </div>
 

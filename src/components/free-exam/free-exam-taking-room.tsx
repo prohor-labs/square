@@ -138,6 +138,13 @@ export function FreeExamTakingRoom({
   const answeredCount = Object.keys(responses).length;
   const totalCount = questions.length;
 
+  const scrollToQuestion = (index: number) => {
+    const el = document.getElementById(`free-q-${index}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   const handleSelectOption = (examQuestionId: string, optionId: string) => {
     setResponses((prev) => {
       if (prev[examQuestionId] === optionId) {
@@ -150,14 +157,12 @@ export function FreeExamTakingRoom({
     });
   };
 
-  const handleClearCurrent = () => {
-    if (currentItem) {
-      setResponses((prev) => {
-        const updated = { ...prev };
-        delete updated[currentItem.examQuestionId];
-        return updated;
-      });
-    }
+  const handleClearAnswer = (examQuestionId: string) => {
+    setResponses((prev) => {
+      const updated = { ...prev };
+      delete updated[examQuestionId];
+      return updated;
+    });
   };
 
   const handleFinalSubmit = async () => {
@@ -187,7 +192,7 @@ export function FreeExamTakingRoom({
     }
   };
 
-  if (!currentItem) {
+  if (!questions || questions.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
         <Spinner className="size-8 text-primary" />
@@ -201,7 +206,7 @@ export function FreeExamTakingRoom({
   const isLowTime = timeLeft < 180; // less than 3 minutes
 
   return (
-    <div className="w-full flex flex-col gap-5 pb-16">
+    <div className="w-full flex flex-col gap-5 pb-20">
       {/* Top Fixed / Sticky Control Bar */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md border border-border/80 rounded-2xl md:rounded-3xl p-3 sm:p-4 shadow-md flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -217,7 +222,7 @@ export function FreeExamTakingRoom({
 
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Answered Progress Pill */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/60 text-xs font-bold text-muted-foreground border border-border/60">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/60 text-xs font-bold text-muted-foreground border border-border/60">
             <TaskSquare className="size-3.5 text-primary" />
             <span>উত্তর: {answeredCount}/{totalCount}</span>
           </div>
@@ -259,132 +264,136 @@ export function FreeExamTakingRoom({
 
       {/* Main Examination Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left / Center: Question Canvas (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          <Card className="rounded-3xl border-border/80 bg-card p-5 sm:p-7 shadow-xs space-y-6">
-            {/* Question Header */}
-            <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/60">
-              <div className="flex items-center gap-2">
-                <span className="size-8 rounded-xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center shadow-xs">
-                  {currentIdx + 1}
-                </span>
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                  প্রশ্ন নং {currentIdx + 1} / {totalCount}
-                </span>
-              </div>
+        {/* Left / Center: All Questions List (8 cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-5">
+          {questions.map((item, idx) => {
+            const isAnswered = Boolean(responses[item.examQuestionId]);
 
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
-                  মান: {currentItem.marks}
-                </span>
-                {responses[currentItem.examQuestionId] && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    উত্তর দেওয়া হয়েছে
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Question Text with KaTeX Math Rendering */}
-            <div className="text-sm sm:text-base font-semibold text-foreground leading-relaxed">
-              <ReactMarkdown
-                remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                rehypePlugins={[rehypeRaw, rehypeKatex]}
-                components={markdownComponents}
+            return (
+              <Card
+                key={item.examQuestionId}
+                id={`free-q-${idx}`}
+                className="scroll-mt-24 rounded-3xl border-border/80 bg-card p-5 sm:p-7 shadow-xs space-y-5"
               >
-                {sanitizeQuestionContent(currentItem.question.questionText)}
-              </ReactMarkdown>
-            </div>
+                {/* Question Header */}
+                <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/60">
+                  <div className="flex items-center gap-2">
+                    <span className="size-8 rounded-xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center shadow-xs">
+                      {idx + 1}
+                    </span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      প্রশ্ন নং {idx + 1}
+                    </span>
+                  </div>
 
-            {/* MCQ Options List */}
-            {currentItem.question.type === "mcq" && (
-              <div className="grid grid-cols-1 gap-2.5 pt-2">
-                {currentItem.question.mcqOptions.map((opt, optIdx) => {
-                  const isSelected =
-                    responses[currentItem.examQuestionId] === opt.id;
-                  const optionLabel = OPTION_KEYS[optIdx] || String.fromCharCode(65 + optIdx);
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
+                      মান: {item.marks}
+                    </span>
+                    {isAnswered && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        উত্তর দেওয়া হয়েছে
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-                  return (
-                    <button
-                      type="button"
-                      key={opt.id}
-                      onClick={() =>
-                        handleSelectOption(currentItem.examQuestionId, opt.id)
-                      }
-                      className={cn(
-                        "w-full text-left p-3.5 sm:p-4 rounded-2xl border transition-all flex items-start gap-3.5 cursor-pointer group select-none",
-                        isSelected
-                          ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/40"
-                          : "bg-muted/20 border-border/70 hover:bg-muted/50 hover:border-border text-foreground",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "size-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-colors",
-                          isSelected
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-muted text-muted-foreground group-hover:bg-muted-foreground/20",
-                        )}
-                      >
-                        {optionLabel}
-                      </div>
+                {/* Question Text with KaTeX Math Rendering */}
+                <div className="text-sm sm:text-base font-semibold text-foreground leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
+                    rehypePlugins={[rehypeRaw, rehypeKatex]}
+                    components={markdownComponents}
+                  >
+                    {sanitizeQuestionContent(item.question.questionText)}
+                  </ReactMarkdown>
+                </div>
 
-                      <div className="flex-1 text-xs sm:text-sm font-medium pt-0.5 leading-snug">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                          rehypePlugins={[rehypeRaw, rehypeKatex]}
-                          components={markdownComponents}
+                {/* MCQ Options List */}
+                {item.question.type === "mcq" && (
+                  <div className="grid grid-cols-1 gap-2.5 pt-1">
+                    {item.question.mcqOptions.map((opt, optIdx) => {
+                      const isSelected =
+                        responses[item.examQuestionId] === opt.id;
+                      const optionLabel =
+                        OPTION_KEYS[optIdx] || String.fromCharCode(65 + optIdx);
+
+                      return (
+                        <button
+                          type="button"
+                          key={opt.id}
+                          onClick={() =>
+                            handleSelectOption(item.examQuestionId, opt.id)
+                          }
+                          className={cn(
+                            "w-full text-left p-3.5 sm:p-4 rounded-2xl border transition-all flex items-start gap-3.5 cursor-pointer group select-none",
+                            isSelected
+                              ? "bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/40"
+                              : "bg-muted/20 border-border/70 hover:bg-muted/50 hover:border-border text-foreground",
+                          )}
                         >
-                          {sanitizeQuestionContent(opt.optionText)}
-                        </ReactMarkdown>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                          <div
+                            className={cn(
+                              "size-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-colors",
+                              isSelected
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "bg-muted text-muted-foreground group-hover:bg-muted-foreground/20",
+                            )}
+                          >
+                            {optionLabel}
+                          </div>
 
-            {/* Action Bar (Clear Answer / Prev / Next) */}
-            <div className="flex items-center justify-between pt-4 border-t border-border/50 gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleClearCurrent}
-                disabled={!responses[currentItem.examQuestionId]}
-                className="text-xs font-bold text-destructive hover:bg-destructive/10 rounded-xl cursor-pointer"
-              >
-                উত্তর মুছুন
-              </Button>
+                          <div className="flex-1 text-xs sm:text-sm font-medium pt-0.5 leading-snug">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
+                              rehypePlugins={[rehypeRaw, rehypeKatex]}
+                              components={markdownComponents}
+                            >
+                              {sanitizeQuestionContent(opt.optionText)}
+                            </ReactMarkdown>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentIdx((prev) => Math.max(0, prev - 1))}
-                  disabled={currentIdx === 0}
-                  className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer"
-                >
-                  &larr; পূর্ববর্তী
-                </Button>
+                {/* Option Clear Button */}
+                {isAnswered && (
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleClearAnswer(item.examQuestionId)}
+                      className="text-xs font-bold text-destructive hover:bg-destructive/10 rounded-xl cursor-pointer h-8"
+                    >
+                      উত্তর মুছুন
+                    </Button>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
 
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentIdx((prev) =>
-                      Math.min(totalCount - 1, prev + 1),
-                    )
-                  }
-                  disabled={currentIdx === totalCount - 1}
-                  className="rounded-xl font-bold text-xs h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                >
-                  পরবর্তী &rarr;
-                </Button>
-              </div>
+          {/* End of questions helper card */}
+          <div className="border border-dashed border-border/80 rounded-3xl p-6 sm:p-8 bg-muted/20 text-center flex flex-col items-center justify-center gap-3 mt-2">
+            <div className="space-y-1">
+              <h3 className="font-bold text-sm sm:text-base text-foreground">
+                সকল প্রশ্নের উত্তর দেওয়া সম্পন্ন হয়েছে?
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                মোট {totalCount} টির মধ্যে {answeredCount} টি প্রশ্নের উত্তর চিহ্নিত করা হয়েছে।
+              </p>
             </div>
-          </Card>
+            <Button
+              type="button"
+              onClick={() => setShowConfirmModal(true)}
+              className="rounded-2xl px-8 h-11 font-black text-sm shadow-md bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            >
+              পরীক্ষা জমা দিন &rarr;
+            </Button>
+          </div>
         </div>
 
         {/* Right Column: Question Jump Palette (4 cols) */}
@@ -400,23 +409,19 @@ export function FreeExamTakingRoom({
             </div>
 
             {/* Palette Grid */}
-            <div className="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto no-scrollbar p-1">
+            <div className="grid grid-cols-5 gap-2 max-h-[340px] overflow-y-auto no-scrollbar p-1">
               {questions.map((q, idx) => {
                 const isAnswered = Boolean(responses[q.examQuestionId]);
-                const isCurrent = currentIdx === idx;
 
                 return (
                   <button
                     type="button"
                     key={q.examQuestionId}
-                    onClick={() => setCurrentIdx(idx)}
+                    onClick={() => scrollToQuestion(idx)}
                     className={cn(
                       "size-10 rounded-xl text-xs font-black transition-all flex items-center justify-center cursor-pointer select-none",
-                      isCurrent
-                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background font-black scale-105"
-                        : "",
                       isAnswered
-                        ? "bg-emerald-500 text-white shadow-xs"
+                        ? "bg-emerald-500 text-white shadow-xs hover:bg-emerald-600"
                         : "bg-muted text-muted-foreground hover:bg-muted-foreground/20",
                     )}
                   >

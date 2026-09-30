@@ -605,27 +605,40 @@ export async function importQuestionsAction(
 
 export async function getQuestionsAdminAction(filters?: {
   chapterId?: string;
+  chapterIds?: string[];
   topicId?: string;
   subjectId?: string;
   type?: string;
+  search?: string;
   limit?: number;
 }) {
   try {
     const list = await db.query.questions.findMany({
-      where: (questions, { and, eq, isNull }) => {
+      where: (questions, { and, eq, isNull, inArray, or, ilike }) => {
         const conditions = [];
-        if (filters?.chapterId) {
+        if (filters?.chapterId && filters.chapterId !== "all") {
           conditions.push(eq(questions.subitemId, filters.chapterId));
+        } else if (filters?.chapterIds && filters.chapterIds.length > 0) {
+          conditions.push(inArray(questions.subitemId, filters.chapterIds));
         }
         if (filters?.topicId) {
           if (filters.topicId === "unassigned") {
             conditions.push(isNull(questions.topicId));
-          } else {
+          } else if (filters.topicId !== "all") {
             conditions.push(eq(questions.topicId, filters.topicId));
           }
         }
-        if (filters?.type) {
+        if (filters?.type && filters.type !== "all") {
           conditions.push(eq(questions.type, filters.type as "mcq" | "cq"));
+        }
+        if (filters?.search && filters.search.trim()) {
+          const s = `%${filters.search.trim()}%`;
+          conditions.push(
+            or(
+              ilike(questions.questionText, s),
+              ilike(questions.source, s),
+            ),
+          );
         }
         return conditions.length > 0 ? and(...conditions) : undefined;
       },
