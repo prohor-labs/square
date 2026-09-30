@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { Lock, TickCircle } from "@/components/icons";
 import { getUserQbContainers } from "@/lib/actions/qb-access";
 import { auth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -59,9 +60,27 @@ export default async function QuestionBankPage(): Promise<ReactElement> {
 
                   {/* Top Corner Badge for Access Status */}
                   <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-20">
-                    <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center gap-1 shadow-xs">
-                      <TickCircle className="size-3" />
-                      <span>{accessType === "public" ? "উন্মুক্ত" : "সক্রিয়"}</span>
+                    <span
+                      className={cn(
+                        "text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md border flex items-center gap-1 shadow-xs",
+                        qb.hasAccess || qb.isAdmin
+                          ? "bg-white/20 text-white border-white/30"
+                          : "bg-amber-500/80 text-white border-amber-300/40",
+                      )}
+                    >
+                      {qb.hasAccess || qb.isAdmin ? (
+                        <>
+                          <TickCircle className="size-3" />
+                          <span>
+                            {accessType === "public" ? "উন্মুক্ত" : "সক্রিয়"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="size-3" />
+                          <span>ব্যাচ এক্সক্লুসিভ</span>
+                        </>
+                      )}
                     </span>
                   </div>
 

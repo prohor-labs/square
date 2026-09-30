@@ -311,9 +311,8 @@ export async function getUserQbContainers(userId?: string) {
       };
     });
 
-    // Only return question banks the user has access to (public, enrolled in assigned batch, or admin).
-    // Locked/unauthorized question banks are completely hidden from non-enrolled students.
-    return mappedContainers.filter((c) => c.hasAccess || c.isAdmin);
+    // Return all containers so students can discover them (with proper hasAccess status)
+    return mappedContainers;
   } catch (error) {
     console.error("Error fetching user QB containers:", error);
     return [];

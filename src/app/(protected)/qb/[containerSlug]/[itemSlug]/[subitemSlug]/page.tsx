@@ -30,11 +30,8 @@ export default async function QbChapterPage({
   }
 
   const qb = accessInfo.container;
-
-  // Access check: non-enrolled users cannot see restricted question banks
-  if (!accessInfo.hasAccess) {
-    notFound();
-  }
+  const isAdmin = Boolean(accessInfo.isAdmin || session?.user?.role === "admin");
+  const hasFullAccess = Boolean(accessInfo.hasAccess || isAdmin);
 
   const subject = await db.query.items.findFirst({
     where: and(eq(items.containerId, qb.id), eq(items.slug, itemSlug)),
@@ -140,7 +137,7 @@ export default async function QbChapterPage({
         <ChapterQuestionsViewer
           topics={topicList || []}
           questions={formattedQuestions || []}
-          hasFullAccess={accessInfo.hasAccess}
+          hasFullAccess={hasFullAccess}
           assignedBatches={accessInfo.assignedBatches}
           isYearBased={
             subject.name === "সালসমূহ" ||

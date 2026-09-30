@@ -25,10 +25,20 @@ export default async function QbSubjectsPage({
   }
 
   const qb = accessInfo.container;
+  const isAdmin = Boolean(accessInfo.isAdmin || session?.user?.role === "admin");
 
-  // Access check: non-enrolled users cannot see restricted question banks
-  if (!accessInfo.hasAccess) {
-    notFound();
+  // Access check: non-enrolled users see restricted card with batch links
+  if (!accessInfo.hasAccess && !isAdmin) {
+    return (
+      <div className="flex flex-col w-full max-w-7xl mx-auto pb-8 pt-2 md:py-8">
+        <QbAccessRestrictedCard
+          title={qb.title}
+          containerSlug={qb.slug}
+          assignedBatches={accessInfo.assignedBatches}
+          isAdmin={isAdmin}
+        />
+      </div>
+    );
   }
 
   const itemList = await db.query.items.findMany({
