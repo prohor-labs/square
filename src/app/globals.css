@@ -124,33 +124,12 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  *::-webkit-scrollbar {
-    display: none;
-    width: 0px;
-    height: 0px;
-  }
-  html {
-    @apply font-sans;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  html::-webkit-scrollbar {
-    display: none;
-    width: 0px;
-    height: 0px;
   }
   body {
     @apply bg-background text-foreground font-sans;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
   }
-  body::-webkit-scrollbar {
-    display: none;
-    width: 0px;
-    height: 0px;
+  html {
+    @apply font-sans;
   }
   h1,
   h2,
@@ -159,16 +138,6 @@
   h5,
   h6 {
     @apply font-heading;
-  }
-}
-
-@utility no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  &::-webkit-scrollbar {
-    display: none;
-    width: 0px;
-    height: 0px;
   }
 }
 

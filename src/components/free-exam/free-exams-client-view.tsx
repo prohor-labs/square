@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { TaskSquare } from "@/components/icons";
-import { CustomTabBar } from "@/components/shared/custom-tab-bar";
-import { ExamCard } from "@/components/shared/exam-card";
+import { Award, Flash, TaskSquare, User } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import type { FreeExamListItem } from "@/lib/actions/free-exam";
 
 interface FreeExamsClientViewProps {
@@ -11,6 +12,14 @@ interface FreeExamsClientViewProps {
 }
 
 type TabType = "all" | "board" | "varsity" | "engineering" | "medical";
+
+const TABS: { id: TabType; label: string }[] = [
+  { id: "all", label: "সকল পরীক্ষা" },
+  { id: "board", label: "বোর্ড" },
+  { id: "varsity", label: "ভার্সিটি" },
+  { id: "engineering", label: "ইঞ্জিনিয়ারিং" },
+  { id: "medical", label: "মেডিকেল" },
+];
 
 function matchExamWithTab(exam: FreeExamListItem, tab: TabType): boolean {
   if (tab === "all") return true;
@@ -75,16 +84,11 @@ function matchExamWithTab(exam: FreeExamListItem, tab: TabType): boolean {
 }
 
 export function FreeExamsClientView({ examsList = [] }: FreeExamsClientViewProps) {
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<TabType>("all");
 
-  const toBanglaDigits = (str: string | number) => {
-    const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
-    return String(str).replace(
-      /[0-9]/g,
-      (digit) => bnDigits[Number(digit)] || digit
-    );
-  };
+  const filteredExams = useMemo(() => {
+    return examsList.filter((exam) => matchExamWithTab(exam, activeTab));
+  }, [examsList, activeTab]);
 
   // Counts for tabs
   const tabCounts = useMemo(() => {
@@ -106,67 +110,122 @@ export function FreeExamsClientView({ examsList = [] }: FreeExamsClientViewProps
     return counts;
   }, [examsList]);
 
-  const tabs = [
-    { id: "all", label: "সকল পরীক্ষা", count: tabCounts.all },
-    { id: "board", label: "বোর্ড", count: tabCounts.board },
-    { id: "varsity", label: "ভার্সিটি", count: tabCounts.varsity },
-    { id: "engineering", label: "ইঞ্জিনিয়ারিং", count: tabCounts.engineering },
-    { id: "medical", label: "মেডিকেল", count: tabCounts.medical },
-  ];
-
-  const filteredExams = useMemo(() => {
-    return examsList.filter((exam) => {
-      if (!matchExamWithTab(exam, activeTab as TabType)) return false;
-      const query = searchQuery.toLowerCase().trim();
-      if (!query) return true;
-      const title = (exam.title || "").toLowerCase();
-      const std = (exam.standard || "").toLowerCase();
-      return title.includes(query) || std.includes(query);
-    });
-  }, [examsList, activeTab, searchQuery]);
-
   return (
     <div className="flex flex-col gap-6 w-full">
-      {/* Tab Navigation with Search */}
-      <CustomTabBar
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        searchPlaceholder="ফ্রি এক্সাম খুঁজুন..."
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        toBanglaDigits={toBanglaDigits}
-      />
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1.5 p-1 bg-muted/60 border border-border/80 rounded-2xl w-fit flex-wrap">
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const count = tabCounts[tab.id];
 
-      {/* Grid View */}
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              }`}
+            >
+              <span>{tab.label}</span>
+              {count > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Compact Exams Grid */}
       {filteredExams.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch animate-in fade-in duration-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredExams.map((exam) => (
-            <ExamCard
+            <Card
               key={exam.id}
-              exam={exam as any}
-              basePath="/free-exam"
-            />
+              className="rounded-2xl border-border/70 bg-card hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group p-4 gap-3.5"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    {exam.standard === "HSC"
+                      ? "বোর্ড"
+                      : exam.standard === "Varsity"
+                        ? "ভার্সিটি"
+                        : exam.standard === "Engineering"
+                          ? "ইঞ্জিনিয়ারিং"
+                          : exam.standard === "Medical"
+                            ? "মেডিকেল"
+                            : "ফ্রি এক্সাম"}
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                    <User className="size-3 text-muted-foreground" />
+                    <span>{exam.participantsCount} জন</span>
+                  </span>
+                </div>
+
+                <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                  {exam.title}
+                </h3>
+
+                {/* Compact Info Badges */}
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground pt-1">
+                  <span className="px-2 py-0.5 rounded-lg bg-muted/60 font-medium">
+                    {exam.durationMinutes} মিনিট
+                  </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-muted/60 font-medium">
+                    {exam.totalMarks} মার্কস
+                  </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-destructive/10 text-destructive font-medium">
+                    -{exam.negativeMarking}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                <Button
+                  render={<Link href={`/free-exam/${exam.slug}`} />}
+                  size="sm"
+                  className="flex-1 rounded-xl font-bold text-xs h-8.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-none cursor-pointer"
+                >
+                  পরীক্ষা দিন
+                </Button>
+
+                <Button
+                  render={<Link href={`/free-exam/${exam.slug}/leaderboard`} />}
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl font-medium text-xs h-8.5 border-border/80 hover:bg-accent cursor-pointer px-3"
+                >
+                  <Award className="size-3.5 text-amber-500 mr-1" />
+                  র‍্যাংক
+                </Button>
+              </div>
+            </Card>
           ))}
         </div>
       ) : (
-        <div className="py-16 sm:py-24 flex flex-col items-center justify-center text-center border border-dashed rounded-3xl bg-muted/15 p-6 space-y-3 animate-in fade-in duration-200">
-          <div className="size-14 rounded-2xl bg-muted/80 flex items-center justify-center text-muted-foreground">
-            <TaskSquare className="size-7" />
+        <div className="py-16 flex flex-col items-center justify-center text-center border border-dashed rounded-2xl bg-muted/20 p-6 space-y-2">
+          <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
+            <TaskSquare className="size-5" />
           </div>
-          <h3 className="text-base sm:text-lg font-bold text-foreground">
-            {searchQuery
-              ? "আপনার অনুসন্ধান অনুযায়ী কোনো ফ্রি এক্সাম পাওয়া যায়নি"
-              : "এই ক্যাটাগরিতে কোনো ফ্রি এক্সাম পাওয়া যায়নি"}
+          <h3 className="text-sm font-bold text-foreground">
+            এই ট্যাবে কোনো ফ্রি এক্সাম পাওয়া যায়নি
           </h3>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
-            {searchQuery
-              ? "অনুগ্রহ করে অন্য নাম বা কিওয়ার্ড দিয়ে খুঁজুন।"
-              : "শীঘ্রই এই ক্যাটাগরির নতুন ফ্রি পরীক্ষা যুক্ত করা হবে।"}
+          <p className="text-xs text-muted-foreground">
+            শীঘ্রই এই ক্যাটাগরির নতুন ফ্রি পরীক্ষা যুক্ত করা হবে।
           </p>
         </div>
       )}
     </div>
   );
 }
-
