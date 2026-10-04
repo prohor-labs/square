@@ -457,7 +457,7 @@ function UnitCard({
   const label = row.length > 1 ? (row[0] ?? "") : "";
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-border/70 bg-muted/15 p-3 transition-colors hover:bg-muted/30">
+    <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-muted/15 p-3 text-center transition-colors hover:bg-muted/30">
       {label && (
         <p className="text-sm font-bold leading-tight">
           <Highlight text={label} query={query} />
@@ -468,7 +468,7 @@ function UnitCard({
       </p>
       <span
         className={cn(
-          "mt-auto inline-flex self-start rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap",
+          "inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap",
           date
             ? countdownTone(daysUntil(date))
             : "bg-muted text-muted-foreground",
