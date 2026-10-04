@@ -7,6 +7,8 @@ import ArrowRight2 from "reicon-react/icons/ArrowRight2";
 import Award from "reicon-react/icons/Award";
 import Bookmark from "reicon-react/icons/Bookmark";
 import BookOpen from "reicon-react/icons/BookOpen";
+import Building from "reicon-react/icons/Building";
+import Calculator from "reicon-react/icons/Calculator";
 import Calendar from "reicon-react/icons/Calendar";
 import CalendarTick from "reicon-react/icons/CalendarTick";
 import Camera from "reicon-react/icons/Camera";
@@ -30,6 +32,7 @@ import Filter from "reicon-react/icons/Filter";
 import Flame from "reicon-react/icons/Flame";
 import Flash from "reicon-react/icons/Flash";
 import Gamepad from "reicon-react/icons/Gamepad";
+import GradCap from "reicon-react/icons/GradCap";
 import Home from "reicon-react/icons/Home";
 import Information from "reicon-react/icons/Information";
 import Language from "reicon-react/icons/Language";
@@ -48,6 +51,7 @@ import Send from "reicon-react/icons/Send";
 import ShieldCheck from "reicon-react/icons/ShieldCheck";
 import Star from "reicon-react/icons/Star";
 import StatusUp from "reicon-react/icons/StatusUp";
+import Stethoscope from "reicon-react/icons/Stethoscope";
 import Sun from "reicon-react/icons/Sun";
 import TaskSquare from "reicon-react/icons/TaskSquare";
 import Teacher from "reicon-react/icons/Teacher";
@@ -66,6 +70,8 @@ export {
   Award,
   Bookmark,
   BookOpen,
+  Building,
+  Calculator,
   Calendar,
   CalendarTick,
   Camera,
@@ -89,6 +95,7 @@ export {
   Flame,
   Flash,
   Gamepad,
+  GradCap,
   Home,
   Information,
   Language,
@@ -107,6 +114,7 @@ export {
   ShieldCheck,
   Star,
   StatusUp,
+  Stethoscope,
   Sun,
   TaskSquare,
   Teacher,

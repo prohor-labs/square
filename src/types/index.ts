@@ -339,6 +339,17 @@ export interface PdfSuggestion {
   readonly createdAt?: Date;
 }
 
+// Admission tracks shown on /calendar. Single source of truth for the order
+// and the union type used by the admin editor, seed script and public page.
+export const CALENDAR_CATEGORIES = [
+  "medical",
+  "varsity",
+  "engineering",
+  "guchcho",
+] as const;
+
+export type CalendarCategory = (typeof CALENDAR_CATEGORIES)[number];
+
 export interface ExamDetail {
   readonly id: string;
   readonly title: string;

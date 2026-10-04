@@ -1,6 +1,7 @@
 import {
   Add,
   BookOpen,
+  Calendar,
   CalendarTick,
   DocumentDownload,
   Home,
@@ -16,6 +17,7 @@ export const USER_NAV_ITEMS: readonly NavItem[] = [
   { name: "প্রশ্নব্যাংক", path: "/qb", exact: false, icon: TaskSquare },
   { name: "পরীক্ষা", path: "/exams", exact: false, icon: CalendarTick },
   { name: "পিডিএফ", path: "/pdf", exact: false, icon: DocumentDownload },
+  { name: "ক্যালেন্ডার", path: "/calendar", exact: false, icon: Calendar },
   { name: "পোল", path: "/poll", exact: false, icon: StatusUp },
   { name: "প্রোফাইল", path: "/profile", exact: false, icon: User },
 ];
@@ -28,7 +30,12 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     exact: false,
     icon: DocumentDownload,
   },
-  { name: "প্রশ্ন আপলোড", path: "/admin/qb/add-question", exact: false, icon: Add },
+  {
+    name: "প্রশ্ন আপলোড",
+    path: "/admin/qb/add-question",
+    exact: false,
+    icon: Add,
+  },
   { name: "প্রশ্নব্যাংক", path: "/admin/qb", exact: false, icon: TaskSquare },
   { name: "ম্যানেজ ব্যাচ", path: "/admin/batches", exact: false, icon: User },
   {
@@ -38,6 +45,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     icon: TaskSquare,
   },
   { name: "পিডিএফ সাজেশন", path: "/admin/pdf", exact: false, icon: BookOpen },
+  { name: "ক্যালেন্ডার", path: "/admin/calendar", exact: false, icon: Calendar },
   {
     name: "হিরো স্লাইডার",
     path: "/admin/sliders",
@@ -62,6 +70,7 @@ export function getNavItems(
       { name: d.qb, path: "/qb", exact: false, icon: TaskSquare },
       { name: "পরীক্ষা", path: "/exams", exact: false, icon: CalendarTick },
       { name: d.pdf, path: "/pdf", exact: false, icon: DocumentDownload },
+      { name: d.calendar, path: "/calendar", exact: false, icon: Calendar },
       { name: d.poll, path: "/poll", exact: false, icon: StatusUp },
     ];
   }

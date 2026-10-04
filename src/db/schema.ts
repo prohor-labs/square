@@ -9,7 +9,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -67,7 +67,7 @@ export const verification = pgTable("verification", {
 
 export const profiles = user;
 
-// ─── Question Bank ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Question Bank â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const containers = pgTable("containers", {
   id: text("id")
@@ -179,7 +179,7 @@ export const questionTags = pgTable("question_tags", {
     .references(() => tags.id, { onDelete: "cascade" }),
 });
 
-// ─── Courses ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Courses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Declared before batches because batches.courseId references courses.id.
 
 export const batchEnrollmentRequests = pgTable("batch_enrollment_requests", {
@@ -229,9 +229,9 @@ export const batchEnrollments = pgTable("batch_enrollments", {
   accessGrantedBy: text("access_granted_by").references(() => user.id, {
     onDelete: "set null",
   }),
-}); // ─── Batches ──────────────────────────────────────────────────────────────────
+}); // â”€â”€â”€ Batches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // A batch is a cohort of students, optionally tied to a course.
-// hscYear is omitted — courses.hscBatch is the canonical source of truth for
+// hscYear is omitted â€” courses.hscBatch is the canonical source of truth for
 // the academic year; duplicating it here risks contradictory data.
 
 export const batches = pgTable("batches", {
@@ -270,8 +270,8 @@ export const batchDetails = pgTable("batch_details", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
-// Membership is separate from exam assignment — enables:
-// user → batch_members → batch → batch_exams → exam (authorization chain)
+// Membership is separate from exam assignment â€” enables:
+// user â†’ batch_members â†’ batch â†’ batch_exams â†’ exam (authorization chain)
 export const batchMembers = pgTable(
   "batch_members",
   {
@@ -297,7 +297,7 @@ export const batchMembers = pgTable(
   ],
 );
 
-// ─── Exams ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Exams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Exams are reusable independent objects. Scheduling/access policy lives in
 // batch_exams, not here.
 
@@ -359,7 +359,7 @@ export const batchExams = pgTable(
 );
 
 // Each row is one question slot inside a specific exam.
-// negativeMarks is absent — the exam's negativeMarking applies globally.
+// negativeMarks is absent â€” the exam's negativeMarking applies globally.
 export const examQuestions = pgTable(
   "exam_questions",
   {
@@ -388,7 +388,7 @@ export const examQuestions = pgTable(
   ],
 );
 
-// ─── Exam Routines ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Exam Routines â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Calendar/routine entries for a batch (separate from the live exam system).
 
 export const examRoutines = pgTable("exam_routines", {
@@ -407,7 +407,7 @@ export const examRoutines = pgTable("exam_routines", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// ─── Submissions & Responses ──────────────────────────────────────────────────
+// â”€â”€â”€ Submissions & Responses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // One row per student attempt at an exam.
 // examId is kept alongside batchExamId for fast filtering; app must keep them in sync.
@@ -437,7 +437,7 @@ export const examSubmissions = pgTable("exam_submissions", {
 });
 
 // One row per question answer per submission.
-// questionId is NOT stored here — derive via examQuestion → question.
+// questionId is NOT stored here â€” derive via examQuestion â†’ question.
 export const examResponses = pgTable("exam_responses", {
   id: text("id")
     .primaryKey()
@@ -456,7 +456,7 @@ export const examResponses = pgTable("exam_responses", {
   marksObtained: text("marks_obtained").default("0").notNull(),
 });
 
-// ─── Other Tables ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Other Tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const pdfSuggestions = pgTable("pdf_suggestions", {
   id: text("id")
@@ -581,7 +581,7 @@ export const batchQbAccess = pgTable(
   ],
 );
 
-// ─── Relations ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Relations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const containersRelations = relations(containers, ({ many }) => ({
   items: many(items),

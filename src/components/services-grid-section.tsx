@@ -55,6 +55,13 @@ const services: readonly ServiceItem[] = [
     bgClass: "bg-rose-500/10 dark:bg-rose-500/20",
     textClass: "text-rose-600 dark:text-rose-400",
   },
+  {
+    title: "ক্যালেন্ডার",
+    href: "/calendar",
+    icon: Calendar,
+    bgClass: "bg-cyan-500/10 dark:bg-cyan-500/20",
+    textClass: "text-cyan-600 dark:text-cyan-400",
+  },
 ];
 
 export function ServicesGridSection() {
