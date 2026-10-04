@@ -4,14 +4,6 @@ import Image from "next/image";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Calendar as CalendarIcon, Clock, Search } from "@/components/icons";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   CALENDAR_CATEGORY_META,
   CALENDAR_CATEGORY_ORDER,
 } from "@/lib/calendar";
@@ -221,7 +213,7 @@ export function CalendarView({
               {sectionIndex > 0 && <SectionDivider title={section.title} />}
 
               {cards.map((card, cardIndex) => (
-                <InstituteTable
+                <InstituteSection
                   // biome-ignore lint/suspicious/noArrayIndexKey: groups have no id, order is admin-defined
                   key={cardIndex}
                   card={card}
@@ -410,7 +402,7 @@ function Highlight({
   );
 }
 
-function InstituteTable({
+function InstituteSection({
   card,
   query,
 }: {
@@ -418,8 +410,7 @@ function InstituteTable({
   readonly query: string;
 }) {
   const { group, columns } = card;
-  const columnCount = columns.length;
-  const dateColumnIndex = columnCount - 1;
+  const dateColumnIndex = columns.length - 1;
   const heading = group.label.trim();
 
   return (
@@ -434,68 +425,57 @@ function InstituteTable({
         </div>
       )}
 
-      {/* Table already scrolls sideways on its own. */}
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b bg-muted/40 hover:bg-muted/40">
-            {columns.map((column, index) => (
-              <TableHead
-                // biome-ignore lint/suspicious/noArrayIndexKey: static read-only table, no state
-                key={index}
-                className={cn(
-                  "h-9 whitespace-nowrap text-xs sm:text-sm font-semibold text-muted-foreground",
-                  index === 0 && columnCount > 1 && "min-w-[110px]",
-                  index === columnCount - 1 && "text-center",
-                )}
-              >
-                <Highlight text={column} query={query} />
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {group.rows.map((row, rowIndex) => {
-            const rawDate = row[dateColumnIndex] ?? "";
-            const date = parseBengaliDate(rawDate);
-
-            return (
-              <TableRow
-                // biome-ignore lint/suspicious/noArrayIndexKey: rows are rendered read-only
-                key={rowIndex}
-                className={cn(
-                  "transition-colors hover:bg-muted/30",
-                  rowIndex % 2 === 1 && "bg-muted/15",
-                )}
-              >
-                {columns.map((_, columnIndex) => {
-                  const isDateColumn = columnIndex === columnCount - 1;
-
-                  return (
-                    <TableCell
-                      // biome-ignore lint/suspicious/noArrayIndexKey: positional cell, matches its column
-                      key={columnIndex}
-                      className={cn(
-                        "text-sm",
-                        columnIndex === 0 && columnCount > 1 && "font-semibold",
-                        isDateColumn && "text-center",
-                      )}
-                    >
-                      <Highlight text={row[columnIndex] || ""} query={query} />
-                      {/* The countdown sits under the date as plain text —
-                            a plain table, no extra column. */}
-                      {isDateColumn && (
-                        <span className="block text-xs font-normal text-muted-foreground mt-0.5">
-                          {date ? formatCountdown(daysUntil(date)) : "—"}
-                        </span>
-                      )}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      {/* Two per row on phones, four on wider screens. An odd last card simply
+          leaves the trailing slot empty. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 p-3 sm:p-4">
+        {group.rows.map((row, rowIndex) => (
+          <UnitCard
+            // biome-ignore lint/suspicious/noArrayIndexKey: rows are rendered read-only
+            key={rowIndex}
+            row={row}
+            dateColumnIndex={dateColumnIndex}
+            query={query}
+          />
+        ))}
+      </div>
     </section>
+  );
+}
+
+function UnitCard({
+  row,
+  dateColumnIndex,
+  query,
+}: {
+  readonly row: readonly string[];
+  readonly dateColumnIndex: number;
+  readonly query: string;
+}) {
+  const dateText = row[dateColumnIndex] ?? "";
+  const date = parseBengaliDate(dateText);
+  // Date-only tables have no unit cell, so the date becomes the heading.
+  const label = row.length > 1 ? (row[0] ?? "") : "";
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl border border-border/70 bg-muted/15 p-3 transition-colors hover:bg-muted/30">
+      {label && (
+        <p className="text-sm font-bold leading-tight">
+          <Highlight text={label} query={query} />
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground leading-snug">
+        <Highlight text={dateText} query={query} />
+      </p>
+      <span
+        className={cn(
+          "mt-auto inline-flex self-start rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap",
+          date
+            ? countdownTone(daysUntil(date))
+            : "bg-muted text-muted-foreground",
+        )}
+      >
+        {date ? formatCountdown(daysUntil(date)) : "—"}
+      </span>
+    </div>
   );
 }
