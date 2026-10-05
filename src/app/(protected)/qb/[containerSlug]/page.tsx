@@ -46,8 +46,9 @@ export default async function QbUnitsPage({
           </p>
         </div>
       ) : (
-        /* Two per row — units are short labels, not tiles. */
-        <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2">
+        /* Two per row, capped so the square cards stay card-sized on a wide screen
+           instead of stretching to 600px. */
+        <div className="grid max-w-xl grid-cols-2 gap-2.5 sm:gap-3">
           {container.units.map((unit) => (
             <QbCard
               key={unit.id}

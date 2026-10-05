@@ -79,7 +79,9 @@ export default async function QuestionBankPage({
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        /* Two per row, capped so the square cards stay card-sized on a wide screen
+           instead of stretching to 600px. */
+        <div className="grid max-w-xl grid-cols-2 gap-2.5 sm:gap-3">
           {visible.map((container) => (
             <QbCard
               key={container.id}
