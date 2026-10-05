@@ -137,7 +137,8 @@ export async function updateBatchDetailsAction(
       const batchUpdate: Record<string, any> = { updatedAt: new Date() };
       if (payload.name !== undefined) batchUpdate.name = payload.name;
       if (payload.slug !== undefined) batchUpdate.slug = payload.slug;
-      if (payload.subtitle !== undefined) batchUpdate.subtitle = payload.subtitle;
+      if (payload.subtitle !== undefined)
+        batchUpdate.subtitle = payload.subtitle;
       if (payload.hscBatch !== undefined)
         batchUpdate.hscBatch = normalizeHscBatch(payload.hscBatch);
       if (payload.price !== undefined) batchUpdate.price = payload.price;
@@ -253,7 +254,9 @@ export async function updateBatchDetailsAction(
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to update course details",
+        error instanceof Error
+          ? error.message
+          : "Failed to update course details",
     };
   }
 }
@@ -306,9 +309,7 @@ export async function getBatchDetailAction(id: string) {
       : [];
     const faqs = Array.isArray(rawDetails.faqs) ? rawDetails.faqs : [];
     const duration =
-      curriculumObj.duration ||
-      rawDetails.duration ||
-      "১ বছর কমপ্লিট এক্সেস";
+      curriculumObj.duration || rawDetails.duration || "১ বছর কমপ্লিট এক্সেস";
     const rating = curriculumObj.rating || rawDetails.rating || "5.0";
     const ratingCount =
       curriculumObj.ratingCount || rawDetails.ratingCount || "50+";
@@ -493,17 +494,21 @@ export async function updateBatchExamAction(
   },
 ) {
   try {
+    // Spread conditionally: an explicit null means "clear the schedule", so it
+    // has to reach drizzle. Using `?? undefined` would silently drop it.
+    const patch: Partial<typeof batchExams.$inferInsert> = {};
+    if (opts.startsAt !== undefined) patch.startsAt = opts.startsAt;
+    if (opts.endsAt !== undefined) patch.endsAt = opts.endsAt;
+    if (opts.maxAttempts !== undefined) patch.maxAttempts = opts.maxAttempts;
+    if (opts.isRequired !== undefined) patch.isRequired = opts.isRequired;
+
     const res = await db
       .update(batchExams)
-      .set({
-        startsAt: opts.startsAt ?? undefined,
-        endsAt: opts.endsAt ?? undefined,
-        maxAttempts: opts.maxAttempts ?? undefined,
-        isRequired: opts.isRequired ?? undefined,
-      })
+      .set(patch)
       .where(eq(batchExams.id, batchExamId))
       .returning();
     revalidatePath(`/admin/batches/${batchId}`);
+    revalidatePath("/admin/exams");
     return { success: true, data: res[0] };
   } catch (error: unknown) {
     return {

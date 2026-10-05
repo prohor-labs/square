@@ -3,9 +3,20 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExamEditorModal } from "@/components/admin/exam-editor-modal";
+import {
+  type ExamScheduleAssignment,
+  ExamScheduleModal,
+} from "@/components/admin/exam-schedule-modal";
 import { QuickList } from "@/components/admin/quick-list";
-import { Chart, Clipboard, Edit, TaskSquare } from "@/components/icons";
+import {
+  CalendarTick,
+  Chart,
+  Clipboard,
+  Edit,
+  TaskSquare,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { formatBanglaDateTime } from "@/lib/date";
 
 interface Batch {
   id: string;
@@ -21,7 +32,13 @@ interface Exam {
   isPublished: boolean;
   durationMinutes: number;
   totalMarks: number;
-  batchExams: Array<{ batch: Batch | null }>;
+  batchExams: Array<{
+    id: string;
+    batchId: string;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    batch: Batch | null;
+  }>;
 }
 
 interface AdminExamsListProps {
@@ -35,6 +52,26 @@ const TYPE_LABELS: Record<string, string> = {
   model_test: "Model Test",
   live_contest: "Live Contest",
 };
+
+/** Short human label for an exam's window status, shown in the list. */
+function scheduleLabel(
+  startsAt?: string | null,
+  endsAt?: string | null,
+): { text: string; className: string } | null {
+  if (!startsAt && !endsAt) {
+    return {
+      text: "সবসময় লাইভ",
+      className: "bg-red-500/10 text-red-600 dark:text-red-400",
+    };
+  }
+  const from = startsAt ? formatBanglaDateTime(startsAt) : "";
+  const to = endsAt ? formatBanglaDateTime(endsAt) : "";
+  const range = [from, to].filter(Boolean).join(" → ");
+  return {
+    text: range,
+    className: "bg-muted text-muted-foreground",
+  };
+}
 
 export function AdminExamsList({ exams }: AdminExamsListProps) {
   const [selectedBatch, setSelectedBatch] = useState<string>("all");
@@ -110,6 +147,32 @@ export function AdminExamsList({ exams }: AdminExamsListProps) {
               ),
             ] as string[];
 
+            const assignments: ExamScheduleAssignment[] = exam.batchExams
+              .filter((be) => be.batch)
+              .map((be) => ({
+                batchExamId: be.id,
+                batchId: be.batchId,
+                batchName: be.batch?.name ?? "",
+                startsAt: be.startsAt ?? null,
+                endsAt: be.endsAt ?? null,
+              }));
+
+            // One chip summarising the window; with several batches each can
+            // differ, so the chip says so instead of showing a single range.
+            const schedule =
+              assignments.length === 0
+                ? null
+                : assignments.length > 1
+                  ? {
+                      text: `${assignments.length} ব্যাচে ভিন্ন সময়`,
+                      className:
+                        "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    }
+                  : scheduleLabel(
+                      assignments[0]?.startsAt,
+                      assignments[0]?.endsAt,
+                    );
+
             return {
               title: exam.title,
               description: [
@@ -147,10 +210,50 @@ export function AdminExamsList({ exams }: AdminExamsListProps) {
                   >
                     {exam.isPublished ? "Published" : "Draft"}
                   </span>
+                  {schedule && (
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${schedule.className}`}
+                    >
+                      {schedule.text}
+                    </span>
+                  )}
                 </div>
               ),
               rightElement: (
                 <div className="flex items-center gap-1">
+                  {/* Schedule — icon on mobile */}
+                  {assignments.length > 0 && (
+                    <>
+                      <ExamScheduleModal
+                        examTitle={exam.title}
+                        assignments={assignments}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-lg flex sm:hidden"
+                            title="সময়সূচি"
+                          >
+                            <CalendarTick className="size-4" />
+                          </Button>
+                        }
+                      />
+                      <ExamScheduleModal
+                        examTitle={exam.title}
+                        assignments={assignments}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl text-xs h-8 px-3 hidden sm:flex"
+                          >
+                            সময়
+                          </Button>
+                        }
+                      />
+                    </>
+                  )}
+
                   {/* Edit — icon on mobile */}
                   <ExamEditorModal
                     examId={exam.id}
