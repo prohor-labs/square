@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Clock, TaskSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { formatBanglaDateTime } from "@/lib/date";
-import { getExamWindow } from "@/lib/exam-window";
+import { formatRemaining, getExamWindow } from "@/lib/exam-window";
 import { cn } from "@/lib/utils";
 import type { BatchExamDetail } from "@/types";
 
@@ -25,7 +25,11 @@ export function UpcomingExamCard({ batchExam }: UpcomingExamCardProps) {
 
   if (!exam) return null;
 
-  const window = getExamWindow(batchExam, now ?? Date.now());
+  const current = now ?? Date.now();
+  const window = getExamWindow(batchExam, current);
+  const startsInMs = window.startsAt
+    ? Math.max(0, window.startsAt.getTime() - current)
+    : 0;
 
   return (
     <div className="border border-border/60 rounded-2xl p-5 sm:p-6 bg-card flex flex-col gap-4 hover:border-amber-500/50 transition-colors">
@@ -33,9 +37,16 @@ export function UpcomingExamCard({ batchExam }: UpcomingExamCardProps) {
         <h3 className="font-bold text-base sm:text-lg leading-snug">
           {exam.title}
         </h3>
-        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-bold uppercase">
-          আপকামিং
-        </span>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-bold uppercase">
+            আপকামিং
+          </span>
+          {batchExam.batch?.name && (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+              {batchExam.batch.name}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -51,13 +62,17 @@ export function UpcomingExamCard({ batchExam }: UpcomingExamCardProps) {
 
       <div className="text-xs bg-muted/30 p-3.5 rounded-xl space-y-1.5 border border-border/30">
         <div className="flex items-center justify-between gap-3">
-          <span className="font-medium text-foreground/80">শুরু হবে</span>
-          <span className="font-bold">
-            {window.startsAt
-              ? formatBanglaDateTime(window.startsAt.toISOString())
-              : "শিগগিরই"}
+          <span className="font-medium text-foreground/80">শুরু হতে বাকি</span>
+          <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+            {formatRemaining(startsInMs)}
           </span>
         </div>
+        {window.startsAt && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-medium text-foreground/80">শুরু হবে</span>
+            <span>{formatBanglaDateTime(window.startsAt.toISOString())}</span>
+          </div>
+        )}
         {window.endsAt && (
           <div className="flex items-center justify-between gap-3">
             <span className="font-medium text-foreground/80">শেষ হবে</span>
@@ -65,10 +80,6 @@ export function UpcomingExamCard({ batchExam }: UpcomingExamCardProps) {
           </div>
         )}
       </div>
-
-      <p className="text-[11px] text-muted-foreground leading-relaxed">
-        সময় শুরু হওয়ার আগে দিতে পারবেন না। তখন এটি লাইভ পরীক্ষা হিসেবে গণ্য হবে।
-      </p>
 
       <Button
         variant="outline"

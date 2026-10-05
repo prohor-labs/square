@@ -11,8 +11,8 @@ interface LiveExamListProps {
 }
 
 /**
- * Client wrapper so the "time left" chip on every live card ticks from one
- * shared interval instead of one per card.
+ * Client wrapper so an exam crossing its start time moves itself from the
+ * upcoming list into this one without a manual refresh.
  */
 export function LiveExamList({ batchExams }: LiveExamListProps) {
   const [now, setNow] = useState<number | null>(null);
@@ -57,7 +57,6 @@ export function LiveExamList({ batchExams }: LiveExamListProps) {
           key={be.id}
           batchExam={be}
           window={getExamWindow(be, now ?? Date.now())}
-          now={now}
         />
       ))}
     </div>
