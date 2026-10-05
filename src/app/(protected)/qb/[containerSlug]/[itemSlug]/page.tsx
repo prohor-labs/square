@@ -1,24 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import type { QbPaletteKey } from "@/components/qb/QbGradientCard";
-import { QbGradientCard } from "@/components/qb/QbGradientCard";
+import { QbCard } from "@/components/qb/QbCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
-import {
-  type QbBankSlug,
-  resolveBankSlug,
-  unitLabel,
-} from "@/lib/question-bank";
+import { unitLabel } from "@/lib/question-bank";
 
 export const dynamic = "force-dynamic";
-
-const BANK_PALETTE: Record<QbBankSlug, QbPaletteKey> = {
-  varsity: "varsity",
-  engineering: "engineering",
-  medical: "medical",
-  board: "board",
-};
 
 /** Level 3 — the years or chapters inside one unit. */
 export default async function QbChaptersPage({
@@ -35,8 +23,6 @@ export default async function QbChaptersPage({
   if (!unit) notFound();
 
   const label = unitLabel(unit.name, container.title);
-  const palette =
-    BANK_PALETTE[resolveBankSlug(container.slug) as QbBankSlug] ?? "neutral";
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-5">
@@ -60,8 +46,7 @@ export default async function QbChaptersPage({
           {label}
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          {toBengaliDigits(unit.chapters.length)} টি অধ্যায় · মোট{" "}
-          {toBengaliDigits(unit.questions)} টি প্রশ্ন
+          মোট {toBengaliDigits(unit.questions)} টি প্রশ্ন
         </p>
       </div>
 
@@ -72,17 +57,17 @@ export default async function QbChaptersPage({
           </p>
         </div>
       ) : (
-        /* Years are a long list, so they read better as a compact column of
-           flat boxes than as a grid of near-identical squares. */
+        /* A dozen years would be an endless grid of tiles, so they read better
+           as a compact column of flat boxes. */
         <div className="flex flex-col gap-2.5 sm:gap-3 max-w-2xl">
           {unit.chapters.map((chapter) => (
-            <QbGradientCard
+            <QbCard
               key={chapter.id}
               href={`/qb/${container.slug}/${unit.slug}/${chapter.slug}`}
               title={chapter.name}
               subtitle={label}
               questions={chapter.questions}
-              palette={palette}
+              seed={container.title}
               variant="row"
             />
           ))}

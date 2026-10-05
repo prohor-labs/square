@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import type { QbPaletteKey } from "@/components/qb/QbGradientCard";
-import { QbGradientCard } from "@/components/qb/QbGradientCard";
+import { QbCard } from "@/components/qb/QbCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
 import {
@@ -21,13 +20,6 @@ const TABS: readonly { slug: string; label: string }[] = [
     label: bank.label.replace(" প্রশ্ন ব্যাংক", ""),
   })),
 ];
-
-const BANK_PALETTE: Record<QbBankSlug, QbPaletteKey> = {
-  varsity: "varsity",
-  engineering: "engineering",
-  medical: "medical",
-  board: "board",
-};
 
 export default async function QuestionBankPage({
   searchParams,
@@ -87,17 +79,15 @@ export default async function QuestionBankPage({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((container) => (
-            <QbGradientCard
+            <QbCard
               key={container.id}
               href={`/qb/${container.slug}`}
               title={container.title}
               subtitle="প্রশ্নব্যাংক"
               questions={container.questions}
-              palette={
-                BANK_PALETTE[resolveBankSlug(container.slug)] ?? "neutral"
-              }
+              seed={container.title}
             />
           ))}
         </div>

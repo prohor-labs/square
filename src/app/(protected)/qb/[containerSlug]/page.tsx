@@ -1,24 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import type { QbPaletteKey } from "@/components/qb/QbGradientCard";
-import { QbGradientCard } from "@/components/qb/QbGradientCard";
+import { QbCard } from "@/components/qb/QbCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
-import {
-  type QbBankSlug,
-  resolveBankSlug,
-  unitLabel,
-} from "@/lib/question-bank";
+import { unitLabel } from "@/lib/question-bank";
 
 export const dynamic = "force-dynamic";
-
-const BANK_PALETTE: Record<QbBankSlug, QbPaletteKey> = {
-  varsity: "varsity",
-  engineering: "engineering",
-  medical: "medical",
-  board: "board",
-};
 
 /** Level 2 — the units inside one container. */
 export default async function QbUnitsPage({
@@ -31,9 +19,6 @@ export default async function QbUnitsPage({
   const container = tree.find((node) => node.slug === containerSlug);
 
   if (!container) notFound();
-
-  const palette =
-    BANK_PALETTE[resolveBankSlug(container.slug) as QbBankSlug] ?? "neutral";
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-5">
@@ -50,8 +35,7 @@ export default async function QbUnitsPage({
           {container.title}
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          {toBengaliDigits(container.units.length)} টি ইউনিট · মোট{" "}
-          {toBengaliDigits(container.questions)} টি প্রশ্ন
+          মোট {toBengaliDigits(container.questions)} টি প্রশ্ন
         </p>
       </div>
 
@@ -64,13 +48,14 @@ export default async function QbUnitsPage({
       ) : (
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {container.units.map((unit) => (
-            <QbGradientCard
+            <QbCard
               key={unit.id}
               href={`/qb/${container.slug}/${unit.slug}`}
               title={unitLabel(unit.name, container.title)}
               subtitle={container.title}
               questions={unit.questions}
-              palette={palette}
+              // Seeded by the container, so every unit of one university matches.
+              seed={container.title}
             />
           ))}
         </div>
