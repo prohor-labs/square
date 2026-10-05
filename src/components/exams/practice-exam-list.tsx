@@ -1,3 +1,4 @@
+import { ExamBadges } from "@/components/exams/exam-badges";
 import { Clock, TaskSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import type { BatchExamDetail } from "@/types";
@@ -38,16 +39,7 @@ export function PracticeExamList({ expiredBatchExams }: PracticeExamListProps) {
               <h3 className="font-bold text-base sm:text-lg leading-snug">
                 {be.exam?.title}
               </h3>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 px-2.5 py-0.5 text-[11px] font-bold uppercase">
-                  প্র্যাকটিস
-                </span>
-                {be.batch?.name && (
-                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
-                    {be.batch.name}
-                  </span>
-                )}
-              </div>
+              <ExamBadges status="practice" batchName={be.batch?.name} />
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5 font-medium bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40">

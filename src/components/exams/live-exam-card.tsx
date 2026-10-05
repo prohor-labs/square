@@ -1,5 +1,6 @@
 "use client";
 
+import { ExamBadges } from "@/components/exams/exam-badges";
 import { Clock, TaskSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { formatBanglaDateTime } from "@/lib/date";
@@ -18,16 +19,6 @@ export function LiveExamCard({ batchExam, window }: ExamCardProps) {
 
   const isPractice = window.status === "practice";
 
-  const badge = isPractice
-    ? {
-        label: "প্র্যাকটিস",
-        className: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
-      }
-    : {
-        label: "লাইভ",
-        className: "bg-red-500/15 text-red-600 dark:text-red-400",
-      };
-
   // No schedule at all means the admin set no time, so there is nothing to show.
   const hasSchedule = Boolean(window.startsAt || window.endsAt);
 
@@ -38,21 +29,10 @@ export function LiveExamCard({ batchExam, window }: ExamCardProps) {
           <h3 className="font-bold text-base sm:text-lg leading-snug">
             {exam.title}
           </h3>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase",
-                badge.className,
-              )}
-            >
-              {badge.label}
-            </span>
-            {batchExam.batch?.name && (
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
-                {batchExam.batch.name}
-              </span>
-            )}
-          </div>
+          <ExamBadges
+            status={isPractice ? "practice" : "live"}
+            batchName={batchExam.batch?.name}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

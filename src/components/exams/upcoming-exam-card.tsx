@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ExamBadges } from "@/components/exams/exam-badges";
 import { Clock, TaskSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { formatBanglaDateTime } from "@/lib/date";
@@ -37,16 +38,7 @@ export function UpcomingExamCard({ batchExam }: UpcomingExamCardProps) {
         <h3 className="font-bold text-base sm:text-lg leading-snug">
           {exam.title}
         </h3>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-bold uppercase">
-            আপকামিং
-          </span>
-          {batchExam.batch?.name && (
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
-              {batchExam.batch.name}
-            </span>
-          )}
-        </div>
+        <ExamBadges status="upcoming" batchName={batchExam.batch?.name} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
