@@ -135,29 +135,42 @@ export function QbCard({
     );
   }
 
-  /* Square tile, shared by banks and units — only the type size differs. The
-     name sits on the first line with the full width to itself and the count
-     underneath; side by side there was not enough room once the grids went two
-     per row, and every name clipped to two characters. */
+  /* Square tile, shared by banks and units — only the type size differs. The count
+     is pinned to the top-right corner and the name is centred below it, so the
+     name gets the full width; laid out side by side, every name clipped to two
+     characters once the grids went two per row. */
   const big = variant === "wide";
 
   return (
     <a
       href={href}
       className={cn(
-        "group relative flex aspect-square flex-col justify-center overflow-hidden rounded-2xl border border-border/40 p-3 shadow-sm sm:p-4",
+        "group relative flex aspect-square flex-col justify-center overflow-hidden rounded-2xl border border-border/40 px-3 pt-9 pb-4 shadow-sm sm:px-4 sm:pt-11 sm:pb-5",
         focusRing,
       )}
       style={{ background: COLORS.background }}
     >
       <Shapes blobs={SQUARE_BLOBS} />
 
+      {/* Count pinned to the top-right corner, clear of the centred label. */}
+      <span
+        className={cn(
+          "absolute right-3 top-3 z-10 rounded-full font-bold whitespace-nowrap text-white",
+          big
+            ? "px-2.5 py-1 text-[10px] sm:text-xs"
+            : "px-2 py-0.5 text-[9px] sm:text-[10px]",
+        )}
+        style={{ backgroundColor: COLORS.pill }}
+      >
+        {toBengaliDigits(questions)} টি প্রশ্ন
+      </span>
+
       <h3
         className={cn(
           "relative z-10 font-black leading-tight",
           big
             ? "line-clamp-3 text-center text-[15px] sm:text-lg md:text-xl"
-            : "line-clamp-2 text-center text-[13px] sm:text-base",
+            : "line-clamp-2 text-center text-[15px] sm:text-base",
         )}
         style={{ color: COLORS.text }}
       >
@@ -168,25 +181,13 @@ export function QbCard({
         <p
           className={cn(
             "relative z-10 mt-1 line-clamp-1 text-center font-medium leading-snug",
-            big ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]",
+            big ? "text-[11px] sm:text-xs" : "text-[11px] sm:text-xs",
           )}
           style={{ color: COLORS.subText }}
         >
           {subtitle}
         </p>
       )}
-
-      <span
-        className={cn(
-          "relative z-10 self-start rounded-full font-bold whitespace-nowrap text-white",
-          big
-            ? "mt-3 px-2.5 py-1 text-[10px] sm:text-xs"
-            : "mt-2 px-2 py-0.5 text-[9px] sm:text-[10px]",
-        )}
-        style={{ backgroundColor: COLORS.pill }}
-      >
-        {toBengaliDigits(questions)} টি প্রশ্ন
-      </span>
     </a>
   );
 }
