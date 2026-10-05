@@ -3,7 +3,7 @@ import { LiveExamList } from "@/components/exams/live-exam-list";
 import { PracticeExamList } from "@/components/exams/practice-exam-list";
 import { UpcomingExamCard } from "@/components/exams/upcoming-exam-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getPublishedExams, getStudentExams } from "@/lib/actions/exam";
+import { getStudentExams } from "@/lib/actions/exam";
 import { auth } from "@/lib/auth";
 import { getExamWindow } from "@/lib/exam-window";
 
@@ -16,13 +16,11 @@ export default async function ExamsBrowserPage({
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
-  const [studentExamsRes, publishedExamsRes] = await Promise.all([
-    userId ? getStudentExams(userId) : Promise.resolve({ data: [] }),
-    getPublishedExams(),
-  ]);
+  // Free/open exams are deliberately not listed here — only exams scheduled
+  // against the student's own batches appear in the three tabs.
+  const studentExamsRes = userId ? await getStudentExams(userId) : { data: [] };
 
   const batchExams = studentExamsRes.data || [];
-  const practiceExams = publishedExamsRes.data || [];
 
   // The server clock decides the default tab; the client re-checks the status
   // every second, so a page left open crosses over on its own.
@@ -33,10 +31,9 @@ export default async function ExamsBrowserPage({
   const upcomingCount = batchExams.filter(
     (be) => getExamWindow(be, now).status === "upcoming",
   ).length;
-  const expiredCount = batchExams.filter(
+  const practiceTotal = batchExams.filter(
     (be) => getExamWindow(be, now).status === "practice",
   ).length;
-  const practiceTotal = expiredCount + practiceExams.length;
 
   const defaultTab =
     tab === "practice" || tab === "free"
@@ -148,10 +145,7 @@ export default async function ExamsBrowserPage({
               মোট {practiceTotal} টি
             </span>
           </div>
-          <PracticeExamList
-            expiredBatchExams={expiredExams}
-            openPracticeExams={practiceExams}
-          />
+          <PracticeExamList expiredBatchExams={expiredExams} />
         </TabsContent>
       </Tabs>
     </div>
