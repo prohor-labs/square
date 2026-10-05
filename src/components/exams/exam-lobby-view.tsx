@@ -210,9 +210,13 @@ export function ExamLobbyView({ exam, access, userId }: ExamLobbyViewProps) {
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full justify-center">
-            {access.previousAttemptsCount && access.previousAttemptsCount > 0 && access.latestSubmissionId ? (
+            {access.previousAttemptsCount &&
+            access.previousAttemptsCount > 0 &&
+            access.latestSubmissionId ? (
               <>
-                <Link href={`/exams/${exam.slug}/result?sid=${access.latestSubmissionId}`}>
+                <Link
+                  href={`/exams/${exam.slug}/result?sid=${access.latestSubmissionId}`}
+                >
                   <Button
                     variant="outline"
                     size="lg"

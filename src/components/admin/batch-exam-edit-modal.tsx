@@ -161,6 +161,33 @@ export function BatchExamEditModal({ batchExam }: BatchExamEditModalProps) {
             </div>
           </div>
 
+          <div className="text-[11px] sm:text-xs bg-muted/40 border border-border/50 rounded-xl p-3 space-y-1 leading-relaxed text-muted-foreground">
+            <p className="font-semibold text-foreground">
+              বাংলাদেশ সময় (UTC+6) অনুযায়ী কাজ করবে।
+            </p>
+            <p>
+              • শুরু ও শেষ দুটো খালি রাখলে পরীক্ষাটি{" "}
+              <span className="font-bold text-red-600 dark:text-red-400">
+                সবসময় লাইভ
+              </span>{" "}
+              থাকবে।
+            </p>
+            <p>
+              • শুরু ও শেষের মধ্যে দিলে সেটি{" "}
+              <span className="font-bold text-red-600 dark:text-red-400">
+                লাইভ পরীক্ষা
+              </span>{" "}
+              — ফলাফল মেরিট লিস্টে যাবে।
+            </p>
+            <p>
+              • শুরু হওয়ার আগে দিতে পারবে না। শেষের পরে দিলে সেটি{" "}
+              <span className="font-bold text-sky-600 dark:text-sky-400">
+                প্র্যাকটিস
+              </span>{" "}
+              হয়ে যাবে এবং মেরিট লিস্টে যুক্ত হবে না।
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <label htmlFor="maxAttempts" className="text-sm font-medium">
               সর্বোচ্চ প্রচেষ্টা

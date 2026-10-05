@@ -3,9 +3,10 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { LiveExamView } from "@/components/exams/live-exam-view";
 import { db } from "@/db";
-import { examSubmissions } from "@/db/schema";
+import { batchExams, examSubmissions } from "@/db/schema";
 import { getExamBySlug } from "@/lib/actions/exam";
 import { auth } from "@/lib/auth";
+import { getExamWindow } from "@/lib/exam-window";
 
 export default async function TakeExamPage({
   params,
@@ -48,7 +49,27 @@ export default async function TakeExamPage({
   const elapsedSeconds = Math.floor((nowMs - startedAtMs) / 1000);
 
   const totalSeconds = exam.durationMinutes * 60;
-  const initialTimeLeft = Math.max(0, totalSeconds - elapsedSeconds);
+  let initialTimeLeft = Math.max(0, totalSeconds - elapsedSeconds);
+
+  // A live attempt cannot outlive the scheduled window, so clamp to whichever
+  // runs out first: the exam duration or the window's end.
+  if (submission.batchExamId) {
+    const scheduled = await db.query.batchExams.findFirst({
+      where: eq(batchExams.id, submission.batchExamId),
+    });
+    if (scheduled) {
+      const window = getExamWindow(scheduled);
+      if (window.status === "live" && window.endsAt) {
+        const windowSecondsLeft = Math.floor(
+          (window.endsAt.getTime() - nowMs) / 1000,
+        );
+        initialTimeLeft = Math.max(
+          0,
+          Math.min(initialTimeLeft, windowSecondsLeft),
+        );
+      }
+    }
+  }
 
   // If time is up, client component will handle auto-submit on mount
 

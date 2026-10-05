@@ -121,7 +121,8 @@ export function LiveExamView({
 
   const handleSelectMcq = (examQuestionId: string, optionId: string) => {
     setAnswers((prev) => {
-      const isAlreadySelected = prev[examQuestionId]?.selectedOptionId === optionId;
+      const isAlreadySelected =
+        prev[examQuestionId]?.selectedOptionId === optionId;
       return {
         ...prev,
         [examQuestionId]: {

@@ -393,6 +393,8 @@ export interface ExamSubmission {
   readonly attemptNumber: number;
   readonly timeTakenSeconds: number;
   readonly status: "in_progress" | "submitted" | "evaluated" | string;
+  /** True when the attempt began inside the scheduled window (merit list). */
+  readonly isLiveAttempt: boolean;
   readonly startedAt: Date;
   readonly submittedAt?: Date | null;
 }
@@ -449,6 +451,11 @@ export interface BatchExamDetail {
   readonly endsAt?: string | null;
   readonly isRequired: boolean;
   readonly maxAttempts?: number | null;
+  readonly batch?: {
+    readonly id: string;
+    readonly name: string;
+    readonly hscBatch?: string | null;
+  } | null;
 }
 
 export interface BatchDetail extends Batch {

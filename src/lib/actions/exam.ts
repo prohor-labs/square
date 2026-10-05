@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -13,6 +13,7 @@ import {
   exams,
   user,
 } from "@/db/schema";
+import { isLiveAt } from "@/lib/exam-window";
 import type { ExamDetail, ExamSubmission, LeaderboardEntry } from "@/types";
 
 /**
@@ -46,7 +47,6 @@ export async function getPublishedExams() {
     };
   }
 }
-
 
 /**
  * Get full exam details including questions and options for taking the exam.
@@ -119,6 +119,10 @@ export async function getStudentExams(userId: string) {
       where: inArray(batchExams.batchId, allBatchIds),
       with: {
         exam: true,
+        // Needed for the "which batch is this for?" picker on live cards.
+        batch: {
+          columns: { id: true, name: true, hscBatch: true },
+        },
       },
       orderBy: [desc(batchExams.assignedAt)],
     });
@@ -258,6 +262,19 @@ export async function startExamAction(
 
     const attemptNumber = prevSubmissions.length + 1;
 
+    // Freeze whether this counts as a live attempt at the moment it starts.
+    // Missing batchExamId means an open practice exam, which is never live.
+    const scheduled = batchExamId
+      ? await db.query.batchExams.findFirst({
+          where: eq(batchExams.id, batchExamId),
+        })
+      : null;
+
+    const isLiveAttempt = isLiveAt({
+      startsAt: scheduled?.startsAt,
+      endsAt: scheduled?.endsAt,
+    });
+
     // We start with 0 marks, they will be updated on submit
     const res = await db
       .insert(examSubmissions)
@@ -270,10 +287,15 @@ export async function startExamAction(
         attemptNumber,
         status: "in_progress",
         timeTakenSeconds: 0,
+        isLiveAttempt,
       })
       .returning();
 
-    return { success: true, submission: res[0] as ExamSubmission };
+    return {
+      success: true,
+      submission: res[0] as ExamSubmission,
+      isLiveAttempt,
+    };
   } catch (error: unknown) {
     return {
       success: false,
@@ -453,7 +475,9 @@ export async function getSubmissionResult(
     // Merge existing responses with full exam questions list
     const existingResponses = submission.responses || [];
     const completeResponses = allExamQuestions.map((eqData) => {
-      const found = existingResponses.find((r) => r.examQuestionId === eqData.id);
+      const found = existingResponses.find(
+        (r) => r.examQuestionId === eqData.id,
+      );
       if (found) return found;
       return {
         id: `unattempted-${eqData.id}`,
@@ -484,19 +508,25 @@ export async function getSubmissionResult(
  */
 export async function getExamLeaderboard(examId: string) {
   try {
+    // Only attempts that began inside the scheduled window reach the merit
+    // list; practice attempts are deliberately excluded.
     const list = await db.query.examSubmissions.findMany({
       where: and(
         eq(examSubmissions.examId, examId),
         eq(examSubmissions.status, "submitted"),
+        eq(examSubmissions.isLiveAttempt, true),
       ),
       with: {
         user: true,
       },
-      orderBy: [asc(examSubmissions.attemptNumber), asc(examSubmissions.startedAt)],
+      orderBy: [
+        asc(examSubmissions.attemptNumber),
+        asc(examSubmissions.startedAt),
+      ],
     });
 
     // Take only the FIRST attempt (attemptNumber === 1) for each user so subsequent practice attempts do not alter the merit list
-    const firstAttemptsMap = new Map<string, typeof list[0]>();
+    const firstAttemptsMap = new Map<string, (typeof list)[0]>();
     for (const sub of list) {
       if (!firstAttemptsMap.has(sub.userId)) {
         firstAttemptsMap.set(sub.userId, sub);

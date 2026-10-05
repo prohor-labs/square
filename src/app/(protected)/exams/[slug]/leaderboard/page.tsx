@@ -61,12 +61,21 @@ export default async function ExamLeaderboardPage({
         </div>
 
         <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
-            <Trophy className="size-6 text-primary shrink-0" />
-            <span>{exam.title}</span>
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+              <Trophy className="size-6 text-primary shrink-0" />
+              <span>{exam.title}</span>
+            </h1>
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 px-2.5 py-0.5 text-[11px] font-bold uppercase">
+              লাইভ রেজাল্ট
+            </span>
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            সর্বোচ্চ নম্বর ও দ্রুততম সময়ের ভিত্তিতে মেধা তালিকা প্রণয়ন করা হয়েছে
+            সর্বোচ্চ নম্বর ও দ্রুততম সময়ের ভিত্তিতে মেধা তালিকা প্রণয়ন করা হয়েছে
+          </p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+            এখানে শুধু নির্ধারিত সময়ের মধ্যে দেওয়া লাইভ পরীক্ষার ফলাফল আছে। সময়ের বাইরে দেওয়া
+            প্র্যাকটিস পরীক্ষার ফলাফল মেধা তালিকায় যুক্ত হয় না।
           </p>
         </div>
       </div>
