@@ -8,7 +8,6 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { Lightbulb } from "@/components/icons";
-import { markdownComponents, sanitizeQuestionContent } from "@/lib/question-content";
 import {
   Accordion,
   AccordionContent,
@@ -16,10 +15,28 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import {
+  markdownComponents,
+  sanitizeQuestionContent,
+} from "@/lib/question-content";
 import { cn } from "@/lib/utils";
 import type { CQPart, MCQOption, Question } from "@/types";
 
 const OPTION_KEYS = ["ক", "খ", "গ", "ঘ", "ঙ"];
+
+/** The stored standard is an English enum; show it in Bangla like everything else. */
+const STANDARD_LABELS: Record<string, string> = {
+  hsc: "HSC বোর্ড",
+  varsity: "ভার্সিটি",
+  engineering: "ইঞ্জিনিয়ারিং",
+  medical: "মেডিকেল",
+};
+
+function standardLabel(standard: string | null | undefined): string {
+  if (!standard) return "";
+  const key = standard.trim().toLowerCase();
+  return STANDARD_LABELS[key] ?? standard.trim();
+}
 
 export interface UniversalQuestionCardProps {
   readonly question: Question;
@@ -70,7 +87,7 @@ export function UniversalQuestionCard({
   const [internalSolutionOpen, setInternalSolutionOpen] = useState(false);
   const resolvedSolutionOpen = onToggleSolution
     ? isSolutionOpen
-    : (isSolutionOpen || internalSolutionOpen);
+    : isSolutionOpen || internalSolutionOpen;
 
   const handleToggle = () => {
     if (onToggleSolution) {
@@ -112,16 +129,20 @@ export function UniversalQuestionCard({
               </span>
               {!hideHeaderBadge &&
                 question.source &&
-                !["csv import", "exam import", "custom", "null", "undefined"].includes(
-                  question.source.trim().toLowerCase(),
-                ) && (
+                ![
+                  "csv import",
+                  "exam import",
+                  "custom",
+                  "null",
+                  "undefined",
+                ].includes(question.source.trim().toLowerCase()) && (
                   <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">
                     • {question.source}
                   </span>
                 )}
               {question.standard && (
-                <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-                  • {question.standard}
+                <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">
+                  • {standardLabel(question.standard)}
                 </span>
               )}
               {(question.isFree || question.is_free) && (

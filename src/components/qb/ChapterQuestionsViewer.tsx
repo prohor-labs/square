@@ -28,13 +28,9 @@ import type { Question, Topic } from "@/types";
 interface ChapterQuestionsViewerProps {
   readonly topics: Topic[];
   readonly questions: Question[];
-
-  readonly isYearBased?: boolean;
 }
 
 const ITEMS_PER_PAGE = 10;
-
-type CategoryFilter = "all" | "hsc" | "varsity" | "engineering" | "medical";
 
 /** Free is a highlight flag only — every question is readable. */
 function isFreeQuestion(q: Question): boolean {
@@ -43,14 +39,10 @@ function isFreeQuestion(q: Question): boolean {
 export function ChapterQuestionsViewer({
   topics = [],
   questions = [],
-
-  isYearBased = false,
 }: ChapterQuestionsViewerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] =
-    useState<CategoryFilter>("all");
   const [showAnswers, setShowAnswers] = useState(true);
   const [showExplanations, setShowExplanations] = useState(false);
 
@@ -87,48 +79,6 @@ export function ChapterQuestionsViewer({
         }
       }
 
-      // Category filter
-      if (selectedCategory !== "all") {
-        const std = (q.standard || "").toLowerCase();
-        const src = (q.source || "").toLowerCase();
-
-        if (selectedCategory === "hsc") {
-          const isHsc =
-            std.includes("hsc") ||
-            src.includes("বোর্ড") ||
-            src.includes("board") ||
-            src.includes("ঢাকা") ||
-            src.includes("রাজশাহী") ||
-            src.includes("চট্টগ্রাম");
-          if (!isHsc) return false;
-        } else if (selectedCategory === "varsity") {
-          const isVarsity =
-            std.includes("varsity") ||
-            src.includes("ভার্সিটি") ||
-            src.includes("ঢাবি") ||
-            src.includes("রাবি") ||
-            src.includes("জাবি") ||
-            src.includes("গুচ্ছ");
-          if (!isVarsity) return false;
-        } else if (selectedCategory === "engineering") {
-          const isEng =
-            std.includes("engineering") ||
-            src.includes("বুয়েট") ||
-            src.includes("buet") ||
-            src.includes("কুয়েট") ||
-            src.includes("রুয়েট") ||
-            src.includes("চুয়েট") ||
-            src.includes("ckruet");
-          if (!isEng) return false;
-        } else if (selectedCategory === "medical") {
-          const isMed =
-            std.includes("medical") ||
-            src.includes("মেডিকেল") ||
-            src.includes("dental");
-          if (!isMed) return false;
-        }
-      }
-
       // Search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
@@ -146,7 +96,7 @@ export function ChapterQuestionsViewer({
 
       return true;
     });
-  }, [questions, selectedType, selectedTopicId, selectedCategory, searchQuery]);
+  }, [questions, selectedType, selectedTopicId, searchQuery]);
 
   // Performance stats for practice mode
   const practiceStats = useMemo(() => {
@@ -400,41 +350,6 @@ export function ChapterQuestionsViewer({
             </div>
           )}
         </div>
-
-        {/* Row 3: Category Filter Pills (Only for Chapter/Subject-based view, hidden in Year-based/Chorcha style view) */}
-        {!isYearBased && (
-          <div className="flex items-center gap-1.5 flex-wrap pt-1">
-            <span className="text-xs font-bold text-muted-foreground mr-1">
-              ক্যাটাগরি:
-            </span>
-            {[
-              { id: "all", label: "সব ক্যাটাগরি" },
-              { id: "hsc", label: "HSC বোর্ড" },
-              { id: "varsity", label: "ভার্সিটি" },
-              { id: "engineering", label: "ইঞ্জিনিয়ারিং" },
-              { id: "medical", label: "মেডিকেল" },
-            ].map((cat) => {
-              const isActive = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory(cat.id as CategoryFilter);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                      : "bg-background text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Practice Progress Bar (if in practice mode without answers and questions answered) */}
@@ -491,7 +406,7 @@ export function ChapterQuestionsViewer({
               এই ফিল্টারে কোনো প্রশ্ন পাওয়া যায়নি
             </p>
             <p className="text-xs text-muted-foreground max-w-md">
-              অনুগ্রহ করে অন্য কোনো ক্যাটাগরি, টপিক বা সার্চ কিওয়ার্ড নির্বাচন করে দেখুন।
+              অনুগ্রহ করে অন্য কোনো টপিক বা সার্চ কিওয়ার্ড নির্বাচন করে দেখুন।
             </p>
             <Button
               variant="outline"
@@ -500,7 +415,6 @@ export function ChapterQuestionsViewer({
                 setSearchQuery("");
                 setSelectedType(null);
                 setSelectedTopicId(null);
-                setSelectedCategory("all");
               }}
               className="rounded-xl text-xs font-bold mt-2 cursor-pointer"
             >
