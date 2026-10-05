@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@/hooks/use-auth";
 import { createExamAction } from "@/lib/actions/admin-exam";
 import { getAllBatchesAction } from "@/lib/actions/batch";
+import { fromDatetimeLocalToDhakaIso } from "@/lib/date";
 
 export default function NewExamPage() {
   const router = useRouter();
@@ -19,7 +20,9 @@ export default function NewExamPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [batches, setBatches] = useState<Array<{ id: string; name: string }>>([]);
+  const [batches, setBatches] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
   const [selectedBatchId, setSelectedBatchId] = useState(initialBatchId);
 
   useEffect(() => {
@@ -48,10 +51,27 @@ export default function NewExamPage() {
     );
     const totalMarks = parseInt(formData.get("totalMarks") as string, 10);
     const negativeMarking = formData.get("negativeMarking") as string;
-    const standard = (formData.get("standard") as "HSC" | "Varsity" | "Engineering" | "Medical") || "HSC";
+    const standard =
+      (formData.get("standard") as
+        | "HSC"
+        | "Varsity"
+        | "Engineering"
+        | "Medical") || "HSC";
     const showResultImmediately =
       formData.get("showResultImmediately") === "true";
     const isPublished = formData.get("isPublished") === "true";
+
+    const startsAtRaw = (formData.get("startsAt") as string) || "";
+    const endsAtRaw = (formData.get("endsAt") as string) || "";
+
+    // The schedule only has somewhere to live when a batch is selected.
+    if (batchId && startsAtRaw && endsAtRaw) {
+      if (new Date(endsAtRaw) <= new Date(startsAtRaw)) {
+        setError("শেষের সময় শুরুর সময়ের পরে হতে হবে");
+        setLoading(false);
+        return;
+      }
+    }
 
     const createdBy = user?.id || "admin";
 
@@ -68,6 +88,8 @@ export default function NewExamPage() {
       isPublished,
       createdBy,
       batchId,
+      startsAt: fromDatetimeLocalToDhakaIso(startsAtRaw),
+      endsAt: fromDatetimeLocalToDhakaIso(endsAtRaw),
     });
 
     if (res.success) {
@@ -173,6 +195,52 @@ export default function NewExamPage() {
           </div>
         </div>
 
+        {/* The schedule is stored on the batch assignment, so it only has
+            somewhere to go once a batch is picked. */}
+        {selectedBatchId && (
+          <div className="space-y-4 border rounded-xl p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold">পরীক্ষার সময়সূচি</p>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                বাংলাদেশ সময় (UTC+6)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="startsAt" className="text-sm font-medium">
+                  শুরুর সময়
+                </label>
+                <Input
+                  id="startsAt"
+                  name="startsAt"
+                  type="datetime-local"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="endsAt" className="text-sm font-medium">
+                  শেষের সময়
+                </label>
+                <Input
+                  id="endsAt"
+                  name="endsAt"
+                  type="datetime-local"
+                  className="rounded-xl"
+                />
+              </div>
+            </div>
+
+            <ul className="text-[11px] text-muted-foreground space-y-1 leading-relaxed">
+              <li>• দুটো খালি রাখলে পরীক্ষাটি সবসময় লাইভ থাকবে।</li>
+              <li>• সময়ের মধ্যে দিলে ফলাফল মেরিট লিস্টে যাবে।</li>
+              <li>
+                • শুরুর আগে দিতে পারবে না। শেষের পরে দিলে প্র্যাকটিস হিসেবে গণ্য হবে।
+              </li>
+            </ul>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <label htmlFor="durationMinutes" className="text-sm font-medium">
@@ -226,7 +294,9 @@ export default function NewExamPage() {
               defaultChecked
               className="size-4 rounded accent-primary"
             />
-            <span className="text-sm font-medium">ফ্রি এক্সাম (সবার জন্য উন্মুক্ত)</span>
+            <span className="text-sm font-medium">
+              ফ্রি এক্সাম (সবার জন্য উন্মুক্ত)
+            </span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input

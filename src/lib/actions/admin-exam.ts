@@ -14,9 +14,6 @@ import {
 } from "@/db/schema";
 import type { ExamDetail } from "@/types";
 
-
-
-
 export async function createExamAction(data: {
   title: string;
   slug: string;
@@ -30,9 +27,11 @@ export async function createExamAction(data: {
   isPublished: boolean;
   createdBy: string;
   batchId?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
 }) {
   try {
-    const { batchId, ...examValues } = data;
+    const { batchId, startsAt, endsAt, ...examValues } = data;
     const res = await db
       .insert(exams)
       .values({
@@ -43,9 +42,13 @@ export async function createExamAction(data: {
     const createdExam = res[0] as unknown as ExamDetail;
 
     if (batchId && createdExam?.id) {
+      // The schedule lives on the batch assignment, so it is stored here.
+      // Both empty means the exam is always live.
       await db.insert(batchExams).values({
         batchId,
         examId: createdExam.id,
+        startsAt: startsAt ?? null,
+        endsAt: endsAt ?? null,
         isRequired: true,
       });
       revalidatePath(`/admin/batches/${batchId}`);
@@ -65,7 +68,9 @@ export async function updateExamAction(id: string, data: Partial<ExamDetail>) {
   try {
     const updateData: Partial<typeof exams.$inferInsert> = {
       ...data,
-      standard: data.standard as ("Engineering" | "HSC" | "Medical" | "Varsity") | undefined,
+      standard: data.standard as
+        | ("Engineering" | "HSC" | "Medical" | "Varsity")
+        | undefined,
       updatedAt: new Date(),
     };
     const res = await db
@@ -114,7 +119,10 @@ export async function publishExamAction(id: string) {
   }
 }
 
-export async function togglePublishExamAction(id: string, isPublished: boolean) {
+export async function togglePublishExamAction(
+  id: string,
+  isPublished: boolean,
+) {
   try {
     await db
       .update(exams)
@@ -127,7 +135,8 @@ export async function togglePublishExamAction(id: string, isPublished: boolean) 
   } catch (error: unknown) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update exam status",
+      error:
+        error instanceof Error ? error.message : "Failed to update exam status",
     };
   }
 }
@@ -143,7 +152,7 @@ export async function addMultipleQuestionsToExamAction(
       .select({ count: sql<number>`count(*)` })
       .from(examQuestions)
       .where(eq(examQuestions.examId, examId));
-    
+
     let nextOrder = Number(currentCount[0]?.count || 0) + 1;
 
     const values = questionIds.map((qid) => ({
@@ -161,7 +170,9 @@ export async function addMultipleQuestionsToExamAction(
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to add questions to exam",
+        error instanceof Error
+          ? error.message
+          : "Failed to add questions to exam",
     };
   }
 }
@@ -186,7 +197,8 @@ export async function importQuestionsDirectlyToExamAction(
     if (!targetChapterId) {
       return {
         success: false,
-        error: "ডাটাবেজে কোনো অধ্যায় (Chapter) পাওয়া যায়নি। দয়া করে প্রশ্নব্যাংকে একটি বিষয়/অধ্যায় তৈরি করুন।",
+        error:
+          "ডাটাবেজে কোনো অধ্যায় (Chapter) পাওয়া যায়নি। দয়া করে প্রশ্নব্যাংকে একটি বিষয়/অধ্যায় তৈরি করুন।",
       };
     }
 
@@ -247,31 +259,29 @@ export async function importQuestionsDirectlyToExamAction(
                     ? item.correctOption
                     : -1;
 
-            const optionsToInsert = rawOptions.map(
-              (opt: any, idx: number) => {
-                const optText = (
-                  typeof opt === "string"
-                    ? opt
-                    : opt.optionText || opt.option_text || opt.text || ""
-                ).trim();
+            const optionsToInsert = rawOptions.map((opt: any, idx: number) => {
+              const optText = (
+                typeof opt === "string"
+                  ? opt
+                  : opt.optionText || opt.option_text || opt.text || ""
+              ).trim();
 
-                const isOptCorrect =
-                  typeof opt === "object" && opt !== null && "isCorrect" in opt
-                    ? Boolean(opt.isCorrect)
-                    : typeof opt === "object" &&
-                        opt !== null &&
-                        "is_correct" in opt
-                      ? Boolean(opt.is_correct)
-                      : correctIndex === idx;
+              const isOptCorrect =
+                typeof opt === "object" && opt !== null && "isCorrect" in opt
+                  ? Boolean(opt.isCorrect)
+                  : typeof opt === "object" &&
+                      opt !== null &&
+                      "is_correct" in opt
+                    ? Boolean(opt.is_correct)
+                    : correctIndex === idx;
 
-                return {
-                  questionId: newQuestion.id,
-                  optionText: optText,
-                  isCorrect: isOptCorrect,
-                  orderNo: idx + 1,
-                };
-              },
-            );
+              return {
+                questionId: newQuestion.id,
+                optionText: optText,
+                isCorrect: isOptCorrect,
+                orderNo: idx + 1,
+              };
+            });
 
             if (
               !optionsToInsert.some((o) => o.isCorrect) &&
@@ -285,7 +295,12 @@ export async function importQuestionsDirectlyToExamAction(
         } else if (resolvedType === "cq") {
           const rawParts = item.cqParts || item.cq_parts || item.parts || [];
           if (Array.isArray(rawParts) && rawParts.length > 0) {
-            const defaultKeys: Array<"a" | "b" | "c" | "d"> = ["a", "b", "c", "d"];
+            const defaultKeys: Array<"a" | "b" | "c" | "d"> = [
+              "a",
+              "b",
+              "c",
+              "d",
+            ];
             const partsToInsert = rawParts.map((pt: any, idx: number) => ({
               questionId: newQuestion.id,
               partKey: (pt.partKey || pt.part_key || defaultKeys[idx] || "a") as
@@ -316,7 +331,6 @@ export async function importQuestionsDirectlyToExamAction(
           orderNo: nextOrder++,
           marks,
         });
-
 
         count++;
       }
