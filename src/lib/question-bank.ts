@@ -128,6 +128,25 @@ export interface QbContainerLike {
   readonly standardCounts?: StandardCounts | null;
 }
 
+/**
+ * Name to show for a unit.
+ *
+ * The year-based containers were seeded with the placeholder "সালসমূহ" for
+ * their single item, which says nothing on a card. Where that placeholder is
+ * still in place the subject is taken from the container's own title instead —
+ * "ঢাকা বিশ্ববিদ্যালয় ( বিজ্ঞান )" reads as "বিজ্ঞান". Containers with no
+ * subject in the title fall back to a plain label.
+ *
+ * A unit the admin has actually named is returned untouched.
+ */
+export function unitLabel(itemName: string, containerTitle: string): string {
+  const name = itemName.trim();
+  if (name !== "সালসমূহ" && name !== "সালসমূহ ") return name;
+
+  const subject = containerTitle.match(/[(（]([^)）]+)[)）]/)?.[1]?.trim();
+  return subject || "সব প্রশ্ন";
+}
+
 export interface QbBankGroup {
   readonly meta: QbBankMeta;
   readonly containers: readonly QbContainerLike[];
