@@ -1,17 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import { QbNavCard } from "@/components/qb/QbNavCard";
+import type { QbPaletteKey } from "@/components/qb/QbGradientCard";
+import { QbGradientCard } from "@/components/qb/QbGradientCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
-import { unitLabel } from "@/lib/question-bank";
+import {
+  type QbBankSlug,
+  resolveBankSlug,
+  unitLabel,
+} from "@/lib/question-bank";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Level 3 — the years or chapters inside one unit. Cards only; the questions
- * themselves live one click further in.
- */
+const BANK_PALETTE: Record<QbBankSlug, QbPaletteKey> = {
+  varsity: "varsity",
+  engineering: "engineering",
+  medical: "medical",
+  board: "board",
+};
+
+/** Level 3 — the years or chapters inside one unit. */
 export default async function QbChaptersPage({
   params,
 }: {
@@ -26,6 +35,8 @@ export default async function QbChaptersPage({
   if (!unit) notFound();
 
   const label = unitLabel(unit.name, container.title);
+  const palette =
+    BANK_PALETTE[resolveBankSlug(container.slug) as QbBankSlug] ?? "neutral";
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-5">
@@ -63,13 +74,13 @@ export default async function QbChaptersPage({
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {unit.chapters.map((chapter) => (
-            <QbNavCard
+            <QbGradientCard
               key={chapter.id}
               href={`/qb/${container.slug}/${unit.slug}/${chapter.slug}`}
               title={chapter.name}
-              meta="প্রশ্ন দেখুন"
+              subtitle={label}
               questions={chapter.questions}
-              icon="book"
+              palette={palette}
             />
           ))}
         </div>

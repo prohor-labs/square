@@ -1,26 +1,32 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { QbNavCard } from "@/components/qb/QbNavCard";
+import type { QbPaletteKey } from "@/components/qb/QbGradientCard";
+import { QbGradientCard } from "@/components/qb/QbGradientCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
-import { type QbBankSlug, resolveBankSlug } from "@/lib/question-bank";
+import {
+  QB_BANKS,
+  type QbBankSlug,
+  resolveBankSlug,
+} from "@/lib/question-bank";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const BANK_TABS: readonly { slug: string; label: string }[] = [
+/** "সকল" plus one tab per bank, in the order the banks are declared. */
+const TABS: readonly { slug: string; label: string }[] = [
   { slug: "all", label: "সকল" },
-  { slug: "varsity", label: "বিশ্ববিদ্যালয়" },
-  { slug: "engineering", label: "ইঞ্জিনিয়ারিং" },
-  { slug: "medical", label: "মেডিকেল" },
-  { slug: "board", label: "বোর্ড" },
+  ...QB_BANKS.map((bank) => ({
+    slug: bank.slug,
+    label: bank.label.replace(" প্রশ্ন ব্যাংক", ""),
+  })),
 ];
 
-const BANK_ACCENT: Record<string, string> = {
-  varsity: "text-indigo-500",
-  engineering: "text-sky-500",
-  medical: "text-rose-500",
-  board: "text-emerald-500",
+const BANK_PALETTE: Record<QbBankSlug, QbPaletteKey> = {
+  varsity: "varsity",
+  engineering: "engineering",
+  medical: "medical",
+  board: "board",
 };
 
 export default async function QuestionBankPage({
@@ -29,10 +35,9 @@ export default async function QuestionBankPage({
   searchParams?: Promise<{ bank?: string }>;
 }): Promise<ReactElement> {
   const { bank } = (await searchParams) ?? {};
-  const active = BANK_TABS.some((tab) => tab.slug === bank) ? bank : "all";
+  const active = TABS.some((tab) => tab.slug === bank) ? bank : "all";
 
   const tree = await getQbTree();
-
   const visible =
     active === "all"
       ? tree
@@ -54,26 +59,22 @@ export default async function QuestionBankPage({
         </p>
       </div>
 
-      {/* Bank tabs */}
       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar border-b pb-2">
-        {BANK_TABS.map((tab) => {
-          const isActive = tab.slug === active;
-          return (
-            <Link
-              key={tab.slug}
-              href={tab.slug === "all" ? "/qb" : `/qb?bank=${tab.slug}`}
-              scroll={false}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-xl px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
+        {TABS.map((tab) => (
+          <Link
+            key={tab.slug}
+            href={tab.slug === "all" ? "/qb" : `/qb?bank=${tab.slug}`}
+            scroll={false}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-xl px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold transition-colors",
+              tab.slug === active
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
 
       {visible.length === 0 ? (
@@ -88,14 +89,16 @@ export default async function QuestionBankPage({
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {visible.map((container) => (
-            <QbNavCard
+            <QbGradientCard
               key={container.id}
               href={`/qb/${container.slug}`}
               title={container.title}
-              meta={`${toBengaliDigits(container.units.length)} টি ইউনিট`}
+              subtitle="প্রশ্নব্যাংক"
               questions={container.questions}
-              icon="stack"
-              accent={BANK_ACCENT[resolveBankSlug(container.slug)]}
+              palette={
+                BANK_PALETTE[resolveBankSlug(container.slug)] ?? "neutral"
+              }
+              footnote={`${toBengaliDigits(container.units.length)} টি ইউনিট`}
             />
           ))}
         </div>

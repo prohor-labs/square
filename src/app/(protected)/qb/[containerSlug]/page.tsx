@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import { QbNavCard } from "@/components/qb/QbNavCard";
+import type { QbPaletteKey } from "@/components/qb/QbGradientCard";
+import { QbGradientCard } from "@/components/qb/QbGradientCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
-import { unitLabel } from "@/lib/question-bank";
+import {
+  type QbBankSlug,
+  resolveBankSlug,
+  unitLabel,
+} from "@/lib/question-bank";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Level 2 — the units inside one container (a university, institute or subject
- * pool). The unit level is always shown, even when a container has a single
- * unit, so the path stays the same shape everywhere.
- */
+const BANK_PALETTE: Record<QbBankSlug, QbPaletteKey> = {
+  varsity: "varsity",
+  engineering: "engineering",
+  medical: "medical",
+  board: "board",
+};
+
+/** Level 2 — the units inside one container. */
 export default async function QbUnitsPage({
   params,
 }: {
@@ -24,7 +32,8 @@ export default async function QbUnitsPage({
 
   if (!container) notFound();
 
-  const total = container.units.reduce((sum, unit) => sum + unit.questions, 0);
+  const palette =
+    BANK_PALETTE[resolveBankSlug(container.slug) as QbBankSlug] ?? "neutral";
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-5">
@@ -42,7 +51,7 @@ export default async function QbUnitsPage({
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
           {toBengaliDigits(container.units.length)} টি ইউনিট · মোট{" "}
-          {toBengaliDigits(total)} টি প্রশ্ন
+          {toBengaliDigits(container.questions)} টি প্রশ্ন
         </p>
       </div>
 
@@ -55,13 +64,14 @@ export default async function QbUnitsPage({
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {container.units.map((unit) => (
-            <QbNavCard
+            <QbGradientCard
               key={unit.id}
               href={`/qb/${container.slug}/${unit.slug}`}
               title={unitLabel(unit.name, container.title)}
-              meta={`${toBengaliDigits(unit.chapters.length)} টি অধ্যায়`}
+              subtitle={container.title}
               questions={unit.questions}
-              icon="layers"
+              palette={palette}
+              footnote={`${toBengaliDigits(unit.chapters.length)} টি অধ্যায়`}
             />
           ))}
         </div>
