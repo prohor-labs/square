@@ -73,10 +73,6 @@ export default async function ExamLeaderboardPage({
           <p className="text-xs sm:text-sm text-muted-foreground">
             সর্বোচ্চ নম্বর ও দ্রুততম সময়ের ভিত্তিতে মেধা তালিকা প্রণয়ন করা হয়েছে
           </p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-            এখানে শুধু নির্ধারিত সময়ের মধ্যে দেওয়া লাইভ পরীক্ষার ফলাফল আছে। সময়ের বাইরে দেওয়া
-            প্র্যাকটিস পরীক্ষার ফলাফল মেধা তালিকায় যুক্ত হয় না।
-          </p>
         </div>
       </div>
 

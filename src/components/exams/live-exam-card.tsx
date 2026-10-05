@@ -11,20 +11,9 @@ interface ExamCardProps {
   readonly batchExam: BatchExamDetail;
   readonly window: ExamWindow;
   readonly now: number | null;
-  /** Optional list to switch between; the student's own batches. */
-  readonly batchOptions?: readonly { id: string; name: string }[];
-  readonly selectedBatchId?: string;
-  readonly onBatchChange?: (batchId: string) => void;
 }
 
-export function LiveExamCard({
-  batchExam,
-  window,
-  now,
-  batchOptions,
-  selectedBatchId,
-  onBatchChange,
-}: ExamCardProps) {
+export function LiveExamCard({ batchExam, window, now }: ExamCardProps) {
   const exam = batchExam.exam;
   if (!exam) return null;
 
@@ -101,42 +90,15 @@ export function LiveExamCard({
             <span>{formatBanglaDateTime(window.endsAt.toISOString())}</span>
           </div>
         )}
-        {isLive && (
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            সময়ের মধ্যে দিলে ফলাফল মেরিট লিস্টে যুক্ত হবে। সময়ের বাইরে দিলে এটি
-            প্র্যাকটিস হিসেবে গণ্য হবে।
-          </p>
-        )}
       </div>
 
-      {/* Which batch this exam is for */}
-      {(batchOptions?.length ?? 0) > 1 ? (
-        <div className="space-y-1.5">
-          <label
-            htmlFor={`batch-${batchExam.id}`}
-            className="text-xs font-semibold text-muted-foreground"
-          >
-            কোন batch
-          </label>
-          <select
-            id={`batch-${batchExam.id}`}
-            value={selectedBatchId ?? batchExam.batchId}
-            onChange={(e) => onBatchChange?.(e.target.value)}
-            className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          >
-            {batchOptions?.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : batchOptions && batchOptions.length === 1 ? (
-        <div className="text-xs bg-muted/20 px-3.5 py-2.5 rounded-xl border border-border/40">
-          <span className="font-medium text-muted-foreground">কোন batch:</span>{" "}
-          <span className="font-bold">{batchOptions[0]?.name}</span>
-        </div>
-      ) : null}
+      {/* Which batch this exam belongs to — plain text, nothing clickable */}
+      {batchExam.batch?.name && (
+        <p className="text-sm leading-relaxed">
+          <span className="text-muted-foreground">কোন batch ( group ) —</span>{" "}
+          <span className="font-bold">{batchExam.batch.name}</span>
+        </p>
+      )}
 
       <Button
         className={cn("w-full h-10 rounded-xl text-sm font-semibold mt-auto")}

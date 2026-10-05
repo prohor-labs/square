@@ -62,10 +62,6 @@ export function PracticeExamList({
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            সময় পেরিয়ে গেছে বলে এটি প্র্যাকটিস হিসেবে গণ্য হবে — ফলাফল মেরিট লিস্টে
-            যুক্ত হবে না।
-          </p>
           <Button
             variant="outline"
             className="w-full h-10 rounded-xl text-sm font-semibold border-border/70 hover:border-primary/50 mt-auto"

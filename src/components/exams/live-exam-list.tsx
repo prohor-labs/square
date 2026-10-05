@@ -33,14 +33,6 @@ export function LiveExamList({ batchExams }: LiveExamListProps) {
     [batchExams, now],
   );
 
-  const batchOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const be of batchExams) {
-      if (be.batch) seen.set(be.batch.id, be.batch.name);
-    }
-    return [...seen.entries()].map(([id, name]) => ({ id, name }));
-  }, [batchExams]);
-
   if (live.length === 0) {
     return (
       <div className="col-span-full py-16 sm:py-24 flex flex-col items-center justify-center text-center border border-dashed rounded-2xl text-muted-foreground bg-muted/10 px-4 sm:px-6">
@@ -66,7 +58,6 @@ export function LiveExamList({ batchExams }: LiveExamListProps) {
           batchExam={be}
           window={getExamWindow(be, now ?? Date.now())}
           now={now}
-          batchOptions={batchOptions}
         />
       ))}
     </div>

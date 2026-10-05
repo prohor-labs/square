@@ -148,9 +148,6 @@ export default async function ExamsBrowserPage({
               মোট {practiceTotal} টি
             </span>
           </div>
-          <p className="text-[11px] sm:text-xs text-muted-foreground">
-            প্র্যাকটিস পরীক্ষার ফলাফল মেরিট লিস্টে যুক্ত হয় না।
-          </p>
           <PracticeExamList
             expiredBatchExams={expiredExams}
             openPracticeExams={practiceExams}
