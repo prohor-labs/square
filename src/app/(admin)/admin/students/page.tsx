@@ -76,11 +76,17 @@ export default async function AdminStudentsPage({
                           <AvatarImage src={row.image} alt={row.name} />
                         ) : null}
                         <AvatarFallback className="text-xs font-bold">
-                          {row.name.charAt(0).toUpperCase()}
+                          {(row.name.trim().charAt(0) || "?").toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className="font-semibold truncate">{row.name}</p>
+                        <p className="font-semibold truncate">
+                          {row.name.trim() || (
+                            <span className="text-muted-foreground">
+                              নাম দেওয়া হয়নি
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {row.email}
                         </p>
@@ -132,11 +138,17 @@ export default async function AdminStudentsPage({
                     <AvatarImage src={row.image} alt={row.name} />
                   ) : null}
                   <AvatarFallback className="text-xs font-bold">
-                    {row.name.charAt(0).toUpperCase()}
+                    {(row.name.trim().charAt(0) || "?").toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="font-semibold truncate">{row.name}</p>
+                  <p className="font-semibold truncate">
+                    {row.name.trim() || (
+                      <span className="text-muted-foreground">
+                        নাম দেওয়া হয়নি
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {row.email}
                   </p>

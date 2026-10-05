@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import type { ReactElement } from "react";
 import { EnrolledCourses } from "@/components/profile/EnrolledCourses";
-import { ProfileMenu } from "@/components/profile/ProfileMenu";
+import { LogoutButton } from "@/components/profile/LogoutButton";
 import { ProfileSidebar } from "@/components/profile/ProfileSidebar";
 import { SchoolCollegeCard } from "@/components/profile/SchoolCollegeCard";
 import {
@@ -40,8 +40,8 @@ export default async function ProfilePage(): Promise<ReactElement> {
             {/* Enrolled courses in a 2x2 grid */}
             <EnrolledCourses courses={courses} />
 
-            {/* Settings menu, unchanged */}
-            <ProfileMenu />
+            {/* The only account action kept here */}
+            <LogoutButton />
           </div>
         </div>
       </div>
