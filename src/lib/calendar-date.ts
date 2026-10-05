@@ -32,10 +32,21 @@ const BENGALI_MONTHS: Record<string, number> = {
   ডিসেম্বর: 11,
 };
 
-// "০৫ ডিসেম্বর ২০২৬" — anchored on purpose. Anything with extra parts (e.g.
-// "০১/০৯ জানুয়ারি ২০২৭") is ambiguous, so it is rejected rather than guessed.
+// "০৫ ডিসেম্বর ২০২৬" — anchored on purpose so stray extra words are rejected.
 const DATE_PATTERN =
   /^(\d{1,2})\s+(\p{Script=Bengali}[\p{Script=Bengali}\s]*?)\s+(\d{4})$/u;
+
+// "০১/০৯ জানুয়ারি ২০২৭" — a stray slash crept into the admin's date. The month
+// name right after it is unambiguous, so the day is read from the text before the
+// slash and the rest is discarded rather than showing "—".
+/**
+ * Drops anything after a slash in the day slot, so "০১/০৯ জানুয়ারি ২০২৭"
+ * becomes "০১ জানুয়ারি ২০২৭". Only a slash followed by digits is stripped, so a
+ * slash elsewhere in the text still fails the pattern above.
+ */
+function normaliseSlashedDate(value: string): string {
+  return value.replace(/^(\d{1,2})\/(?:\d{1,2})(?=\s)/, "$1");
+}
 
 export function toBengaliDigits(value: number | string): string {
   return String(value).replace(
@@ -50,7 +61,10 @@ export function parseBengaliDate(value: string): Date | null {
     .trim()
     .replace(/\s+/g, " ");
 
-  const match = DATE_PATTERN.exec(normalized);
+  // "০১/০৯ জানুয়ারি ২০২৭" → "০১ জানুয়ারি ২০২৭", then parsed as usual.
+  const cleaned = normaliseSlashedDate(normalized);
+
+  const match = DATE_PATTERN.exec(cleaned);
   if (!match) return null;
 
   const month = BENGALI_MONTHS[match[2].trim()];

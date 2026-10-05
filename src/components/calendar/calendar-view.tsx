@@ -1,16 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar as CalendarIcon, Clock, Search } from "@/components/icons";
-import {
-  CALENDAR_CATEGORY_META,
-  CALENDAR_CATEGORY_ORDER,
-} from "@/lib/calendar";
-import type {
-  CalendarCategoryContent,
-  CalendarTableGroup,
-} from "@/lib/calendar-content";
+import { CALENDAR_CATEGORY_META } from "@/lib/calendar";
+import type { CalendarCategoryContent } from "@/lib/calendar-content";
 import {
   daysUntil,
   endOfExamDay,
@@ -21,20 +14,20 @@ import {
   toBengaliDigits,
 } from "@/lib/calendar-date";
 import { cn } from "@/lib/utils";
-import type { CalendarCategory } from "@/types";
 
-/** One card per group (a university), each with its own column headers. */
-interface InstituteCard {
-  readonly group: CalendarTableGroup;
-  readonly columns: readonly string[];
-}
-
+/**
+ * Every admission exam date in one table, earliest first.
+ *
+ * The admin model nests category → section → group → row, which is awkward to
+ * read across, so rows are flattened into columns here. A category switcher and
+ * a card layout used to sit above this; the table covers every category at once,
+ * so neither earned its place.
+ */
 export function CalendarView({
   content = [],
 }: {
   readonly content?: readonly CalendarCategoryContent[];
 }) {
-  const [category, setCategory] = useState<CalendarCategory>("medical");
   const [query, setQuery] = useState("");
   // null until mounted, so the server render and the first client render match
   // (Date.now() would otherwise differ and trip a hydration warning).
@@ -45,32 +38,9 @@ export function CalendarView({
     return () => clearInterval(id);
   }, []);
 
-  const categoryMeta = CALENDAR_CATEGORY_META[category];
-  const categoryContent = content.find((item) => item.category === category);
-  const sections = categoryContent?.sections ?? [];
   const trimmedQuery = query.trim().toLowerCase();
 
-  // Cards stay grouped by section so a divider can separate them, which is
-  // what the admin's "section" actually means.
-  const visibleSections = useMemo(() => {
-    return sections
-      .map((section) => ({
-        section,
-        cards: section.groups
-          .map((group) => ({ group, columns: section.columns }))
-          .filter(
-            ({ group }) =>
-              !trimmedQuery ||
-              group.label.toLowerCase().includes(trimmedQuery) ||
-              group.rows.some((row) =>
-                row.some((cell) => cell.toLowerCase().includes(trimmedQuery)),
-              ),
-          ),
-      }))
-      .filter(({ cards }) => cards.length > 0);
-  }, [sections, trimmedQuery]);
-
-  // Soonest exam across every category — the date is each section's last column.
+  // Soonest exam across every category — the date is each row's last cell.
   const nextExam = useMemo(() => {
     const rows = content.flatMap((item) =>
       item.sections.flatMap((section) =>
@@ -94,8 +64,6 @@ export function CalendarView({
     return findNextExam(rows.filter((row) => row !== null));
   }, [content]);
 
-  const lastFooter = sections[sections.length - 1]?.footer.trim();
-
   return (
     <div className="flex flex-col gap-4 sm:gap-6 w-full">
       {/* Header */}
@@ -111,56 +79,6 @@ export function CalendarView({
 
       <NextExamBanner nextExam={nextExam} now={now} />
 
-      {/* Category tabs — always four across, compact on phones */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
-        {CALENDAR_CATEGORY_ORDER.map((key) => {
-          const meta = CALENDAR_CATEGORY_META[key];
-          const Icon = meta.icon;
-          const isActive = key === category;
-          const sectionCount = content.find((item) => item.category === key)
-            ?.sections.length;
-
-          return (
-            <button
-              key={key}
-              type="button"
-              title={meta.label}
-              onClick={() => {
-                setCategory(key);
-                setQuery("");
-              }}
-              aria-pressed={isActive}
-              className={cn(
-                "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 rounded-xl sm:rounded-2xl border bg-card p-1.5 sm:p-3.5 text-center sm:text-left transition-all hover:shadow-md",
-                isActive
-                  ? "border-primary ring-2 ring-primary/20 shadow-md"
-                  : "border-border hover:border-border/80",
-              )}
-            >
-              {/* Phones show text only — four names fit across without icons. */}
-              <span
-                className={cn(
-                  "hidden sm:flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : cn("bg-muted/40", meta.accent),
-                )}
-              >
-                <Icon className="size-5" />
-              </span>
-              <span className="flex flex-col min-w-0 flex-1">
-                <span className="text-[10px] sm:text-sm font-bold leading-tight truncate">
-                  {meta.label}
-                </span>
-                <span className="hidden sm:block text-[11px] text-muted-foreground">
-                  {sectionCount ? `${sectionCount}টি সারণি` : "তারিখ আসছে"}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
@@ -168,86 +86,13 @@ export function CalendarView({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ইউনিট, বিশ্ববিদ্যালয় বা তারিখ খুঁজুন…"
+          placeholder="ক্যাটাগরি, বিশ্ববিদ্যালয়, ইউনিট বা তারিখ খুঁজুন…"
           aria-label="ক্যালেন্ডার খুঁজুন"
           className="w-full h-11 pl-10 pr-4 rounded-xl sm:rounded-2xl border border-border bg-card text-sm shadow-xs outline-none transition-shadow placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>
 
-      {/* Thumbnail */}
-      {categoryContent?.thumbnail && (
-        <div className="relative w-full aspect-[16/8] sm:aspect-[24/7] overflow-hidden rounded-2xl border border-border/70 bg-muted shadow-sm">
-          <Image
-            src={categoryContent.thumbnail}
-            alt={
-              categoryContent.thumbnailAlt || `${categoryMeta.label} ভর্তি পরীক্ষা`
-            }
-            fill
-            className="object-cover"
-            unoptimized
-          />
-        </div>
-      )}
-
-      {/* One card per institute, dividers between sections */}
-      {visibleSections.length === 0 ? (
-        <div className="bg-card border rounded-2xl shadow-sm p-8 sm:p-12 flex flex-col items-center justify-center text-center">
-          <div className="size-14 rounded-full bg-muted/40 flex items-center justify-center mb-3">
-            {trimmedQuery ? (
-              <Search className={cn("size-6", categoryMeta.accent)} />
-            ) : (
-              <CalendarIcon className={cn("size-7", categoryMeta.accent)} />
-            )}
-          </div>
-          <h3 className="font-bold text-sm text-foreground">
-            {trimmedQuery
-              ? `&quot;${query.trim()}&quot; দিয়ে কিছু পাওয়া যায়নি`
-              : `${categoryMeta.label} — তথ্য সারণি এখনো যোগ করা হয়নি`}
-          </h3>
-        </div>
-      ) : (
-        <>
-          {visibleSections.map(({ section, cards }, sectionIndex) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: sections have no id, order is admin-defined
-            <Fragment key={sectionIndex}>
-              {sectionIndex > 0 && <SectionDivider title={section.title} />}
-
-              {cards.map((card, cardIndex) => (
-                <InstituteSection
-                  // biome-ignore lint/suspicious/noArrayIndexKey: groups have no id, order is admin-defined
-                  key={cardIndex}
-                  card={card}
-                  query={trimmedQuery}
-                />
-              ))}
-            </Fragment>
-          ))}
-
-          {lastFooter && (
-            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 sm:p-5">
-              <p className="text-sm font-semibold text-foreground whitespace-pre-line">
-                {lastFooter}
-              </p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function SectionDivider({ title }: { readonly title: string }) {
-  const label = title.trim();
-
-  if (!label) return <div className="h-px w-full bg-border" aria-hidden />;
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="h-px flex-1 bg-border" />
-      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <span className="h-px flex-1 bg-border" />
+      <AllDatesTable content={content} query={trimmedQuery} now={now} />
     </div>
   );
 }
@@ -381,6 +226,161 @@ function CountdownBadge({
   );
 }
 
+interface AllDatesRow {
+  readonly key: string;
+  readonly categoryLabel: string;
+  readonly groupLabel: string;
+  readonly unitLabel: string;
+  readonly dateText: string;
+  readonly date: Date | null;
+}
+
+/**
+ * Every exam date from every category in one simple table, earliest first.
+ *
+ * The admin model is category → section → group → row, which is awkward to read
+ * across. This flattens it: a row per exam, keeping the university and unit in
+ * their own columns so nothing has to be parsed out of a free-text cell.
+ */
+function AllDatesTable({
+  content,
+  query,
+  now,
+}: {
+  readonly content: readonly CalendarCategoryContent[];
+  readonly query: string;
+  readonly now: number | null;
+}) {
+  const rows = useMemo(() => {
+    const collected: AllDatesRow[] = [];
+
+    for (const item of content) {
+      const categoryLabel = CALENDAR_CATEGORY_META[item.category]?.label ?? "";
+
+      for (const section of item.sections) {
+        for (const group of section.groups) {
+          const groupLabel = group.label.trim();
+
+          group.rows.forEach((row, index) => {
+            // A single-cell row is a date-only table: the group is the
+            // institute (e.g. "কুয়েট") and there is no unit, so the unit cell
+            // stays empty rather than repeating the institute name.
+            const hasUnit = row.length > 1;
+            const unitLabel = hasUnit ? (row[0] ?? "").trim() : "";
+            const dateText = row[row.length - 1] ?? "";
+
+            collected.push({
+              key: `${item.category}-${groupLabel}-${unitLabel}-${index}`,
+              categoryLabel,
+              groupLabel,
+              unitLabel,
+              dateText,
+              date: parseBengaliDate(dateText),
+            });
+          });
+        }
+      }
+    }
+
+    return collected;
+  }, [content]);
+
+  const visible = useMemo(() => {
+    const matched = rows.filter(
+      (row) =>
+        !query ||
+        row.categoryLabel.toLowerCase().includes(query) ||
+        row.groupLabel.toLowerCase().includes(query) ||
+        row.unitLabel.toLowerCase().includes(query) ||
+        row.dateText.toLowerCase().includes(query),
+    );
+
+    // Undated rows keep their original order and sink to the bottom.
+    return [...matched].sort((a, b) => {
+      if (a.date && b.date) return a.date.getTime() - b.date.getTime();
+      if (a.date) return -1;
+      if (b.date) return 1;
+      return 0;
+    });
+  }, [rows, query]);
+
+  if (visible.length === 0) {
+    return (
+      <div className="bg-card border rounded-2xl shadow-sm p-8 sm:p-12 flex flex-col items-center justify-center text-center">
+        <div className="size-14 rounded-full bg-muted/40 flex items-center justify-center mb-3">
+          <Search className={cn("size-6", "text-muted-foreground")} />
+        </div>
+        <h3 className="font-bold text-sm text-foreground">
+          {query
+            ? `"${query.trim()}" দিয়ে কিছু পাওয়া যায়নি`
+            : "এখনো কোনো তারিখ যোগ করা হয়নি"}
+        </h3>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+      {/* Phones scroll sideways; the columns are too many to stack. */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40">
+              <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
+                ক্যাটাগরি
+              </th>
+              <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
+                বিশ্ববিদ্যালয় / বিভাগ
+              </th>
+              <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
+                ইউনিট
+              </th>
+              <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
+                পরীক্ষার তারিখ
+              </th>
+              <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
+                বাকি
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((row) => {
+              return (
+                <tr key={row.key} className="border-b last:border-0">
+                  <td className="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                    <Highlight text={row.categoryLabel} query={query} />
+                  </td>
+                  <td className="px-3 sm:px-4 py-2.5">
+                    {row.groupLabel ? (
+                      <Highlight text={row.groupLabel} query={query} />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 sm:px-4 py-2.5 font-semibold whitespace-nowrap">
+                    <Highlight text={row.unitLabel} query={query} />
+                  </td>
+                  <td className="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                    <Highlight text={row.dateText} query={query} />
+                  </td>
+                  <td className="px-3 sm:px-4 py-2.5">
+                    <CountdownBadge date={row.date} now={now} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="px-3 sm:px-4 py-2.5 text-[11px] text-muted-foreground border-t">
+        মোট {toBengaliDigits(visible.length)} টি তারিখ · আগের তারিখ আগে দেখানো
+        হয়েছে
+      </p>
+    </div>
+  );
+}
+
 function Highlight({
   text,
   query,
@@ -399,83 +399,5 @@ function Highlight({
       </mark>
       {text.slice(index + query.length)}
     </>
-  );
-}
-
-function InstituteSection({
-  card,
-  query,
-}: {
-  readonly card: InstituteCard;
-  readonly query: string;
-}) {
-  const { group, columns } = card;
-  const dateColumnIndex = columns.length - 1;
-  const heading = group.label.trim();
-
-  return (
-    <section className="bg-card border rounded-2xl shadow-sm overflow-hidden">
-      {/* Institute name bar — centred and prominent, one neutral tone for every
-          category. Hidden when unnamed so a blank strip never shows. */}
-      {heading && (
-        <div className="flex items-center justify-center gap-2 bg-muted/60 border-b px-4 py-2.5 sm:py-3">
-          <h2 className="text-center text-base sm:text-lg font-extrabold leading-snug text-foreground">
-            <Highlight text={group.label} query={query} />
-          </h2>
-        </div>
-      )}
-
-      {/* Two per row on phones, four on wider screens. An odd last card simply
-          leaves the trailing slot empty. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 p-3 sm:p-4">
-        {group.rows.map((row, rowIndex) => (
-          <UnitCard
-            // biome-ignore lint/suspicious/noArrayIndexKey: rows are rendered read-only
-            key={rowIndex}
-            row={row}
-            dateColumnIndex={dateColumnIndex}
-            query={query}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function UnitCard({
-  row,
-  dateColumnIndex,
-  query,
-}: {
-  readonly row: readonly string[];
-  readonly dateColumnIndex: number;
-  readonly query: string;
-}) {
-  const dateText = row[dateColumnIndex] ?? "";
-  const date = parseBengaliDate(dateText);
-  // Date-only tables have no unit cell, so the date becomes the heading.
-  const label = row.length > 1 ? (row[0] ?? "") : "";
-
-  return (
-    <div className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border/70 bg-muted/15 p-3 text-center transition-colors hover:bg-muted/30">
-      {label && (
-        <p className="text-sm font-bold leading-tight">
-          <Highlight text={label} query={query} />
-        </p>
-      )}
-      <p className="text-xs text-muted-foreground leading-snug">
-        <Highlight text={dateText} query={query} />
-      </p>
-      <span
-        className={cn(
-          "inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap",
-          date
-            ? countdownTone(daysUntil(date))
-            : "bg-muted text-muted-foreground",
-        )}
-      >
-        {date ? formatCountdown(daysUntil(date)) : "—"}
-      </span>
-    </div>
   );
 }
