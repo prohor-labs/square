@@ -67,7 +67,6 @@ export default async function QbChaptersPage({
               title={chapter.name}
               subtitle={label}
               questions={chapter.questions}
-              seed={container.title}
               variant="row"
             />
           ))}

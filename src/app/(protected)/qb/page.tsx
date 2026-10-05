@@ -87,7 +87,7 @@ export default async function QuestionBankPage({
               title={container.title}
               subtitle="প্রশ্নব্যাংক"
               questions={container.questions}
-              seed={container.title}
+              variant="wide"
             />
           ))}
         </div>

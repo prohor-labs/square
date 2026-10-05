@@ -46,7 +46,8 @@ export default async function QbUnitsPage({
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        /* Two per row — units are short labels, not tiles. */
+        <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2">
           {container.units.map((unit) => (
             <QbCard
               key={unit.id}
@@ -54,8 +55,7 @@ export default async function QbUnitsPage({
               title={unitLabel(unit.name, container.title)}
               subtitle={container.title}
               questions={unit.questions}
-              // Seeded by the container, so every unit of one university matches.
-              seed={container.title}
+              variant="compact"
             />
           ))}
         </div>
