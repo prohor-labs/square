@@ -101,7 +101,7 @@ export function QbCard({
       <a
         href={href}
         className={cn(
-          "group relative flex h-[72px] items-center overflow-hidden rounded-2xl border border-border/40 p-3 shadow-sm sm:h-[78px]",
+          "group relative flex h-[78px] items-center overflow-hidden rounded-2xl border border-border/40 p-3 shadow-sm sm:h-[84px]",
           focusRing,
         )}
         style={{ background: COLORS.background }}
@@ -110,14 +110,14 @@ export function QbCard({
 
         <div className="relative z-10 min-w-0 flex-1 pr-[4.5rem] sm:pr-24">
           <h3
-            className="truncate text-sm font-black leading-snug"
+            className="truncate text-base font-black leading-snug sm:text-lg"
             style={{ color: COLORS.text }}
           >
             {title}
           </h3>
           {subtitle && (
             <p
-              className="truncate text-[11px] font-medium leading-snug"
+              className="truncate text-xs font-medium leading-snug sm:text-sm"
               style={{ color: COLORS.subText }}
             >
               {subtitle}
@@ -126,7 +126,7 @@ export function QbCard({
         </div>
 
         <span
-          className="absolute right-3 top-1/2 shrink-0 -translate-y-1/2 rounded-full px-2.5 py-1 text-[10px] font-bold whitespace-nowrap text-white sm:text-xs"
+          className="absolute right-3 top-1/2 shrink-0 -translate-y-1/2 rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap text-white sm:text-xs"
           style={{ backgroundColor: COLORS.pill }}
         >
           {toBengaliDigits(questions)} টি প্রশ্ন
@@ -157,8 +157,8 @@ export function QbCard({
         className={cn(
           "absolute right-3 top-3 z-10 rounded-full font-bold whitespace-nowrap text-white",
           big
-            ? "px-2.5 py-1 text-[10px] sm:text-xs"
-            : "px-2 py-0.5 text-[9px] sm:text-[10px]",
+            ? "px-2.5 py-1 text-[11px] sm:text-xs"
+            : "px-2 py-0.5 text-[10px] sm:text-[11px]",
         )}
         style={{ backgroundColor: COLORS.pill }}
       >
@@ -167,10 +167,10 @@ export function QbCard({
 
       <h3
         className={cn(
-          "relative z-10 font-black leading-tight",
+          "relative z-10 text-center font-black leading-tight",
           big
-            ? "line-clamp-3 text-center text-[15px] sm:text-lg md:text-xl"
-            : "line-clamp-2 text-center text-[15px] sm:text-base",
+            ? "line-clamp-3 text-lg sm:text-xl md:text-2xl"
+            : "line-clamp-2 text-lg sm:text-xl",
         )}
         style={{ color: COLORS.text }}
       >
@@ -179,10 +179,7 @@ export function QbCard({
 
       {subtitle && (
         <p
-          className={cn(
-            "relative z-10 mt-1 line-clamp-1 text-center font-medium leading-snug",
-            big ? "text-[11px] sm:text-xs" : "text-[11px] sm:text-xs",
-          )}
+          className="relative z-10 mt-1 line-clamp-1 text-center text-xs font-medium leading-snug sm:text-sm"
           style={{ color: COLORS.subText }}
         >
           {subtitle}
