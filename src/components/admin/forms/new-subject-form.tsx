@@ -60,7 +60,7 @@ export function NewSubjectForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field>
-          <FieldLabel>বিষয় আইডি</FieldLabel>
+          <FieldLabel>ইউনিট আইডি</FieldLabel>
           <Input
             required
             placeholder="PHY (অভ্যন্তরীণ আইডি)"
@@ -70,7 +70,7 @@ export function NewSubjectForm({
         </Field>
 
         <Field>
-          <FieldLabel>বিষয় Slug</FieldLabel>
+          <FieldLabel>ইউনিট Slug</FieldLabel>
           <Input
             required
             placeholder="physics"
@@ -81,19 +81,19 @@ export function NewSubjectForm({
       </div>
 
       <Field>
-        <FieldLabel>বিষয়ের নাম (বাংলায়)</FieldLabel>
+        <FieldLabel>ইউনিটের নাম (বাংলায়)</FieldLabel>
         <Input
           required
-          placeholder="পদার্থবিজ্ঞান"
+          placeholder="বিজ্ঞান"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
       </Field>
 
       <Field>
-        <FieldLabel>বিষয় কোড (Optional)</FieldLabel>
+        <FieldLabel>ইউনিট কোড (Optional)</FieldLabel>
         <Input
-          placeholder="PHY101"
+          placeholder="SCI101"
           value={code}
           onChange={(e) => setCode(e.target.value)}
         />

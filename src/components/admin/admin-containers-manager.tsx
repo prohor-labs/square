@@ -4,29 +4,41 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  ADMIN_ACTION_CLASS,
+  AdminQbSquareCard,
+} from "@/components/admin/admin-qb-card";
 import { EditQuestionBankForm } from "@/components/admin/forms/edit-qb-form";
 import { NewQuestionBankForm } from "@/components/admin/forms/new-qb-form";
-import { QuickList, type QuickListItem } from "@/components/admin/quick-list";
-import { Add, BookOpen, Edit, Flash, Trash2 } from "@/components/icons";
+import { Add, Edit, Flash, Trash2 } from "@/components/icons";
 import { ResponsiveDialog } from "@/components/responsive-dialog";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { deleteContainerAction } from "@/lib/actions/question";
-import type { Container } from "@/types";
+import { toBengaliDigits } from "@/lib/calendar-date";
+
+/** A container row plus its unit and question counts. */
+export interface AdminQbSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly description: string | null;
+  readonly units: number;
+  readonly questions: number;
+}
 
 interface AdminContainersManagerProps {
-  readonly initialQbs: readonly Container[];
+  readonly initialQbs: readonly AdminQbSummary[];
 }
 
 export function AdminContainersManager({
   initialQbs,
 }: AdminContainersManagerProps) {
   const router = useRouter();
-  const [qbs, setQbs] = useState<readonly Container[]>(initialQbs);
+  const [qbs, setQbs] = useState<readonly AdminQbSummary[]>(initialQbs);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingQb, setEditingQb] = useState<Container | null>(null);
+  const [editingQb, setEditingQb] = useState<AdminQbSummary | null>(null);
 
-  // Sync initialQbs when prop updates
   useEffect(() => {
     setQbs(initialQbs);
   }, [initialQbs]);
@@ -38,65 +50,13 @@ export function AdminContainersManager({
         toast.error(res.error);
       } else {
         setQbs((prev) => prev.filter((q) => q.id !== containerId));
-        toast.success("প্রশ্নব্যাংক সফলভাবে মুছে ফেলা হয়েছে");
+        toast.success("প্রশ্নব্যাংক সফলভাবে মুছে ফেলা হয়েছে");
         router.refresh();
       }
     } catch {
-      toast.error("প্রশ্নব্যাংক মুছতে সমস্যা হয়েছে।");
+      toast.error("প্রশ্নব্যাংক মুছতে সমস্যা হয়েছে।");
     }
   };
-
-  const items: QuickListItem[] = qbs.map((qb: Container) => ({
-    href: `/admin/qb/${qb.slug}`,
-    title: qb.title,
-    icon: BookOpen,
-    text: "text-primary",
-    iconBg: "bg-primary/10",
-    extra: (
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1 font-medium text-xs text-muted-foreground">
-          {qb.items?.[0]?.count ?? 0} টি বিষয়
-        </span>
-      </div>
-    ),
-    rightElement: (
-      <div
-        className="flex items-center gap-1"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditingQb(qb);
-          }}
-          className="text-primary hover:bg-primary/10 gap-1 rounded-xl text-xs cursor-pointer"
-        >
-          <Edit className="size-3.5" />
-          <span>এডিট</span>
-        </Button>
-        <DeleteConfirmDialog
-          title="প্রশ্নব্যাংক ডিলিট নিশ্চিতকরণ"
-          description="আপনি কি নিশ্চিত যে এই প্রশ্নব্যাংকটি ডিলিট করতে চান? এর ভিতরের সব বিষয়, অধ্যায় এবং প্রশ্ন মুছে যাবে!"
-          onConfirm={() => handleDelete(qb.id)}
-          trigger={
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-              className="text-destructive hover:bg-destructive/10 gap-1 rounded-xl text-xs cursor-pointer"
-            >
-              <Trash2 className="size-3.5" />
-              <span>ডিলিট</span>
-            </Button>
-          }
-        />
-      </div>
-    ),
-  }));
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-6">
@@ -104,7 +64,7 @@ export function AdminContainersManager({
         <div>
           <h2 className="text-xl sm:text-2xl font-black">প্রশ্নব্যাংক তালিকা</h2>
           <p className="text-xs text-muted-foreground">
-            সকল ক্যাটাগরি ও প্রশ্নব্যাংক পরিচালনা করুন
+            ব্যাংক তৈরি করুন, তারপর কার্ডে ক্লিক করে ইউনিট ও সাল সাজান
           </p>
         </div>
 
@@ -128,7 +88,45 @@ export function AdminContainersManager({
         </div>
       </div>
 
-      <QuickList items={items} columns={{ sm: 1, lg: 2 }} gap="md" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+        {qbs.map((qb) => (
+          <AdminQbSquareCard
+            key={qb.id}
+            href={`/admin/qb/${qb.slug}`}
+            title={qb.title}
+            meta={`${toBengaliDigits(qb.units)} টি ইউনিট`}
+            questions={qb.questions}
+            actions={
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingQb(qb)}
+                  className={ADMIN_ACTION_CLASS}
+                >
+                  <Edit className="size-3.5" />
+                  <span>এডিট</span>
+                </Button>
+                <DeleteConfirmDialog
+                  title="প্রশ্নব্যাংক ডিলিট নিশ্চিতকরণ"
+                  description="আপনি কি নিশ্চিত যে এই প্রশ্নব্যাংকটি ডিলিট করতে চান? এর ভিতরের সব ইউনিট, সাল এবং প্রশ্ন মুছে যাবে!"
+                  onConfirm={() => handleDelete(qb.id)}
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={ADMIN_ACTION_CLASS}
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>ডিলিট</span>
+                    </Button>
+                  }
+                />
+              </>
+            }
+          />
+        ))}
+      </div>
 
       <ResponsiveDialog
         open={isCreateOpen}

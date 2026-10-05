@@ -67,10 +67,10 @@ export function EditChapterForm({
       )}
 
       <Field>
-        <FieldLabel>অধ্যায়ের নাম (বাংলায়)</FieldLabel>
+        <FieldLabel>সালের নাম (বাংলায়)</FieldLabel>
         <Input
           required
-          placeholder="ভেক্টর"
+          placeholder="২০১৩-১৪"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -78,10 +78,10 @@ export function EditChapterForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field>
-          <FieldLabel>অধ্যায় Slug</FieldLabel>
+          <FieldLabel>সাল Slug</FieldLabel>
           <Input
             required
-            placeholder="vector"
+            placeholder="2013-14"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
           />
@@ -103,7 +103,12 @@ export function EditChapterForm({
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending}
+        >
           বাতিল
         </Button>
         <Button type="submit" disabled={isPending}>

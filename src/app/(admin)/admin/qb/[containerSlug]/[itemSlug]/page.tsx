@@ -6,7 +6,7 @@ import { containers, items, subitems } from "@/db/schema";
 
 import type { Item, Subitem } from "@/types";
 
-export default async function AdminQbChaptersPage({
+export default async function AdminQbYearsPage({
   params,
 }: {
   readonly params: Promise<{ containerSlug: string; itemSlug: string }>;
@@ -25,7 +25,7 @@ export default async function AdminQbChaptersPage({
 
   if (!subject) notFound();
 
-  const chapterList = await db.query.subitems.findMany({
+  const yearList = await db.query.subitems.findMany({
     where: eq(subitems.itemId, subject.id),
     with: {
       topics: true,
@@ -39,20 +39,20 @@ export default async function AdminQbChaptersPage({
     container_id: subject.containerId,
   };
 
-  const formattedChapters: Subitem[] = chapterList.map((ch) => ({
-    ...ch,
-    item_id: ch.itemId,
-    order_no: ch.orderNo,
-    paper: ch.paper || undefined,
-    topics: [{ count: ch.topics?.length || 0 }],
-    questions: [{ count: ch.questions?.length || 0 }],
+  const formattedYears: Subitem[] = yearList.map((year) => ({
+    ...year,
+    item_id: year.itemId,
+    order_no: year.orderNo,
+    paper: year.paper || undefined,
+    topics: [{ count: year.topics?.length || 0 }],
+    questions: [{ count: year.questions?.length || 0 }],
   }));
 
   return (
     <AdminSubitemsManager
       qb={qb}
       subject={formattedSubject}
-      initialChapters={formattedChapters}
+      initialYears={formattedYears}
     />
   );
 }

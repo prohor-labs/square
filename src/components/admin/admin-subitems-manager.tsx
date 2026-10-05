@@ -3,115 +3,55 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  ADMIN_ACTION_CLASS,
+  AdminQbFlatCard,
+} from "@/components/admin/admin-qb-card";
 import { EditChapterForm } from "@/components/admin/forms/edit-chapter-form";
 import { NewChapterForm } from "@/components/admin/forms/new-chapter-form";
-import { QuickList, type QuickListItem } from "@/components/admin/quick-list";
-import {
-  ArrowRight2,
-  BookOpen,
-  Edit,
-  TaskSquare,
-  Trash2,
-} from "@/components/icons";
+import { ArrowRight2, Edit, Trash2 } from "@/components/icons";
 import { ResponsiveDialog } from "@/components/responsive-dialog";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { deleteSubitemAction as deleteChapterAction } from "@/lib/actions/question";
-import { toast } from "sonner";
+import { deleteSubitemAction as deleteYearAction } from "@/lib/actions/question";
+import { toBengaliDigits } from "@/lib/calendar-date";
 import type { Container, Item, Subitem } from "@/types";
 
 interface AdminSubitemsManagerProps {
   readonly qb: Container;
   readonly subject: Item;
-  readonly initialChapters: readonly Subitem[];
+  readonly initialYears: readonly Subitem[];
 }
 
 export function AdminSubitemsManager({
   qb,
   subject,
-  initialChapters,
+  initialYears,
 }: AdminSubitemsManagerProps) {
   const router = useRouter();
-  const [chapters, setChapters] = useState<readonly Subitem[]>(initialChapters);
+  const [years, setYears] = useState<readonly Subitem[]>(initialYears);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingChapter, setEditingChapter] = useState<Subitem | null>(null);
+  const [editingYear, setEditingYear] = useState<Subitem | null>(null);
 
   useEffect(() => {
-    setChapters(initialChapters);
-  }, [initialChapters]);
+    setYears(initialYears);
+  }, [initialYears]);
 
-  const handleDeleteChapter = async (chapterId: string) => {
+  const handleDeleteYear = async (yearId: string) => {
     try {
-      const res = await deleteChapterAction(chapterId, qb.slug, subject.slug);
+      const res = await deleteYearAction(yearId, qb.slug, subject.slug);
       if (res?.error) {
         toast.error(res.error);
       } else {
-        setChapters((prev) => prev.filter((ch) => ch.id !== chapterId));
-        toast.success("অধ্যায়টি সফলভাবে ডিলিট করা হয়েছে");
+        setYears((prev) => prev.filter((y) => y.id !== yearId));
+        toast.success("সালটি সফলভাবে ডিলিট করা হয়েছে");
         router.refresh();
       }
     } catch {
-      toast.error("অধ্যায় ডিলিট করতে সমস্যা হয়েছে");
+      toast.error("সাল ডিলিট করতে সমস্যা হয়েছে");
     }
   };
-
-  const items: QuickListItem[] = chapters.map((ch: Subitem) => ({
-    href: `/admin/qb/${qb.slug}/${subject.slug}/${ch.slug}`,
-    title: ch.name,
-    description: (
-      <span className="flex items-center gap-3 text-xs">
-        <span className="flex items-center gap-1 font-medium">
-          <BookOpen className="size-3.5" /> {ch.topics?.[0]?.count ?? 0} টি টপিক
-        </span>
-        <span className="flex items-center gap-1 font-medium">
-          <TaskSquare className="size-3.5" /> {ch.questions?.[0]?.count ?? 0} টি
-          প্রশ্ন
-        </span>
-      </span>
-    ),
-    icon: BookOpen,
-    text: "text-primary",
-    iconBg: "bg-primary/10",
-    extra: ch.paper ? (
-      <span className="text-[10px] uppercase font-bold text-muted-foreground">
-        {ch.paper} Paper
-      </span>
-    ) : undefined,
-    rightElement: (
-      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditingChapter(ch);
-          }}
-          className="text-primary hover:bg-primary/10 gap-1 rounded-xl text-xs cursor-pointer"
-        >
-          <Edit className="size-3.5" />
-          <span>এডিট</span>
-        </Button>
-        <DeleteConfirmDialog
-          title="অধ্যায় ডিলিট নিশ্চিতকরণ"
-          description={`আপনি কি নিশ্চিতভাবে "${ch.name}" অধ্যায়টি ডিলিট করতে চান? এর ভিতরের সব টপিক ও প্রশ্ন মুছে যাবে!`}
-          onConfirm={() => handleDeleteChapter(ch.id)}
-          trigger={
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-              className="text-destructive hover:bg-destructive/10 gap-1 rounded-xl text-xs cursor-pointer"
-            >
-              <Trash2 className="size-3.5" />
-              <span>ডিলিট</span>
-            </Button>
-          }
-        />
-      </div>
-    ),
-  }));
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-6">
@@ -137,16 +77,16 @@ export function AdminSubitemsManager({
           {subject.name}
         </Link>
         <ArrowRight2 className="size-3" />
-        <span className="text-foreground font-semibold">অধ্যায়সমূহ</span>
+        <span className="text-foreground font-semibold">সালসমূহ</span>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-            {subject.name} - অধ্যায়সমূহ
+            {subject.name} - সালসমূহ
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            অধ্যায়ের টপিক দেখতে ক্লিক করুন অথবা অধ্যায় এডিট, যোগ ও রিমুভ করুন।
+            সালে ক্লিক করে টপিক দেখুন, অথবা সাল যোগ, এডিট ও রিমুভ করুন।
           </p>
         </div>
 
@@ -154,17 +94,57 @@ export function AdminSubitemsManager({
           onClick={() => setIsCreateOpen(true)}
           className="rounded-xl gap-2 font-bold cursor-pointer"
         >
-          + নতুন অধ্যায় যোগ করুন
+          + নতুন সাল যোগ করুন
         </Button>
       </div>
 
-      <QuickList items={items} columns={{ sm: 1, md: 2, lg: 3 }} gap="md" />
+      <div className="flex flex-col gap-2.5 max-w-3xl sm:gap-3">
+        {years.map((year) => (
+          <AdminQbFlatCard
+            key={year.id}
+            href={`/admin/qb/${qb.slug}/${subject.slug}/${year.slug}`}
+            title={year.name}
+            meta={`${toBengaliDigits(year.topics?.[0]?.count ?? 0)} টি টপিক${
+              year.paper ? ` · ${year.paper} পেপার` : ""
+            }`}
+            questions={year.questions?.[0]?.count ?? 0}
+            actions={
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingYear(year)}
+                  className={ADMIN_ACTION_CLASS}
+                >
+                  <Edit className="size-3.5" />
+                  <span>এডিট</span>
+                </Button>
+                <DeleteConfirmDialog
+                  title="সাল ডিলিট নিশ্চিতকরণ"
+                  description={`আপনি কি নিশ্চিতভাবে "${year.name}" সালটি ডিলিট করতে চান? এর ভিতরের সব টপিক ও প্রশ্ন মুছে যাবে!`}
+                  onConfirm={() => handleDeleteYear(year.id)}
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={ADMIN_ACTION_CLASS}
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>ডিলিট</span>
+                    </Button>
+                  }
+                />
+              </>
+            }
+          />
+        ))}
+      </div>
 
       <ResponsiveDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        title={`${subject.name} এ নতুন অধ্যায়`}
-        description="অধ্যায়ের নাম, slug ও পেপার নির্বাচন করুন।"
+        title={`${subject.name} এ নতুন সাল`}
+        description="সালের নাম, স্লাগ ও পেপার নির্বাচন করুন।"
         className="sm:max-w-lg"
       >
         <NewChapterForm
@@ -180,28 +160,27 @@ export function AdminSubitemsManager({
       </ResponsiveDialog>
 
       <ResponsiveDialog
-        open={Boolean(editingChapter)}
+        open={Boolean(editingYear)}
         onOpenChange={(open) => {
-          if (!open) setEditingChapter(null);
+          if (!open) setEditingYear(null);
         }}
-        title="অধ্যায় এডিট করুন"
-        description="অধ্যায়ের নাম, slug ও পেপার পরিবর্তন করুন।"
+        title="সাল এডিট করুন"
+        description="সালের নাম, স্লাগ ও পেপার পরিবর্তন করুন।"
         className="sm:max-w-lg"
       >
-        {editingChapter && (
+        {editingYear && (
           <EditChapterForm
             qbSlug={qb.slug}
             subjectSlug={subject.slug}
-            chapter={editingChapter}
+            chapter={editingYear}
             onSuccess={() => {
-              setEditingChapter(null);
+              setEditingYear(null);
               router.refresh();
             }}
-            onCancel={() => setEditingChapter(null)}
+            onCancel={() => setEditingYear(null)}
           />
         )}
       </ResponsiveDialog>
     </div>
   );
 }
-

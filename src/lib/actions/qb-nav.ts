@@ -16,6 +16,7 @@ export interface QbUnitNode {
   readonly slug: string;
   /** Display name — see `unitLabel` for why the stored name may be replaced. */
   readonly name: string;
+  readonly code: string | null;
   readonly chapters: readonly QbChapterNode[];
   readonly questions: number;
 }
@@ -48,6 +49,7 @@ export async function getQbTree(): Promise<QbContainerNode[]> {
         id: items.id,
         slug: items.slug,
         name: items.name,
+        code: items.code,
         containerId: items.containerId,
       })
       .from(items)
@@ -90,6 +92,7 @@ export async function getQbTree(): Promise<QbContainerNode[]> {
       id: item.id,
       slug: item.slug,
       name: item.name,
+      code: item.code,
       chapters,
       questions: chapters.reduce((sum, c) => sum + c.questions, 0),
     });

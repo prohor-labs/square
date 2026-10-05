@@ -59,20 +59,20 @@ export function NewChapterForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field>
-          <FieldLabel>অধ্যায়ের নাম (বাংলায়)</FieldLabel>
+          <FieldLabel>সালের নাম (বাংলায়)</FieldLabel>
           <Input
             required
-            placeholder="ভেক্টর"
+            placeholder="২০১৩-১৪"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
 
         <Field>
-          <FieldLabel>অধ্যায় Slug</FieldLabel>
+          <FieldLabel>সাল Slug</FieldLabel>
           <Input
             required
-            placeholder="vector"
+            placeholder="2013-14"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
           />

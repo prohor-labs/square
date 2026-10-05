@@ -6,11 +6,16 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { updateItemAction as updateSubjectAction } from "@/lib/actions/question";
-import type { Item } from "@/types";
 
 interface EditSubjectFormProps {
   readonly qbSlug: string;
-  readonly subject: Item;
+  /** Only the identity fields are read — the counts on a unit are not editable. */
+  readonly subject: {
+    readonly id: string;
+    readonly name: string;
+    readonly slug: string;
+    readonly code: string | null;
+  };
   readonly onSuccess?: () => void;
   readonly onCancel?: () => void;
 }
@@ -56,10 +61,10 @@ export function EditSubjectForm({
       )}
 
       <Field>
-        <FieldLabel>বিষয়ের নাম (বাংলায়)</FieldLabel>
+        <FieldLabel>ইউনিটের নাম (বাংলায়)</FieldLabel>
         <Input
           required
-          placeholder="পদার্থবিজ্ঞান"
+          placeholder="বিজ্ঞান"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -67,19 +72,19 @@ export function EditSubjectForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field>
-          <FieldLabel>বিষয় Slug</FieldLabel>
+          <FieldLabel>ইউনিট Slug</FieldLabel>
           <Input
             required
-            placeholder="physics"
+            placeholder="science"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
           />
         </Field>
 
         <Field>
-          <FieldLabel>বিষয় কোড (Optional)</FieldLabel>
+          <FieldLabel>ইউনিট কোড (Optional)</FieldLabel>
           <Input
-            placeholder="PHY101"
+            placeholder="SCI101"
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
@@ -87,7 +92,12 @@ export function EditSubjectForm({
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending}
+        >
           বাতিল
         </Button>
         <Button type="submit" disabled={isPending}>

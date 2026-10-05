@@ -93,7 +93,11 @@ export function AdminQuestionsManager({
     if (!searchQuery.trim()) return questions;
     const q = searchQuery.toLowerCase().trim();
     return questions.filter((item) => {
-      const text = (item.questionText || (item as any).question_text || "").toLowerCase();
+      const text = (
+        item.questionText ||
+        (item as any).question_text ||
+        ""
+      ).toLowerCase();
       const source = (item.source || "").toLowerCase();
       return text.includes(q) || source.includes(q);
     });
@@ -181,14 +185,14 @@ export function AdminQuestionsManager({
             href={`/admin/qb/${qbSlug}/${subjectSlug}`}
             className="hover:text-foreground transition-colors"
           >
-            বিষয়
+            ইউনিট
           </Link>
           <ArrowRight2 className="size-3" />
           <Link
             href={`/admin/qb/${qbSlug}/${subjectSlug}/${chapterSlug}`}
             className="hover:text-foreground transition-colors"
           >
-            {chapterName || "অধ্যায়"}
+            {chapterName || "সাল"}
           </Link>
           {topicName && (
             <>
@@ -340,7 +344,8 @@ export function AdminQuestionsManager({
           <div className="p-12 text-center text-muted-foreground bg-card border border-dashed rounded-2xl">
             <p className="text-sm font-semibold">কোনো প্রশ্ন পাওয়া যায়নি।</p>
             <p className="text-xs mt-1 text-muted-foreground/80">
-              উপরের &quot;+ নতুন প্রশ্ন যোগ করুন&quot; বাটনে ক্লিক করে প্রশ্ন যুক্ত করতে পারেন।
+              উপরের &quot;+ নতুন প্রশ্ন যোগ করুন&quot; বাটনে ক্লিক করে প্রশ্ন যুক্ত করতে
+              পারেন।
             </p>
           </div>
         ) : (
