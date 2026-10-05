@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
  * colour instead of the label.
  */
 const COLORS = {
-  /* A true red rather than a pink wash — two lighter passes (#fdeeee, #f6c8c8)
-     both read as pale pink and washed the navy name out. */
-  background: "linear-gradient(150deg, #f4bcbc 0%, #e38282 52%, #eea8a8 100%)",
-  text: "#1b2a47",
+  /* A true red rather than a pink wash — three lighter passes (#fdeeee, #f6c8c8,
+     #f4bcbc) all read as pale pink. The name is near-black navy so it still
+     clears the contrast bar on the deepest stop. */
+  background: "linear-gradient(150deg, #f0a6a6 0%, #d97070 52%, #e89090 100%)",
+  text: "#121c33",
   subText: "#7a3b40",
   pill: "#1e3a5f",
   /** The soft white shape sweeping in from the left edge. */
@@ -21,34 +22,49 @@ const COLORS = {
   shapeRight: "rgba(255,255,255,0.6)",
 } as const;
 
+/** Circle placed by percentage of the card's own width, so it stays round. */
+interface Blob {
+  readonly cx: number;
+  readonly cy: number;
+  /** Diameter as a percentage of the card's width. */
+  readonly size: number;
+}
+
 /**
- * The two white shapes, positioned as in the reference artwork. Both square
- * cards share one placement since their proportions match; the wide year box is
- * much flatter, so it needs its own.
+ * Squares and the flat year box need their own placements: the year box is about
+ * eight times wider than it is tall, so one set of percentages lands in the
+ * wrong place for it.
  */
-function Shapes({ flat }: { flat: boolean }) {
+const SQUARE_BLOBS: readonly [Blob, Blob] = [
+  { cx: 8, cy: -5, size: 62 },
+  { cx: 88, cy: 88, size: 30 },
+];
+
+const FLAT_BLOBS: readonly [Blob, Blob] = [
+  { cx: 6, cy: -5, size: 55 },
+  { cx: 86, cy: 95, size: 15 },
+];
+
+/** The two white shapes, positioned as in the reference artwork. */
+function Shapes({ blobs }: { blobs: readonly [Blob, Blob] }) {
   return (
     <>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute rounded-full",
-          flat
-            ? "-left-[8%] -top-[78%] size-[56%]"
-            : "-left-[22%] -top-[40%] size-[66%]",
-        )}
-        style={{ backgroundColor: COLORS.shapeLeft }}
-      />
-      <span
-        aria-hidden
-        className={cn(
-          "absolute rounded-full",
-          flat
-            ? "-bottom-[60%] right-[10%] size-[30%]"
-            : "-bottom-[20%] right-[8%] size-[32%]",
-        )}
-        style={{ backgroundColor: COLORS.shapeRight }}
-      />
+      {blobs.map((b, i) => (
+        <span
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed two-slot tuple
+          key={i}
+          aria-hidden
+          className="absolute rounded-full"
+          style={{
+            left: `${b.cx}%`,
+            top: `${b.cy}%`,
+            width: `${b.size}%`,
+            aspectRatio: "1",
+            translate: "-50% -50%",
+            backgroundColor: i === 0 ? COLORS.shapeLeft : COLORS.shapeRight,
+          }}
+        />
+      ))}
     </>
   );
 }
@@ -90,7 +106,7 @@ export function QbCard({
         )}
         style={{ background: COLORS.background }}
       >
-        <Shapes flat />
+        <Shapes blobs={FLAT_BLOBS} />
 
         <div className="relative z-10 min-w-0 flex-1 pr-[4.5rem] sm:pr-24">
           <h3
@@ -134,7 +150,7 @@ export function QbCard({
       )}
       style={{ background: COLORS.background }}
     >
-      <Shapes flat={false} />
+      <Shapes blobs={SQUARE_BLOBS} />
 
       <h3
         className={cn(
