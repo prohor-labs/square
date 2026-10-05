@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { EditQuestionBankForm } from "@/components/admin/forms/edit-qb-form";
 import { NewQuestionBankForm } from "@/components/admin/forms/new-qb-form";
 import { QuickList, type QuickListItem } from "@/components/admin/quick-list";
@@ -12,8 +13,6 @@ import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { deleteContainerAction } from "@/lib/actions/question";
 import type { Container } from "@/types";
-
-import { toast } from "sonner";
 
 interface AdminContainersManagerProps {
   readonly initialQbs: readonly Container[];
@@ -58,19 +57,13 @@ export function AdminContainersManager({
         <span className="flex items-center gap-1 font-medium text-xs text-muted-foreground">
           {qb.items?.[0]?.count ?? 0} টি বিষয়
         </span>
-        <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            qb.isPublic
-              ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-              : "bg-amber-500/10 text-amber-600 border border-amber-500/30"
-          }`}
-        >
-          {qb.isPublic ? "পাবলিক ও ফ্রি" : "ব্যাচ অ্যাক্সেস"}
-        </span>
       </div>
     ),
     rightElement: (
-      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex items-center gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Button
           variant="ghost"
           size="sm"
@@ -104,7 +97,6 @@ export function AdminContainersManager({
       </div>
     ),
   }));
-
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-6">
@@ -177,4 +169,3 @@ export function AdminContainersManager({
     </div>
   );
 }
-

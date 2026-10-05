@@ -1,15 +1,12 @@
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { ChapterQuestionsViewer } from "@/components/qb/ChapterQuestionsViewer";
-import { QbAccessRestrictedCard } from "@/components/qb/QbAccessRestrictedCard";
 import { db } from "@/db";
-import { containers, items, questions, subitems, topics } from "@/db/schema";
+import { items, questions, subitems, topics } from "@/db/schema";
 import { checkQbContainerAccess } from "@/lib/actions/qb-access";
-import { auth } from "@/lib/auth";
-
+import { getBankMeta, resolveBankSlug } from "@/lib/question-bank";
 
 export default async function QbChapterPage({
   params,
@@ -21,17 +18,14 @@ export default async function QbChapterPage({
   }>;
 }): Promise<ReactElement> {
   const { containerSlug, itemSlug, subitemSlug } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
 
-  const accessInfo = await checkQbContainerAccess(containerSlug, userId);
+  const accessInfo = await checkQbContainerAccess(containerSlug);
   if (!accessInfo.exists || !accessInfo.container) {
     notFound();
   }
 
   const qb = accessInfo.container;
-  const isAdmin = Boolean(accessInfo.isAdmin || session?.user?.role === "admin");
-  const hasFullAccess = Boolean(accessInfo.hasAccess || isAdmin);
+  const _bank = getBankMeta(resolveBankSlug(qb.slug));
 
   const subject = await db.query.items.findFirst({
     where: and(eq(items.containerId, qb.id), eq(items.slug, itemSlug)),
@@ -124,12 +118,6 @@ export default async function QbChapterPage({
                 : "টপিক অনুযায়ী ফিল্টার করে প্রশ্নগুলো অনুশীলন করুন"}
             </p>
           </div>
-
-          {!accessInfo.hasAccess && (
-            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-600 px-3.5 py-1.5 rounded-xl text-xs font-bold w-fit">
-              <span>🔒 উন্মুক্ত ও ফ্রি প্রশ্ন ছাড়া বাকি প্রশ্নের জন্য ব্যাচ এনরোলমেন্ট প্রয়োজন</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -137,8 +125,6 @@ export default async function QbChapterPage({
         <ChapterQuestionsViewer
           topics={topicList || []}
           questions={formattedQuestions || []}
-          hasFullAccess={hasFullAccess}
-          assignedBatches={accessInfo.assignedBatches}
           isYearBased={
             subject.name === "সালসমূহ" ||
             subject.name === "Years" ||

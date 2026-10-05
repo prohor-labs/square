@@ -2,12 +2,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight2,
-  BookOpen,
-  Lock,
-  TaskSquare,
-} from "@/components/icons";
+import { ArrowRight2, BookOpen, Lock, TaskSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -15,13 +10,12 @@ import { db } from "@/db";
 import {
   batchEnrollments,
   batchExams,
-  batchMembers,
   batches,
+  batchMembers,
   exams,
 } from "@/db/schema";
 import { getUserQbContainers } from "@/lib/actions/qb-access";
 import { auth } from "@/lib/auth";
-
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +24,9 @@ export default async function DashboardPage() {
   const user = session?.user;
   const userId = user?.id;
 
-  // 1. Fetch Question Banks with real access status (only show accessible ones)
+  // 1. Question banks — all open to every student, so just take the first four.
   const userContainers = await getUserQbContainers(userId);
-  const displayContainers = userContainers
-    .filter((c) => c.hasAccess || c.isAdmin)
-    .slice(0, 4);
+  const displayContainers = userContainers.slice(0, 4);
 
   // 2. Fetch User's Enrolled Batches (from both active enrollments & batch memberships)
   let userEnrolledBatchIds: string[] = [];
@@ -103,7 +95,9 @@ export default async function DashboardPage() {
     });
     liveExams = studentBatchExams
       .map((be) => be.exam)
-      .filter((e): e is typeof exams.$inferSelect => Boolean(e && e.isPublished));
+      .filter((e): e is typeof exams.$inferSelect =>
+        Boolean(e && e.isPublished),
+      );
   } else {
     // If student is NOT enrolled in any course, only show standalone public practice exams that are NOT assigned to any batch
     const allAssignedBatchExams = await db
@@ -133,15 +127,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-16 pt-1 sm:pt-4 md:py-6 gap-6 sm:gap-8 px-2 sm:px-4 md:px-6">
-
       {/* ─── Live / Active Exams Section ───────────────────────────────────── */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-lg font-bold text-foreground">
-              চলমান পরীক্ষাসমূহ
-            </h2>
+            <h2 className="text-lg font-bold text-foreground">চলমান পরীক্ষাসমূহ</h2>
           </div>
           <Link
             href="/exams"
@@ -209,7 +200,11 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Link
-            href={userEnrolledCourses.length > 0 ? "/my-courses" : "/#courses-section"}
+            href={
+              userEnrolledCourses.length > 0
+                ? "/my-courses"
+                : "/#courses-section"
+            }
             className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
           >
             সকল কোর্স <ArrowRight2 className="size-3" />

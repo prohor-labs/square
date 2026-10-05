@@ -4,13 +4,11 @@ import { BatchClassesTab } from "@/components/admin/batch-classes-tab";
 import { BatchExamsTab } from "@/components/admin/batch-exams-tab";
 import { BatchMembersTab } from "@/components/admin/batch-members-tab";
 import { BatchPdfsTab } from "@/components/admin/batch-pdfs-tab";
-import { BatchQbAccessTab } from "@/components/admin/batch-qb-access-tab";
 import { BatchSettingsTab } from "@/components/admin/batch-settings-tab";
 import {
   Edit,
   FileText,
   Profile2user,
-  SecurityCard,
   TaskSquare,
   Trash2,
   Video,
@@ -21,14 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { deleteBatchAction } from "@/lib/actions/batch";
 import type { BatchDetail } from "@/types";
 
-
-export function BatchDetailView({
-  batch,
-  allContainers = [],
-}: {
-  batch: BatchDetail;
-  allContainers?: any[];
-}) {
+export function BatchDetailView({ batch }: { batch: BatchDetail }) {
   const members = (batch.members || []) as unknown as Array<{
     id: string;
     userId: string;
@@ -77,7 +68,6 @@ export function BatchDetailView({
         </div>
       </div>
 
-
       <Tabs defaultValue="settings" className="w-full space-y-6">
         <div className="w-full border-b pb-2 overflow-x-auto no-scrollbar">
           <TabsList className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 bg-transparent p-0 h-auto min-w-max mx-auto">
@@ -103,14 +93,6 @@ export function BatchDetailView({
             >
               <FileText className="size-4 shrink-0" />
               <span>পিডিএফ রিসোর্স</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="qb"
-              className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:bg-accent hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:font-bold transition-all shrink-0 whitespace-nowrap"
-            >
-              <SecurityCard className="size-4 shrink-0" />
-              <span>প্রশ্নব্যাংক অ্যাক্সেস</span>
             </TabsTrigger>
 
             <TabsTrigger
@@ -147,10 +129,6 @@ export function BatchDetailView({
 
         <TabsContent value="pdfs">
           <BatchPdfsTab batchId={batch.id} />
-        </TabsContent>
-
-        <TabsContent value="qb">
-          <BatchQbAccessTab batchId={batch.id} allContainers={allContainers} />
         </TabsContent>
 
         <TabsContent value="exams">

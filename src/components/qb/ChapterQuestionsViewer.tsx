@@ -1,17 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  BookOpen,
-  CloseCircle,
-  Eye,
-  Lightbulb,
-  Lock,
-  Search,
-  TaskSquare,
-  TickCircle,
-} from "@/components/icons";
+import { Lightbulb, Search, TaskSquare, TickCircle } from "@/components/icons";
 import { UniversalQuestionCard } from "@/components/shared/UniversalQuestionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,18 +25,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { Question, Topic } from "@/types";
 
-interface AssignedBatchInfo {
-  id: string;
-  name: string;
-  slug: string;
-  hscBatch?: string;
-}
-
 interface ChapterQuestionsViewerProps {
   readonly topics: Topic[];
   readonly questions: Question[];
-  readonly hasFullAccess?: boolean;
-  readonly assignedBatches?: AssignedBatchInfo[];
+
   readonly isYearBased?: boolean;
 }
 
@@ -54,11 +36,14 @@ const ITEMS_PER_PAGE = 10;
 
 type CategoryFilter = "all" | "hsc" | "varsity" | "engineering" | "medical";
 
+/** Free is a highlight flag only — every question is readable. */
+function isFreeQuestion(q: Question): boolean {
+  return Boolean(q.isFree || (q as { is_free?: boolean }).is_free);
+}
 export function ChapterQuestionsViewer({
   topics = [],
   questions = [],
-  hasFullAccess = true,
-  assignedBatches = [],
+
   isYearBased = false,
 }: ChapterQuestionsViewerProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -147,11 +132,7 @@ export function ChapterQuestionsViewer({
       // Search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
-        const qText = (
-          q.question_text ||
-          q.questionText ||
-          ""
-        ).toLowerCase();
+        const qText = (q.question_text || q.questionText || "").toLowerCase();
         const qSource = (q.source || "").toLowerCase();
         const qExp = (q.explanation || "").toLowerCase();
         if (
@@ -529,7 +510,9 @@ export function ChapterQuestionsViewer({
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-              <span>মোট {filteredQuestions.length} টি প্রশ্নের মধ্যে দেখানো হচ্ছে</span>
+              <span>
+                মোট {filteredQuestions.length} টি প্রশ্নের মধ্যে দেখানো হচ্ছে
+              </span>
               {totalPages > 1 && (
                 <span>
                   পৃষ্ঠা {safeCurrentPage} / {totalPages}
@@ -537,84 +520,25 @@ export function ChapterQuestionsViewer({
               )}
             </div>
 
-            {paginatedQuestions.map((q: Question, idx: number) => {
-              const isFreeQuestion = Boolean(q.isFree || (q as any).is_free);
-              const canViewQuestion = hasFullAccess || isFreeQuestion;
-
-              if (canViewQuestion) {
-                return (
-                  <UniversalQuestionCard
-                    key={q.id}
-                    question={q}
-                    questionIndex={startIndex + idx}
-                    selectedOptionId={userAnswers[q.id]}
-                    isSolutionOpen={
-                      showExplanations || Boolean(revealedSolutions[q.id])
-                    }
-                    showCorrectAnswer={showAnswers ? true : undefined}
-                    onSelectOption={handleSelectOption}
-                    onToggleSolution={toggleSolution}
-                    badgeText={
-                      isFreeQuestion && !hasFullAccess
-                        ? `ফ্রি প্র্যাকটিস • প্রশ্ন ${startIndex + idx + 1}`
-                        : undefined
-                    }
-                  />
-                );
-              }
-
-              // Locked Question Card
-              const requiredBatch = assignedBatches[0];
-              return (
-                <div
-                  key={q.id}
-                  className="bg-card/60 border border-border/80 rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 relative overflow-hidden"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-foreground/80">
-                      প্রশ্ন {startIndex + idx + 1}
-                    </span>
-                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center gap-1">
-                      <Lock className="size-3" /> ব্যাচ এক্সক্লুসিভ
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 select-none opacity-40">
-                    <div className="h-4 bg-muted-foreground/30 rounded-md w-3/4 animate-pulse" />
-                    <div className="h-4 bg-muted-foreground/20 rounded-md w-1/2 animate-pulse" />
-                  </div>
-
-                  <div className="pt-3 border-t border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 p-4 rounded-b-2xl sm:rounded-b-3xl">
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Lock className="size-3.5 text-primary" />
-                        এই প্রশ্নের সমাধান ও ব্যাখ্যা দেখতে ব্যাচে এনরোল করুন
-                      </p>
-                      {requiredBatch && (
-                        <p className="text-[11px] text-muted-foreground">
-                          কোর্স: {requiredBatch.name}
-                        </p>
-                      )}
-                    </div>
-
-                    <Link
-                      href={
-                        requiredBatch
-                          ? `/courses/${requiredBatch.slug}`
-                          : "/#courses-section"
-                      }
-                    >
-                      <Button
-                        size="sm"
-                        className="rounded-xl h-8.5 px-4 text-xs font-bold shadow-xs cursor-pointer w-full sm:w-auto"
-                      >
-                        কোর্সে ভর্তি হোন &rarr;
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
+            {paginatedQuestions.map((q: Question, idx: number) => (
+              <UniversalQuestionCard
+                key={q.id}
+                question={q}
+                questionIndex={startIndex + idx}
+                selectedOptionId={userAnswers[q.id]}
+                isSolutionOpen={
+                  showExplanations || Boolean(revealedSolutions[q.id])
+                }
+                showCorrectAnswer={showAnswers ? true : undefined}
+                onSelectOption={handleSelectOption}
+                onToggleSolution={toggleSolution}
+                badgeText={
+                  isFreeQuestion(q)
+                    ? `\u09ab\u09cd\u09b0\u09bf \u09aa\u09cd\u09b0\u09cd\u09af\u09be\u0995\u09cd\u09a4\u09bf\u09b8 \u2022 \u09aa\u09cd\u09b0\u09b6\u09cd\u09a8 ${startIndex + idx + 1}`
+                    : undefined
+                }
+              />
+            ))}
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

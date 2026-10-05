@@ -1,207 +1,83 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
-import {
-  batchEnrollments,
-  batchMembers,
-  batchQbAccess,
-  batches,
-  containers,
-  items,
-  questions,
-  subitems,
-  user,
-} from "@/db/schema";
+import { containers, questions } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import type { StandardCounts } from "@/lib/question-bank";
 
-export async function getBatchQbAccess(batchId: string): Promise<string[]> {
-  try {
-    const records = await db
-      .select({ containerId: batchQbAccess.containerId })
-      .from(batchQbAccess)
-      .where(eq(batchQbAccess.batchId, batchId));
-
-    return records.map((r) => r.containerId);
-  } catch (error) {
-    console.error("Error fetching batch QB access:", error);
-    return [];
+async function assertAdmin(): Promise<{ ok: boolean; message?: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.role !== "admin") {
+    return { ok: false, message: "শুধুমাত্র অ্যাডমিন এক্সেস প্রয়োজন।" };
   }
+  return { ok: true };
 }
 
-export async function setBatchQbAccess(
-  batchId: string,
-  containerIds: string[],
-): Promise<{ success: boolean; message?: string }> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.role !== "admin") {
-      return { success: false, message: "শুধুমাত্র অ্যাডমিন এক্সেস প্রয়োজন।" };
-    }
-
-    // Delete existing assignments for this batch
-    await db.delete(batchQbAccess).where(eq(batchQbAccess.batchId, batchId));
-
-    // Insert new assignments if any
-    if (containerIds.length > 0) {
-      const values = containerIds.map((cid) => ({
-        batchId,
-        containerId: cid,
-      }));
-      await db.insert(batchQbAccess).values(values);
-    }
-
-    try {
-      revalidatePath(`/admin/batches/${batchId}`);
-      revalidatePath("/admin/batches");
-      revalidatePath("/qb", "layout");
-      revalidatePath("/qb");
-      revalidatePath("/");
-    } catch (e) {
-      console.warn("Revalidation warning:", e);
-    }
-
-    return { success: true };
-  } catch (error: unknown) {
-    console.error("Error updating batch QB access:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "অ্যাক্সেস আপডেট করতে সমস্যা হয়েছে।",
-    };
-  }
-}
-
-export async function toggleBatchContainerAccess(
-  batchId: string,
-  containerId: string,
-  enabled: boolean,
-): Promise<{ success: boolean; message?: string }> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.role !== "admin") {
-      return { success: false, message: "শুধুমাত্র অ্যাডমিন এক্সেস প্রয়োজন।" };
-    }
-
-    if (enabled) {
-      // Check if already assigned
-      const existing = await db
-        .select({ id: batchQbAccess.id })
-        .from(batchQbAccess)
-        .where(
-          and(
-            eq(batchQbAccess.batchId, batchId),
-            eq(batchQbAccess.containerId, containerId),
-          ),
-        );
-
-      if (existing.length === 0) {
-        await db.insert(batchQbAccess).values({
-          batchId,
-          containerId,
-        });
-      }
-    } else {
-      await db
-        .delete(batchQbAccess)
-        .where(
-          and(
-            eq(batchQbAccess.batchId, batchId),
-            eq(batchQbAccess.containerId, containerId),
-          ),
-        );
-    }
-
-    try {
-      revalidatePath(`/admin/batches/${batchId}`);
-      revalidatePath("/admin/batches");
-      revalidatePath("/qb", "layout");
-      revalidatePath("/qb");
-      revalidatePath("/");
-    } catch (e) {
-      console.warn("Revalidation warning:", e);
-    }
-
-    return { success: true };
-  } catch (error: unknown) {
-    console.error("Error toggling batch QB access:", error);
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "অ্যাক্সেস পরিবর্তন করতে সমস্যা হয়েছে।",
-    };
-  }
-}
-
-export async function toggleContainerPublic(
-  containerId: string,
-  isPublic: boolean,
-): Promise<{ success: boolean; message?: string }> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.role !== "admin") {
-      return { success: false, message: "শুধুমাত্র অ্যাডমিন এক্সেস প্রয়োজন।" };
-    }
-
-    await db
-      .update(containers)
-      .set({ isPublic })
-      .where(eq(containers.id, containerId));
-
-    try {
-      revalidatePath("/qb");
-      revalidatePath("/admin/qb");
-    } catch (e) {
-      console.warn("Revalidation warning:", e);
-    }
-
-    return { success: true };
-  } catch (error: unknown) {
-    console.error("Error toggling container public:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "আপডেট করতে সমস্যা হয়েছে।",
-    };
-  }
-}
-
+/** Toggles a question's free flag. Free still exists for highlighting only —
+ *  every question is readable regardless of this flag. */
 export async function toggleQuestionFree(
   questionId: string,
   isFree: boolean,
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.role !== "admin") {
-      return { success: false, message: "শুধুমাত্র অ্যাডমিন এক্সেস প্রয়োজন।" };
-    }
+    const guard = await assertAdmin();
+    if (!guard.ok) return { success: false, message: guard.message };
 
     await db
       .update(questions)
       .set({ isFree })
       .where(eq(questions.id, questionId));
 
-    try {
-      revalidatePath("/qb");
-    } catch (e) {
-      console.warn("Revalidation warning:", e);
-    }
-
+    revalidatePath("/qb");
     return { success: true };
   } catch (error: unknown) {
-    console.error("Error toggling question free:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "আপডেট করতে সমস্যা হয়েছে।",
+      message:
+        error instanceof Error ? error.message : "আপডেট করতে সমস্যা হয়েছে।",
     };
   }
 }
 
-export async function getUserQbContainers(userId?: string) {
+/** Admin flag on a container. Kept as metadata only — it no longer gates
+ *  access, since the question bank is open to every student. */
+export async function setContainerPublic(
+  containerId: string,
+  isPublic: boolean,
+): Promise<{ success: boolean; message?: string }> {
   try {
-    // 1. Fetch all containers with items, subitems, questions count and assigned batches
+    const guard = await assertAdmin();
+    if (!guard.ok) return { success: false, message: guard.message };
+
+    await db
+      .update(containers)
+      .set({ isPublic })
+      .where(eq(containers.id, containerId));
+
+    revalidatePath("/admin/qb");
+    revalidatePath("/qb");
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "আপডেট করতে সমস্যা হয়েছে।",
+    };
+  }
+}
+
+/**
+ * Every question-bank container, with its question counts.
+ *
+ * No access filtering: every uploaded question is open to every student, so
+ * there is no per-batch permission to grant. `standardCounts` feeds the bank
+ * grouping, which picks a bank for containers not listed in the bank map.
+ */
+export async function getUserQbContainers(_userId?: string) {
+  try {
     const allContainers = await db.query.containers.findMany({
       with: {
         items: {
@@ -209,229 +85,80 @@ export async function getUserQbContainers(userId?: string) {
             subitems: {
               with: {
                 questions: {
-                  columns: { id: true },
+                  columns: { id: true, standard: true },
                 },
               },
             },
           },
         },
-        batchAccess: {
-          with: {
-            batch: true,
-          },
-        },
       },
-      orderBy: (containers, { asc }) => [asc(containers.createdAt)],
+      orderBy: (rows, { asc }) => [asc(rows.createdAt)],
     });
 
-    // 2. Fetch user's active enrolled batches from both enrollments and batch members
-    let userBatchIds: string[] = [];
-    let isAdmin = false;
+    return allContainers.map((c) => {
+      let questionsCount = 0;
+      const standardCounts: Record<string, number> = {};
 
-    if (userId) {
-      const [userRecord, enrollmentRows, memberRows] = await Promise.all([
-        db.select({ role: user.role }).from(user).where(eq(user.id, userId)),
-        db
-          .select({ batchId: batchEnrollments.batchId })
-          .from(batchEnrollments)
-          .where(
-            and(
-              eq(batchEnrollments.userId, userId),
-              eq(batchEnrollments.status, "active"),
-            ),
-          ),
-        db
-          .select({ batchId: batchMembers.batchId })
-          .from(batchMembers)
-          .where(
-            and(
-              eq(batchMembers.userId, userId),
-              eq(batchMembers.status, "active"),
-            ),
-          ),
-      ]);
-
-      isAdmin = userRecord[0]?.role === "admin";
-      userBatchIds = Array.from(
-        new Set([
-          ...enrollmentRows.map((e) => e.batchId),
-          ...memberRows.map((m) => m.batchId),
-        ]),
-      );
-    }
-
-    const mappedContainers = allContainers.map((c) => {
-      const assignedBatches =
-        c.batchAccess?.map((ba) => ({
-          id: ba.batch.id,
-          name: ba.batch.name,
-          slug: ba.batch.slug,
-          hscBatch: ba.batch.hscBatch,
-        })) || [];
-
-      const isEnrolled = assignedBatches.some((b) =>
-        userBatchIds.includes(b.id),
-      );
-      // Strictly enforce access: only public containers or enrolled batch members have access on /qb
-      const hasBatchAccess = Boolean(c.isPublic || isEnrolled);
-
-      let accessType: "public" | "enrolled" | "admin" | "restricted" =
-        "restricted";
-      if (c.isPublic) {
-        accessType = "public";
-      } else if (isEnrolled) {
-        accessType = "enrolled";
-      } else if (isAdmin) {
-        accessType = "admin";
+      for (const item of c.items ?? []) {
+        for (const subitem of item.subitems ?? []) {
+          for (const question of subitem.questions ?? []) {
+            questionsCount += 1;
+            standardCounts[question.standard] =
+              (standardCounts[question.standard] ?? 0) + 1;
+          }
+        }
       }
-
-      const totalQuestionsCount = (c.items || []).reduce(
-        (acc, it) =>
-          acc +
-          (it.subitems || []).reduce(
-            (sacc, sub) => sacc + (sub.questions?.length || 0),
-            0,
-          ),
-        0,
-      );
 
       return {
         id: c.id,
         slug: c.slug,
         title: c.title,
         description: c.description,
-        isPublic: c.isPublic,
-        itemsCount: c.items?.length || 0,
-        questionsCount: totalQuestionsCount,
-        hasAccess: hasBatchAccess,
-        isEnrolled,
-        isAdmin,
-        accessType,
-        assignedBatches,
+        itemsCount: c.items?.length ?? 0,
+        questionsCount,
+        standardCounts: standardCounts as StandardCounts,
       };
     });
-
-    // Return all containers so students can discover them (with proper hasAccess status)
-    return mappedContainers;
   } catch (error) {
     console.error("Error fetching user QB containers:", error);
     return [];
   }
 }
 
+/**
+ * Looks up a container for the student route.
+ *
+ * Every container is open to every student, so this only confirms the container
+ * exists. `hasAccess` is always true and exists only to keep callers simple.
+ */
 export async function checkQbContainerAccess(
   containerSlug: string,
-  userId?: string,
+  _userId?: string,
 ) {
   try {
     const container = await db.query.containers.findFirst({
       where: eq(containers.slug, containerSlug),
-      with: {
-        batchAccess: {
-          with: {
-            batch: true,
-          },
-        },
-      },
     });
 
-    if (!container)
+    if (!container) {
       return {
         exists: false,
         hasAccess: false,
-        accessType: "restricted" as const,
         container: null,
-        assignedBatches: [],
-        isAdmin: false,
-        isEnrolled: false,
       };
-
-    const assignedBatches =
-      container.batchAccess?.map((ba) => ({
-        id: ba.batch.id,
-        name: ba.batch.name,
-        slug: ba.batch.slug,
-        hscBatch: ba.batch.hscBatch,
-      })) || [];
-
-    let isAdmin = false;
-    let userBatchIds: string[] = [];
-
-    if (userId) {
-      const [userRecord, enrollmentRows, memberRows] = await Promise.all([
-        db.select({ role: user.role }).from(user).where(eq(user.id, userId)),
-        db
-          .select({ batchId: batchEnrollments.batchId })
-          .from(batchEnrollments)
-          .where(
-            and(
-              eq(batchEnrollments.userId, userId),
-              eq(batchEnrollments.status, "active"),
-            ),
-          ),
-        db
-          .select({ batchId: batchMembers.batchId })
-          .from(batchMembers)
-          .where(
-            and(
-              eq(batchMembers.userId, userId),
-              eq(batchMembers.status, "active"),
-            ),
-          ),
-      ]);
-
-      isAdmin = userRecord[0]?.role === "admin";
-      userBatchIds = Array.from(
-        new Set([
-          ...enrollmentRows.map((e) => e.batchId),
-          ...memberRows.map((m) => m.batchId),
-        ]),
-      );
-    }
-
-    if (container.isPublic) {
-      return {
-        exists: true,
-        hasAccess: true,
-        accessType: "public" as const,
-        container,
-        assignedBatches,
-        isAdmin,
-        isEnrolled: true,
-      };
-    }
-
-    const isEnrolled = assignedBatches.some((b) => userBatchIds.includes(b.id));
-    // Strictly enforce course access on student route: only enrolled batch members or public containers
-    const hasAccess = Boolean(isEnrolled);
-
-    let accessType: "public" | "enrolled" | "admin" | "restricted" =
-      "restricted";
-    if (isEnrolled) {
-      accessType = "enrolled";
-    } else if (isAdmin) {
-      accessType = "admin";
     }
 
     return {
       exists: true,
-      hasAccess,
-      accessType,
-      isEnrolled,
-      isAdmin,
+      hasAccess: true,
       container,
-      assignedBatches,
     };
   } catch (error) {
     console.error("Error checking QB container access:", error);
     return {
       exists: false,
       hasAccess: false,
-      accessType: "restricted" as const,
       container: null,
-      assignedBatches: [],
-      isAdmin: false,
-      isEnrolled: false,
     };
   }
 }

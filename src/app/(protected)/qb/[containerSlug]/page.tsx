@@ -1,14 +1,11 @@
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import { QbAccessRestrictedCard } from "@/components/qb/QbAccessRestrictedCard";
 import { db } from "@/db";
 import { items } from "@/db/schema";
 import { checkQbContainerAccess } from "@/lib/actions/qb-access";
-import { auth } from "@/lib/auth";
-
+import { getBankMeta, resolveBankSlug } from "@/lib/question-bank";
 
 export default async function QbSubjectsPage({
   params,
@@ -16,30 +13,14 @@ export default async function QbSubjectsPage({
   readonly params: Promise<{ containerSlug: string }>;
 }): Promise<ReactElement> {
   const { containerSlug } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
 
-  const accessInfo = await checkQbContainerAccess(containerSlug, userId);
+  const accessInfo = await checkQbContainerAccess(containerSlug);
   if (!accessInfo.exists || !accessInfo.container) {
     notFound();
   }
 
   const qb = accessInfo.container;
-  const isAdmin = Boolean(accessInfo.isAdmin || session?.user?.role === "admin");
-
-  // Access check: non-enrolled users see restricted card with batch links
-  if (!accessInfo.hasAccess && !isAdmin) {
-    return (
-      <div className="flex flex-col w-full max-w-7xl mx-auto pb-8 pt-2 md:py-8">
-        <QbAccessRestrictedCard
-          title={qb.title}
-          containerSlug={qb.slug}
-          assignedBatches={accessInfo.assignedBatches}
-          isAdmin={isAdmin}
-        />
-      </div>
-    );
-  }
+  const bank = getBankMeta(resolveBankSlug(qb.slug));
 
   const itemList = await db.query.items.findMany({
     where: eq(items.containerId, qb.id),
@@ -81,6 +62,17 @@ export default async function QbSubjectsPage({
             <Link href="/qb" className="hover:text-primary transition-colors">
               প্রশ্নব্যাংক
             </Link>
+            {bank && (
+              <>
+                <span>/</span>
+                <Link
+                  href={`/qb/bank/${bank.slug}`}
+                  className="hover:text-primary transition-colors"
+                >
+                  {bank.label}
+                </Link>
+              </>
+            )}
             <span>/</span>
             <span className="text-foreground">{qb.title}</span>
           </div>
@@ -135,6 +127,17 @@ export default async function QbSubjectsPage({
           <Link href="/qb" className="hover:text-primary transition-colors">
             প্রশ্নব্যাংক
           </Link>
+          {bank && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/qb/bank/${bank.slug}`}
+                className="hover:text-primary transition-colors"
+              >
+                {bank.label}
+              </Link>
+            </>
+          )}
           <span>/</span>
           <span className="text-foreground">{qb.title}</span>
         </div>

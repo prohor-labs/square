@@ -1,17 +1,86 @@
-import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { Lock, TickCircle } from "@/components/icons";
+import { BookOpen, Calculator, GradCap, Stethoscope } from "@/components/icons";
 import { getUserQbContainers } from "@/lib/actions/qb-access";
-import { auth } from "@/lib/auth";
-import { cn } from "@/lib/utils";
+import { toBengaliDigits } from "@/lib/calendar-date";
+import {
+  groupContainersByBank,
+  QB_BANKS,
+  type QbBankGroup,
+  type QbBankSlug,
+} from "@/lib/question-bank";
 
 export const dynamic = "force-dynamic";
 
+const BANK_ICONS = {
+  varsity: GradCap,
+  engineering: Calculator,
+  medical: Stethoscope,
+  board: BookOpen,
+} satisfies Record<QbBankSlug, typeof GradCap>;
+
+function BankCard({ group }: { group: QbBankGroup }) {
+  const { meta, containers } = group;
+  const Icon = BANK_ICONS[meta.slug];
+
+  const totalQuestions = containers.reduce(
+    (acc, c) => acc + (c.questionsCount ?? 0),
+    0,
+  );
+  const isEmpty = containers.length === 0;
+
+  return (
+    <Link
+      href={`/qb/bank/${meta.slug}`}
+      className={`group relative overflow-hidden rounded-[20px] md:rounded-[28px] p-5 sm:p-6 md:p-7 flex flex-col justify-between gap-6 aspect-square text-white shadow-lg border border-border/50 transition-all duration-300 ${
+        isEmpty
+          ? "opacity-60"
+          : "hover:shadow-2xl hover:-translate-y-1 active:scale-95 cursor-pointer"
+      }`}
+    >
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${meta.gradient} opacity-95 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300`}
+      />
+
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="size-12 sm:size-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
+          <Icon className="size-6 sm:size-7" />
+        </div>
+        {isEmpty ? (
+          <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-black/25 border border-white/20">
+            আসছে
+          </span>
+        ) : (
+          <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/20 border border-white/30 backdrop-blur-md">
+            {containers.length} টি কন্টেইনার
+          </span>
+        )}
+      </div>
+
+      <div className="relative z-10 my-auto">
+        <h3 className="font-black text-[17px] sm:text-[20px] md:text-[22px] lg:text-[24px] leading-tight drop-shadow-md line-clamp-2">
+          {meta.label}
+        </h3>
+        <p className="text-white/85 text-[11px] sm:text-[13px] font-medium mt-2 line-clamp-2 leading-snug">
+          {meta.description}
+        </p>
+      </div>
+
+      <div className="relative z-10 flex items-center gap-2 text-[10px] sm:text-xs text-white/90 font-semibold bg-black/20 backdrop-blur-xs px-2.5 py-1.5 rounded-full border border-white/10 self-start">
+        <span>{toBengaliDigits(totalQuestions)} টি প্রশ্ন</span>
+      </div>
+    </Link>
+  );
+}
+
 export default async function QuestionBankPage(): Promise<ReactElement> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-  const qbs = await getUserQbContainers(userId);
+  const containers = await getUserQbContainers();
+  const groups = groupContainersByBank(containers);
+
+  const totalQuestions = containers.reduce(
+    (acc, c) => acc + (c.questionsCount ?? 0),
+    0,
+  );
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-6">
@@ -20,94 +89,23 @@ export default async function QuestionBankPage(): Promise<ReactElement> {
           প্রশ্নব্যাংক
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          বোর্ড ও এডমিশন স্ট্যান্ডার্ড অধ্যায়ভিত্তিক ও টপিকভিত্তিক প্রশ্ন অনুশীলন করুন
+          মোট {toBengaliDigits(totalQuestions)} টি প্রশ্ন — সব ছাত্রের জন্য উন্মুক্ত
         </p>
       </div>
 
-      {!qbs || qbs.length === 0 ? (
-        <div className="py-16 px-6 text-center border border-dashed rounded-3xl text-muted-foreground bg-card/50 flex flex-col items-center justify-center gap-3">
-          <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-            <TickCircle className="size-6" />
-          </div>
-          <h3 className="font-bold text-base sm:text-lg text-foreground">
-            কোনো প্রশ্নব্যাংক পাওয়া যায়নি
-          </h3>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
-            আপনি বর্তমানে যে সকল কোর্সে সক্রিয় রয়েছেন, শুধুমাত্র সেই কোর্সের অন্তর্ভুক্ত প্রশ্নব্যাংকগুলো এখানে দেখতে পাবেন।
-          </p>
-          <Link
-            href="/my-courses"
-            className="mt-2 text-xs font-bold text-primary hover:underline"
-          >
-            আমার কোর্সসমূহ দেখুন &rarr;
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5 w-full">
-          {qbs.map((qb) => {
-            const accessType =
-              qb.accessType || (qb.hasAccess ? "enrolled" : "restricted");
-
-            return (
-              <Link
-                href={`/qb/${qb.slug}`}
-                key={qb.id}
-                className="block group h-full"
-              >
-                <div className="group relative overflow-hidden rounded-[20px] md:rounded-[28px] p-3.5 sm:p-4 md:p-6 cursor-pointer hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 active:scale-95 transition-all duration-300 aspect-square flex flex-col items-center justify-center text-center text-white shadow-lg border bg-primary/20 border-border/50">
-                  {/* Background Layer with Hover Depth */}
-                  <div className="absolute inset-0 transition-all duration-300 bg-gradient-to-br from-primary via-primary/95 to-primary/85 opacity-95 group-hover:opacity-100 group-hover:scale-105" />
-
-                  {/* Top Corner Badge for Access Status */}
-                  <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-20">
-                    <span
-                      className={cn(
-                        "text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md border flex items-center gap-1 shadow-xs",
-                        qb.hasAccess || qb.isAdmin
-                          ? "bg-white/20 text-white border-white/30"
-                          : "bg-amber-500/80 text-white border-amber-300/40",
-                      )}
-                    >
-                      {qb.hasAccess || qb.isAdmin ? (
-                        <>
-                          <TickCircle className="size-3" />
-                          <span>
-                            {accessType === "public" ? "উন্মুক্ত" : "সক্রিয়"}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="size-3" />
-                          <span>ব্যাচ এক্সক্লুসিভ</span>
-                        </>
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Center Content */}
-                  <div className="relative z-10 flex flex-col items-center justify-center px-1 sm:px-2 w-full my-auto">
-                    <h3 className="font-black text-[16px] sm:text-[20px] md:text-[24px] lg:text-[26px] leading-tight drop-shadow-md text-white line-clamp-3">
-                      {qb.title}
-                    </h3>
-
-                    {qb.description && (
-                      <p className="text-white/90 text-[11px] sm:text-[13px] md:text-sm font-medium mt-1.5 md:mt-2 line-clamp-2 max-w-xs leading-snug">
-                        {qb.description}
-                      </p>
-                    )}
-
-                    <div className="mt-2 sm:mt-3 flex items-center gap-2 text-[10px] sm:text-xs text-white/80 font-semibold bg-black/20 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/10">
-                      <span>{qb.itemsCount} টি বিষয়</span>
-                      <span>•</span>
-                      <span>{qb.questionsCount || 0} টি প্রশ্ন</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5 w-full">
+        {QB_BANKS.map((meta) => (
+          <BankCard
+            key={meta.slug}
+            group={
+              groups.find((g) => g.meta.slug === meta.slug) ?? {
+                meta,
+                containers: [],
+              }
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }

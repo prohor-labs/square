@@ -3,6 +3,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { NewChapterForm } from "@/components/admin/forms/new-chapter-form";
+import { NewQuestionBankForm } from "@/components/admin/forms/new-qb-form";
+import { NewSubjectForm } from "@/components/admin/forms/new-subject-form";
+import { NewTopicForm } from "@/components/admin/forms/new-topic-form";
 import {
   Add,
   ArrowLeft2,
@@ -18,18 +22,13 @@ import {
   TaskSquare,
   TickCircle,
 } from "@/components/icons";
-import { parseQuestionsCsv } from "@/lib/csv-parser";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { NewChapterForm } from "@/components/admin/forms/new-chapter-form";
-import { NewQuestionBankForm } from "@/components/admin/forms/new-qb-form";
-import { NewSubjectForm } from "@/components/admin/forms/new-subject-form";
-import { NewTopicForm } from "@/components/admin/forms/new-topic-form";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,9 +40,10 @@ import { importQuestionsAction } from "@/lib/actions/question";
 import {
   getContainerYearsAction,
   getFullQbHierarchy,
-  importYearBasedQuestionsAction,
   type HierarchyContainer,
+  importYearBasedQuestionsAction,
 } from "@/lib/actions/universal-qb";
+import { parseQuestionsCsv } from "@/lib/csv-parser";
 
 interface UniversalQuestionCreatorProps {
   readonly hierarchy: HierarchyContainer[];
@@ -149,9 +149,13 @@ export function UniversalQuestionCreator({
   // Filtered dropdown lists
   const currentContainer = qbList.find((c) => c.id === selectedContainerId);
   const availableSubjects = currentContainer?.subjects || [];
-  const currentSubject = availableSubjects.find((s) => s.id === selectedSubjectId);
+  const currentSubject = availableSubjects.find(
+    (s) => s.id === selectedSubjectId,
+  );
   const availableChapters = currentSubject?.chapters || [];
-  const currentChapter = availableChapters.find((ch) => ch.id === selectedChapterId);
+  const currentChapter = availableChapters.find(
+    (ch) => ch.id === selectedChapterId,
+  );
   const availableTopics = currentChapter?.topics || [];
 
   const handleContainerChange = (cid: string) => {
@@ -277,12 +281,17 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
       const content = event.target?.result as string;
       if (!content) return;
 
-      if (file.name.endsWith(".csv") || content.includes(",") && !content.trim().startsWith("[")) {
+      if (
+        file.name.endsWith(".csv") ||
+        (content.includes(",") && !content.trim().startsWith("["))
+      ) {
         try {
           const parsedCsv = parseQuestionsCsv(content);
           if (parsedCsv.length > 0) {
             setBulkJson(JSON.stringify(parsedCsv, null, 2));
-            setBulkImportStatus(`CSV ফাইল থেকে ${parsedCsv.length}টি প্রশ্ন লোড করা হয়েছে।`);
+            setBulkImportStatus(
+              `CSV ফাইল থেকে ${parsedCsv.length}টি প্রশ্ন লোড করা হয়েছে।`,
+            );
           } else {
             setBulkJson(content);
           }
@@ -329,17 +338,13 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
         return;
       }
 
-      const res = await importQuestionsAction(
-        selectedChapterId,
-        parsed,
-        {
-          type,
-          standard,
-          source,
-          isFree,
-          topicId: selectedTopicId || undefined,
-        },
-      );
+      const res = await importQuestionsAction(selectedChapterId, parsed, {
+        type,
+        standard,
+        source,
+        isFree,
+        topicId: selectedTopicId || undefined,
+      });
       setIsPendingUpload(false);
       if (res.error) throw new Error(res.error);
 
@@ -348,7 +353,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
       queryClient.invalidateQueries({ queryKey: ["admin-questions"] });
     } catch (e: unknown) {
       setIsPendingUpload(false);
-      setBulkImportStatus(e instanceof Error ? e.message : "ভুল JSON বা CSV ফরম্যাট");
+      setBulkImportStatus(
+        e instanceof Error ? e.message : "ভুল JSON বা CSV ফরম্যাট",
+      );
     }
   };
 
@@ -390,7 +397,8 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
         standard: standard as any,
         type,
         isFree,
-        source: source.trim() || `${currentContainer?.title} ${yearInput.trim()}`,
+        source:
+          source.trim() || `${currentContainer?.title} ${yearInput.trim()}`,
       });
 
       setIsPendingUpload(false);
@@ -523,10 +531,13 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
             <TickCircle className="size-6 shrink-0 text-emerald-500" />
             <div>
               <p className="font-extrabold text-sm sm:text-base">
-                {uploadedResult.count} টি প্রশ্ন সফলভাবে &quot;{uploadedResult.containerTitle} ({uploadedResult.yearName})&quot; এ আপলোড হয়েছে!
+                {uploadedResult.count} টি প্রশ্ন সফলভাবে &quot;
+                {uploadedResult.containerTitle} ({uploadedResult.yearName}
+                )&quot; এ আপলোড হয়েছে!
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                শিক্ষার্থীরা এখন সরাসরি এই প্রশ্নব্যাংকে ক্লিক করে সালভিত্তিক প্রশ্ন অনুশীলন করতে পারবে।
+                শিক্ষার্থীরা এখন সরাসরি এই প্রশ্নব্যাংকে ক্লিক করে সালভিত্তিক প্রশ্ন অনুশীলন
+                করতে পারবে।
               </p>
             </div>
           </div>
@@ -585,7 +596,7 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                   >
                     {qbList.map((c) => (
                       <NativeSelectOption key={c.id} value={c.id}>
-                        {c.title} {c.isPublic ? "(উন্মুক্ত)" : ""}
+                        {c.title}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
@@ -603,7 +614,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                     onChange={(e) => {
                       setYearInput(e.target.value);
                       if (currentContainer) {
-                        setSource(`${currentContainer.title} ${e.target.value}`);
+                        setSource(
+                          `${currentContainer.title} ${e.target.value}`,
+                        );
                       }
                     }}
                     className="rounded-xl text-xs font-bold min-h-[42px]"
@@ -640,7 +653,8 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
 
                   {/* Standard year suggestions */}
                   {commonYearSuggestions.map((yr) => {
-                    if (containerYears.some((cy) => cy.name === yr)) return null;
+                    if (containerYears.some((cy) => cy.name === yr))
+                      return null;
                     return (
                       <button
                         key={yr}
@@ -698,7 +712,7 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                   >
                     {qbList.map((c) => (
                       <NativeSelectOption key={c.id} value={c.id}>
-                        {c.title} {c.isPublic ? "(উন্মুক্ত)" : ""}
+                        {c.title}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
@@ -786,7 +800,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                     onChange={(e) => setSelectedTopicId(e.target.value)}
                     className="w-full rounded-xl text-xs min-h-[42px]"
                   >
-                    <NativeSelectOption value="">সাধারণ (কোনো নির্দিষ্ট টপিক ছাড়া)</NativeSelectOption>
+                    <NativeSelectOption value="">
+                      সাধারণ (কোনো নির্দিষ্ট টপিক ছাড়া)
+                    </NativeSelectOption>
                     {availableTopics.map((tp) => (
                       <NativeSelectOption key={tp.id} value={tp.id}>
                         {tp.name}
@@ -816,23 +832,37 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                   onChange={(e) => setType(e.target.value as "mcq" | "cq")}
                   className="w-full rounded-xl text-xs font-bold min-h-[42px]"
                 >
-                  <NativeSelectOption value="mcq">MCQ (বহুনির্বাচনী)</NativeSelectOption>
-                  <NativeSelectOption value="cq">CQ (সৃজনশীল)</NativeSelectOption>
+                  <NativeSelectOption value="mcq">
+                    MCQ (বহুনির্বাচনী)
+                  </NativeSelectOption>
+                  <NativeSelectOption value="cq">
+                    CQ (সৃজনশীল)
+                  </NativeSelectOption>
                 </NativeSelect>
               </div>
 
               {/* Standard */}
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs font-bold">মান / স্তর (Standard) *</Label>
+                <Label className="text-xs font-bold">
+                  মান / স্তর (Standard) *
+                </Label>
                 <NativeSelect
                   value={standard}
                   onChange={(e) => setStandard(e.target.value)}
                   className="w-full rounded-xl text-xs font-bold min-h-[42px]"
                 >
-                  <NativeSelectOption value="Varsity">Varsity (ভার্সিটি)</NativeSelectOption>
-                  <NativeSelectOption value="Engineering">Engineering (ইঞ্জিনিয়ারিং)</NativeSelectOption>
-                  <NativeSelectOption value="Medical">Medical (মেডিকেল)</NativeSelectOption>
-                  <NativeSelectOption value="HSC">HSC (বোর্ড)</NativeSelectOption>
+                  <NativeSelectOption value="Varsity">
+                    Varsity (ভার্সিটি)
+                  </NativeSelectOption>
+                  <NativeSelectOption value="Engineering">
+                    Engineering (ইঞ্জিনিয়ারিং)
+                  </NativeSelectOption>
+                  <NativeSelectOption value="Medical">
+                    Medical (মেডিকেল)
+                  </NativeSelectOption>
+                  <NativeSelectOption value="HSC">
+                    HSC (বোর্ড)
+                  </NativeSelectOption>
                 </NativeSelect>
               </div>
 
@@ -876,10 +906,10 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                   htmlFor="universal-is-free"
                   className="text-xs font-bold text-foreground cursor-pointer flex items-center gap-1.5"
                 >
-                  <span>সকলের জন্য উন্মুক্ত (বিনামূল্যে উন্মুক্ত প্রশ্ন)</span>
+                  <span>ফ্রি প্র্যাকটিস হিসেবে চিহ্নিত করুন</span>
                 </label>
                 <span className="text-[11px] text-muted-foreground">
-                  চেক করা থাকলে যেকোনো শিক্ষার্থী এটি সমাধান করতে পারবে।
+                  শিক্ষার্থীদের প্রশ্নের শুরুতে "ফ্রি প্র্যাকটিস" ব্যাজ দেখাবে।
                 </span>
               </div>
             </div>
@@ -908,17 +938,23 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                   className="text-[11px] h-8 rounded-xl font-bold gap-1"
                 >
                   <Copy className="size-3" />
-                  <span>{copiedStatus === "mcq-csv" ? "কপি হয়েছে!" : "CSV ফরম্যাট"}</span>
+                  <span>
+                    {copiedStatus === "mcq-csv" ? "কপি হয়েছে!" : "CSV ফরম্যাট"}
+                  </span>
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => copyToClipboard(cleanSampleMcqJson, "mcq-json")}
+                  onClick={() =>
+                    copyToClipboard(cleanSampleMcqJson, "mcq-json")
+                  }
                   className="text-[11px] h-8 rounded-xl font-bold gap-1"
                 >
                   <Copy className="size-3" />
-                  <span>{copiedStatus === "mcq-json" ? "কপি হয়েছে!" : "MCQ JSON"}</span>
+                  <span>
+                    {copiedStatus === "mcq-json" ? "কপি হয়েছে!" : "MCQ JSON"}
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -928,7 +964,11 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                   className="text-[11px] h-8 rounded-xl font-bold gap-1 text-primary bg-primary/10 hover:bg-primary/20"
                 >
                   <Flash className="size-3" />
-                  <span>{copiedStatus === "ai-prompt" ? "প্রম্পট কপি হয়েছে!" : "AI প্রম্পট কপি"}</span>
+                  <span>
+                    {copiedStatus === "ai-prompt"
+                      ? "প্রম্পট কপি হয়েছে!"
+                      : "AI প্রম্পট কপি"}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -937,7 +977,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs font-bold">JSON বা CSV ডেটা পেস্ট করুন</Label>
+                  <Label className="text-xs font-bold">
+                    JSON বা CSV ডেটা পেস্ট করুন
+                  </Label>
                   <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded-lg transition-colors">
                     <FileText className="size-3" />
                     <span>ফাইল আপলোড (.csv, .json)</span>
@@ -985,7 +1027,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                 </div>
               </div>
               <Textarea
-                placeholder={type === "mcq" ? cleanSampleCsv : cleanSampleCqJson}
+                placeholder={
+                  type === "mcq" ? cleanSampleCsv : cleanSampleCqJson
+                }
                 value={bulkJson}
                 onChange={(e) => setBulkJson(e.target.value)}
                 rows={12}
@@ -994,8 +1038,14 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
             </div>
 
             {bulkImportStatus && (
-              <div className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 ${bulkImportStatus.includes("সফলভাবে") ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600" : "bg-destructive/10 border-destructive/20 text-destructive"}`}>
-                {bulkImportStatus.includes("সফলভাবে") ? <TickCircle className="size-4 shrink-0" /> : <Danger className="size-4 shrink-0" />}
+              <div
+                className={`p-3.5 rounded-xl border text-xs font-bold flex items-center gap-2 ${bulkImportStatus.includes("সফলভাবে") ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600" : "bg-destructive/10 border-destructive/20 text-destructive"}`}
+              >
+                {bulkImportStatus.includes("সফলভাবে") ? (
+                  <TickCircle className="size-4 shrink-0" />
+                ) : (
+                  <Danger className="size-4 shrink-0" />
+                )}
                 <span>{bulkImportStatus}</span>
               </div>
             )}
@@ -1015,7 +1065,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                 disabled={
                   isPendingUpload ||
                   !bulkJson.trim() ||
-                  (uploadMode === "year" ? !yearInput.trim() : !selectedChapterId)
+                  (uploadMode === "year"
+                    ? !yearInput.trim()
+                    : !selectedChapterId)
                 }
                 className="rounded-xl font-bold text-xs h-10 px-6 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer gap-2"
               >
@@ -1054,27 +1106,36 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">প্রশ্নব্যাংক:</span>
-              <span className="font-extrabold text-foreground">{currentContainer?.title || "নির্বাচন করুন"}</span>
+              <span className="font-extrabold text-foreground">
+                {currentContainer?.title || "নির্বাচন করুন"}
+              </span>
             </div>
             {uploadMode === "year" ? (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">সাল / সেশন:</span>
-                <span className="font-black text-primary text-sm">{yearInput || "—"}</span>
+                <span className="font-black text-primary text-sm">
+                  {yearInput || "—"}
+                </span>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">বিষয়:</span>
-                  <span className="font-bold text-foreground">{currentSubject?.name || "—"}</span>
+                  <span className="font-bold text-foreground">
+                    {currentSubject?.name || "—"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">অধ্যায়:</span>
-                  <span className="font-bold text-foreground">{currentChapter?.name || "—"}</span>
+                  <span className="font-bold text-foreground">
+                    {currentChapter?.name || "—"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">টপিক:</span>
                   <span className="font-medium text-foreground">
-                    {availableTopics.find((t) => t.id === selectedTopicId)?.name || "সাধারণ (নির্দিষ্ট টপিক ছাড়া)"}
+                    {availableTopics.find((t) => t.id === selectedTopicId)
+                      ?.name || "সাধারণ (নির্দিষ্ট টপিক ছাড়া)"}
                   </span>
                 </div>
               </>
@@ -1088,9 +1149,11 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
               <span className="font-bold text-foreground">{source}</span>
             </div>
             <div className="flex items-center justify-between pt-1">
-              <span className="text-muted-foreground">অ্যাক্সেস:</span>
-              <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${isFree ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
-                {isFree ? "উন্মুক্ত ও ফ্রি" : "ব্যাচ এক্সক্লুসিভ"}
+              <span className="text-muted-foreground">ফ্রি প্র্যাকটিস:</span>
+              <span
+                className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${isFree ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}
+              >
+                {isFree ? "হ্যাঁ" : "না"}
               </span>
             </div>
           </div>
@@ -1101,7 +1164,10 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
               <span>সালভিত্তিক আপলোড টিপস:</span>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              ঢাকা বিশ্ববিদ্যালয়, বুয়েট, মেডিকেল বা বোর্ড পরীক্ষার প্রশ্ন আপলোড করতে কেবল <strong>প্রশ্নব্যাংক</strong> ও <strong>সাল</strong> নির্বাচন করে পুরো প্রশ্নপত্রের CSV বা JSON দিয়ে দিলেই চলবে। কোনো জটিল বিষয় বা অধ্যায় আলাদা তৈরি করার প্রয়োজন নেই।
+              ঢাকা বিশ্ববিদ্যালয়, বুয়েট, মেডিকেল বা বোর্ড পরীক্ষার প্রশ্ন আপলোড করতে কেবল{" "}
+              <strong>প্রশ্নব্যাংক</strong> ও <strong>সাল</strong> নির্বাচন করে পুরো
+              প্রশ্নপত্রের CSV বা JSON দিয়ে দিলেই চলবে। কোনো জটিল বিষয় বা অধ্যায় আলাদা
+              তৈরি করার প্রয়োজন নেই।
             </p>
           </div>
         </div>
@@ -1124,10 +1190,15 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
       </Dialog>
 
       {/* Dialog: Create New Subject */}
-      <Dialog open={showNewSubjectDialog} onOpenChange={setShowNewSubjectDialog}>
+      <Dialog
+        open={showNewSubjectDialog}
+        onOpenChange={setShowNewSubjectDialog}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>নতুন বিষয় যোগ করুন ({currentContainer?.title})</DialogTitle>
+            <DialogTitle>
+              নতুন বিষয় যোগ করুন ({currentContainer?.title})
+            </DialogTitle>
           </DialogHeader>
           {currentContainer && (
             <NewSubjectForm
@@ -1144,7 +1215,10 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
       </Dialog>
 
       {/* Dialog: Create New Chapter */}
-      <Dialog open={showNewChapterDialog} onOpenChange={setShowNewChapterDialog}>
+      <Dialog
+        open={showNewChapterDialog}
+        onOpenChange={setShowNewChapterDialog}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>নতুন অধ্যায় যোগ করুন ({currentSubject?.name})</DialogTitle>

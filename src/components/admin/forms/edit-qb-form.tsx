@@ -23,7 +23,6 @@ export function EditQuestionBankForm({
   const [title, setTitle] = useState(qb.title || "");
   const [slug, setSlug] = useState(qb.slug || "");
   const [description, setDescription] = useState(qb.description || "");
-  const [isPublic, setIsPublic] = useState(Boolean(qb.isPublic));
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +36,6 @@ export function EditQuestionBankForm({
       title,
       slug,
       description,
-      isPublic,
     });
     setIsPending(false);
 
@@ -86,23 +84,15 @@ export function EditQuestionBankForm({
             onChange={(e) => setDescription(e.target.value)}
           />
         </Field>
-
-        <div className="md:col-span-2 flex items-center gap-2 p-3 rounded-xl border bg-muted/40">
-          <input
-            type="checkbox"
-            id="isPublic"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="size-4 rounded accent-primary cursor-pointer"
-          />
-          <label htmlFor="isPublic" className="text-xs font-semibold cursor-pointer">
-            সবার জন্য ফ্রি ও উন্মুক্ত (পাবলিক প্রশ্নব্যাংক)
-          </label>
-        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isPending}
+        >
           বাতিল
         </Button>
         <Button type="submit" disabled={isPending}>
