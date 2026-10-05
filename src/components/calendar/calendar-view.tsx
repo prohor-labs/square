@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Calendar as CalendarIcon, Clock, Search } from "@/components/icons";
-import { CALENDAR_CATEGORY_META } from "@/lib/calendar";
 import type { CalendarCategoryContent } from "@/lib/calendar-content";
 import {
   daysUntil,
@@ -86,7 +85,7 @@ export function CalendarView({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ক্যাটাগরি, বিশ্ববিদ্যালয়, ইউনিট বা তারিখ খুঁজুন…"
+          placeholder="বিশ্ববিদ্যালয়, ইউনিট বা তারিখ খুঁজুন…"
           aria-label="ক্যালেন্ডার খুঁজুন"
           className="w-full h-11 pl-10 pr-4 rounded-xl sm:rounded-2xl border border-border bg-card text-sm shadow-xs outline-none transition-shadow placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
@@ -228,7 +227,6 @@ function CountdownBadge({
 
 interface AllDatesRow {
   readonly key: string;
-  readonly categoryLabel: string;
   readonly groupLabel: string;
   readonly unitLabel: string;
   readonly dateText: string;
@@ -255,8 +253,6 @@ function AllDatesTable({
     const collected: AllDatesRow[] = [];
 
     for (const item of content) {
-      const categoryLabel = CALENDAR_CATEGORY_META[item.category]?.label ?? "";
-
       for (const section of item.sections) {
         for (const group of section.groups) {
           const groupLabel = group.label.trim();
@@ -271,7 +267,6 @@ function AllDatesTable({
 
             collected.push({
               key: `${item.category}-${groupLabel}-${unitLabel}-${index}`,
-              categoryLabel,
               groupLabel,
               unitLabel,
               dateText,
@@ -289,7 +284,6 @@ function AllDatesTable({
     const matched = rows.filter(
       (row) =>
         !query ||
-        row.categoryLabel.toLowerCase().includes(query) ||
         row.groupLabel.toLowerCase().includes(query) ||
         row.unitLabel.toLowerCase().includes(query) ||
         row.dateText.toLowerCase().includes(query),
@@ -327,9 +321,6 @@ function AllDatesTable({
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
-                ক্যাটাগরি
-              </th>
-              <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
                 বিশ্ববিদ্যালয় / বিভাগ
               </th>
               <th className="px-3 sm:px-4 py-2.5 text-left font-bold whitespace-nowrap">
@@ -347,9 +338,6 @@ function AllDatesTable({
             {visible.map((row) => {
               return (
                 <tr key={row.key} className="border-b last:border-0">
-                  <td className="px-3 sm:px-4 py-2.5 whitespace-nowrap">
-                    <Highlight text={row.categoryLabel} query={query} />
-                  </td>
                   <td className="px-3 sm:px-4 py-2.5">
                     {row.groupLabel ? (
                       <Highlight text={row.groupLabel} query={query} />

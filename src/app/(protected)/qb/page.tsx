@@ -98,7 +98,6 @@ export default async function QuestionBankPage({
               palette={
                 BANK_PALETTE[resolveBankSlug(container.slug)] ?? "neutral"
               }
-              footnote={`${toBengaliDigits(container.units.length)} টি ইউনিট`}
             />
           ))}
         </div>

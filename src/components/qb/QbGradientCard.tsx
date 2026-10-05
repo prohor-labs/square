@@ -1,7 +1,6 @@
 import { toBengaliDigits } from "@/lib/calendar-date";
 import { cn } from "@/lib/utils";
 
-/** One palette per bank so the shape stays identical while the colour shifts. */
 export interface QbCardPalette {
   /** Base wash behind the mesh gradients. */
   readonly base: string;
@@ -93,17 +92,26 @@ export interface QbGradientCardProps {
   readonly subtitle: string;
   readonly questions: number;
   readonly palette: QbPaletteKey;
-  /** Extra line under the subtitle, e.g. "১২টি অধ্যায়". */
-  readonly footnote?: string;
+  /**
+   * Layout of the art. "tile" is a square card for the top levels of the bank;
+   * "row" is a flat box in a horizontal list, used for long lists such as the
+   * twelve years inside one unit.
+   */
+  readonly variant?: "tile" | "row";
 }
 
+const pillClass =
+  "absolute right-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold text-white whitespace-nowrap border border-white/25 backdrop-blur-md sm:text-xs";
+
 /**
- * Square card built from three drifting wave layers over a mesh gradient, with
- * the question count in a glass pill at the top right.
+ * Two shapes from one set of colours.
  *
- * The waves are 200% wide and translate by half their own width, so the loop
- * is seamless; each layer runs at a different duration to avoid a visible
- * repeat. `prefers-reduced-motion` disables the drift (see globals.css).
+ * `tile` — square, three drifting waves and a mesh gradient, for banks,
+ * institutes and units where there are only a handful of cards.
+ *
+ * `row` — a flat box with a single wave along the bottom edge, laid out
+ * horizontally. A screen of a dozen years would be an endless grid of squares,
+ * so those read better as a compact list.
  */
 export function QbGradientCard({
   href,
@@ -111,9 +119,68 @@ export function QbGradientCard({
   subtitle,
   questions,
   palette,
-  footnote,
+  variant = "tile",
 }: QbGradientCardProps) {
   const colors = QB_PALETTES[palette];
+
+  if (variant === "row") {
+    return (
+      <a
+        href={href}
+        className={cn(
+          "group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/40 p-3.5 shadow-sm transition-[transform,box-shadow] duration-200",
+          "hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        )}
+        style={{ background: colors.base }}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-0"
+          style={{ background: colors.glowTop }}
+        />
+        <span
+          aria-hidden
+          className="qb-wave-c pointer-events-none absolute inset-x-0 -bottom-1/2 h-3/4 w-full"
+        >
+          <svg
+            aria-hidden
+            viewBox="0 0 800 200"
+            preserveAspectRatio="none"
+            className="h-full w-full"
+          >
+            <path
+              d="M0,150 C70,112 140,168 210,138 C280,108 350,158 420,132 C490,106 560,154 640,128 C712,104 756,142 800,130 L800,200 L0,200 Z"
+              fill={colors.wave[2]}
+            />
+          </svg>
+        </span>
+
+        <div className="relative z-10 min-w-0 flex-1">
+          <h3
+            className="truncate text-sm font-black leading-snug"
+            style={{ color: colors.text }}
+          >
+            {title}
+          </h3>
+          {subtitle && (
+            <p
+              className="truncate text-[11px] font-medium leading-snug"
+              style={{ color: colors.text, opacity: 0.65 }}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        <span
+          className={cn("relative z-10", pillClass)}
+          style={{ backgroundColor: colors.pill }}
+        >
+          {toBengaliDigits(questions)} টি প্রশ্ন
+        </span>
+      </a>
+    );
+  }
 
   return (
     <a
@@ -175,9 +242,8 @@ export function QbGradientCard({
         />
       </svg>
 
-      {/* Question count in a glass pill. */}
       <span
-        className="absolute right-2.5 top-2.5 sm:right-4 sm:top-4 rounded-full px-2.5 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold text-white whitespace-nowrap border border-white/25 backdrop-blur-md"
+        className={cn(pillClass, "sm:right-4 sm:top-4")}
         style={{ backgroundColor: colors.pill }}
       >
         {toBengaliDigits(questions)} টি প্রশ্ন
@@ -196,14 +262,6 @@ export function QbGradientCard({
             style={{ color: colors.text, opacity: 0.7 }}
           >
             {subtitle}
-          </p>
-        )}
-        {footnote && (
-          <p
-            className="mt-1 text-[10px] sm:text-xs font-semibold"
-            style={{ color: colors.text, opacity: 0.45 }}
-          >
-            {footnote}
           </p>
         )}
       </div>

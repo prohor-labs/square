@@ -72,7 +72,9 @@ export default async function QbChaptersPage({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+        /* Years are a long list, so they read better as a compact column of
+           flat boxes than as a grid of near-identical squares. */
+        <div className="flex flex-col gap-2.5 sm:gap-3 max-w-2xl">
           {unit.chapters.map((chapter) => (
             <QbGradientCard
               key={chapter.id}
@@ -81,6 +83,7 @@ export default async function QbChaptersPage({
               subtitle={label}
               questions={chapter.questions}
               palette={palette}
+              variant="row"
             />
           ))}
         </div>
