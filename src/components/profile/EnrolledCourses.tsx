@@ -24,19 +24,19 @@ export function EnrolledCourses({ courses }: EnrolledCoursesProps) {
           এখনো কোনো কোর্সে ভর্তি হয়নি।
         </p>
       ) : (
-        <ul className="flex flex-col gap-2.5">
+        <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {courses.map((course) => (
             <li key={course.id}>
               <Button
                 variant="outline"
                 render={<a href={`/my-courses/${course.id}`} />}
-                className="w-full h-auto justify-start gap-3 rounded-xl border-border/70 px-3.5 py-3 text-left hover:border-primary/50"
+                className="w-full h-auto justify-start gap-2 rounded-xl border-border/70 px-3 sm:px-3.5 py-3 text-left hover:border-primary/50"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-sm sm:text-[15px] leading-snug truncate">
+                  <span className="block text-xs sm:text-sm font-semibold leading-snug">
                     {course.name}
                   </span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                  <span className="mt-1 flex flex-wrap items-center gap-1.5">
                     <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
                       {course.hscBatch}
                     </span>
@@ -47,7 +47,7 @@ export function EnrolledCourses({ courses }: EnrolledCoursesProps) {
                     )}
                   </span>
                 </span>
-                <ArrowRight2 className="size-4 shrink-0 text-muted-foreground/50" />
+                <ArrowRight2 className="size-3.5 shrink-0 text-muted-foreground/50" />
               </Button>
             </li>
           ))}

@@ -4,14 +4,19 @@ import type { ReactElement } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession } from "@/lib/auth-client";
 
+interface ProfileSidebarProps {
+  /** Stable per-user id, read on the server. */
+  readonly userId: string;
+}
+
 /**
  * The student card at the top of the profile page.
  *
- * Only real data — avatar, name and email. The old trophy / streak / member
+ * Only real data — avatar, name, email and id. The old trophy / streak / member
  * badges were hardcoded decoration rather than anything the user had earned, so
  * they are gone.
  */
-export function ProfileSidebar(): ReactElement {
+export function ProfileSidebar({ userId }: ProfileSidebarProps): ReactElement {
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -30,15 +35,28 @@ export function ProfileSidebar(): ReactElement {
           </AvatarFallback>
         </Avatar>
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="font-extrabold text-xl sm:text-2xl tracking-tight break-words">
             {displayName}
           </h1>
-          {email && (
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 break-all">
-              {email}
-            </p>
-          )}
+          <dl className="mt-2 space-y-1">
+            {email && (
+              <div className="flex items-baseline gap-2">
+                <dt className="text-[11px] font-semibold text-muted-foreground shrink-0">
+                  ইমেইল
+                </dt>
+                <dd className="text-xs sm:text-sm break-all">{email}</dd>
+              </div>
+            )}
+            <div className="flex items-baseline gap-2">
+              <dt className="text-[11px] font-semibold text-muted-foreground shrink-0">
+                আইডি
+              </dt>
+              <dd className="text-xs sm:text-sm font-mono break-all">
+                {userId}
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
     </section>

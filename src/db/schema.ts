@@ -21,6 +21,7 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at").notNull(),
   role: text("role").default("student"),
   hscBatch: text("hsc_batch"),
+  school: text("school"),
   college: text("college"),
 });
 

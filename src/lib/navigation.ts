@@ -25,6 +25,12 @@ export const USER_NAV_ITEMS: readonly NavItem[] = [
 export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   { name: "ওভারভিউ", path: "/admin", exact: true, icon: Home },
   {
+    name: "স্টুডেন্ট",
+    path: "/admin/students",
+    exact: false,
+    icon: User,
+  },
+  {
     name: "এনরোলমেন্ট",
     path: "/admin/enrollments",
     exact: false,

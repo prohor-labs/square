@@ -1,8 +1,11 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { db } from "@/db";
-import { batchEnrollments, batchMembers } from "@/db/schema";
+import { batchEnrollments, batchMembers, user } from "@/db/schema";
+import { auth } from "@/lib/auth";
 
 export interface EnrolledCourse {
   readonly id: string;
@@ -83,4 +86,57 @@ export async function getStudentEnrolledCourses(
   }
 
   return courses;
+}
+
+export interface StudentIdentity {
+  readonly school: string | null;
+  readonly college: string | null;
+}
+
+/** School and college as recorded on the signed-in student's own row. */
+export async function getStudentIdentity(
+  userId: string,
+): Promise<StudentIdentity> {
+  const row = await db.query.user.findFirst({
+    where: eq(user.id, userId),
+    columns: { school: true, college: true },
+  });
+
+  return { school: row?.school ?? null, college: row?.college ?? null };
+}
+
+/**
+ * Saves the signed-in student's own school and college.
+ *
+ * Only the caller's own row is touched — the user id always comes from the
+ * session, never from the payload, so a student cannot rewrite someone else's
+ * profile by guessing an id.
+ */
+export async function updateStudentIdentity(data: {
+  school?: string | null;
+  college?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
+    if (!userId) return { success: false, error: "লগইন করা নেই" };
+
+    const clean = (value: string | null | undefined) => {
+      const trimmed = (value ?? "").trim();
+      return trimmed === "" ? null : trimmed;
+    };
+
+    await db
+      .update(user)
+      .set({ school: clean(data.school), college: clean(data.college) })
+      .where(eq(user.id, userId));
+
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "তথ্য সেভ করা যায়নি",
+    };
+  }
 }
