@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { UniversalQuestionCard } from "@/components/shared/UniversalQuestionCard";
-import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toBengaliDigits } from "@/lib/calendar-date";
 
 export interface WrongAnswerRow {
   readonly id: string;
@@ -23,54 +30,88 @@ export interface WrongAnswerRow {
   }[];
 }
 
+const ALL = "all";
+
 /**
- * The bank with a course picker. One question shows once even when it was
- * missed in several exams — the same rule the query applies.
+ * The bank with a course picker and an exam picker under it. Both start on
+ * "সব" and the exam list narrows to the chosen course.
  */
 export function WrongAnswersList({
   rows,
 }: {
   readonly rows: readonly WrongAnswerRow[];
 }) {
-  const [course, setCourse] = useState("all");
+  const [course, setCourse] = useState(ALL);
+  const [exam, setExam] = useState(ALL);
 
   const courses = useMemo(
     () => [...new Set(rows.map((r) => r.courseName).filter(Boolean))].sort(),
     [rows],
   );
 
-  const shown =
-    course === "all" ? rows : rows.filter((r) => r.courseName === course);
+  /* Exams come from whichever course is picked, so the list never offers a
+     pairing that has no mistakes. */
+  const exams = useMemo(() => {
+    const inCourse =
+      course === ALL ? rows : rows.filter((r) => r.courseName === course);
+    return [
+      ...new Set(inCourse.map((r) => r.examTitle).filter(Boolean)),
+    ].sort();
+  }, [rows, course]);
 
-  const options = [
-    { name: "সব কোর্স", count: rows.length },
-    ...courses.map((c) => ({
-      name: c,
-      count: rows.filter((r) => r.courseName === c).length,
-    })),
-  ];
+  const shown = rows.filter((r) => {
+    if (course !== ALL && r.courseName !== course) return false;
+    if (exam !== ALL && r.examTitle !== exam) return false;
+    return true;
+  });
 
   return (
     <div className="flex flex-col gap-4">
-      {courses.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {options.map((option) => (
-            <button
-              key={option.name}
-              type="button"
-              onClick={() => setCourse(option.name)}
-              className={cn(
-                "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
-                course === option.name
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-accent",
-              )}
-            >
-              {option.name} ({option.count})
-            </button>
-          ))}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <span className="text-xs font-bold text-muted-foreground">কোর্স</span>
+          <Select
+            value={course}
+            onValueChange={(value) => {
+              setCourse(value ?? ALL);
+              setExam(ALL);
+            }}
+          >
+            <SelectTrigger className="h-10 w-full rounded-xl">
+              <SelectValue placeholder="কোর্স নির্বাচন করুন" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>সব</SelectItem>
+              {courses.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
+
+        <div className="space-y-1.5">
+          <span className="text-xs font-bold text-muted-foreground">এক্সাম</span>
+          <Select value={exam} onValueChange={(v) => setExam(v ?? ALL)}>
+            <SelectTrigger className="h-10 w-full rounded-xl">
+              <SelectValue placeholder="এক্সাম নির্বাচন করুন" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>সব</SelectItem>
+              {exams.map((e) => (
+                <SelectItem key={e} value={e}>
+                  {e}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {toBengaliDigits(shown.length)} টি প্রশ্ন দেখানো হচ্ছে
+      </p>
 
       {shown.map((row) => (
         <UniversalQuestionCard

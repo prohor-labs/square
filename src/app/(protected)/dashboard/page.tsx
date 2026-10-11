@@ -17,7 +17,12 @@ const SHORTCUTS = [
     note: "লাইভ এক্সাম, আপকামিং এক্সাম এবং প্র্যাকটিস এক্সাম দেখো",
     Icon: Clipboard,
   },
-  { href: "/archive", label: "আর্কাইভ পরীক্ষা", Icon: ArchiveBox },
+  {
+    href: "/archive",
+    label: "আর্কাইভ পরীক্ষা",
+    note: "আর্কাইভ পরীক্ষা গুলো দেখো",
+    Icon: ArchiveBox,
+  },
   {
     href: "/wrong-answers",
     label: "ভুল ব্যাংক",

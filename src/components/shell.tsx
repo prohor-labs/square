@@ -112,7 +112,7 @@ export default function Shell({ children, dict, lang }: ShellProps) {
       {/* Sidebar Component */}
       {!shouldHideTopNav && (
         <div
-          className={`fixed lg:static top-[8px] bottom-[8px] left-[8px] right-[8px] lg:inset-auto z-40 lg:z-10 bg-muted lg:bg-transparent rounded-[24px] lg:rounded-none border-[0.5px] border-border lg:border-none p-[16px] lg:p-0 transition-transform duration-500 ease-[cubic-bezier(0.075,0.82,0.165,1)] lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-[110%]"}`}
+          className={`fixed lg:static top-[8px] bottom-[8px] left-[8px] right-[52%] lg:inset-auto z-40 lg:z-10 bg-muted lg:bg-transparent rounded-[24px] lg:rounded-none border-[0.5px] border-border lg:border-none p-[16px] lg:p-0 transition-transform duration-500 ease-[cubic-bezier(0.075,0.82,0.165,1)] lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-[110%]"}`}
         >
           <Sidebar
             onClose={() => setIsSidebarOpen(false)}

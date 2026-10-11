@@ -109,6 +109,8 @@ export interface StudentSubmission {
   readonly examSlug: string;
   readonly examTitle: string;
   readonly examType: string;
+  /** Course the exam was taken under; blank for a standalone practice exam. */
+  readonly courseName: string;
   readonly score: number;
   readonly totalMarks: number;
   readonly attemptNumber: number;
@@ -137,9 +139,12 @@ export async function getStudentSubmissions(
       examSlug: exams.slug,
       examTitle: exams.title,
       examType: exams.type,
+      courseName: batches.name,
     })
     .from(examSubmissions)
     .innerJoin(exams, eq(examSubmissions.examId, exams.id))
+    .leftJoin(batchExams, eq(examSubmissions.batchExamId, batchExams.id))
+    .leftJoin(batches, eq(batches.id, batchExams.batchId))
     .where(eq(examSubmissions.userId, userId))
     .orderBy(
       desc(examSubmissions.submittedAt),
@@ -148,6 +153,7 @@ export async function getStudentSubmissions(
 
   return rows.map((r) => ({
     ...r,
+    courseName: r.courseName ?? "",
     score: Number.parseFloat(r.score) || 0,
     submittedAt:
       r.submittedAt instanceof Date
