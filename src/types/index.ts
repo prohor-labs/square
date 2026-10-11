@@ -389,6 +389,8 @@ export interface ExamDetail {
   readonly totalMarks: number;
   readonly negativeMarking: string;
   readonly isPublished: boolean;
+  /** Admin-set flag: shows this exam in the student's আর্কাইভ পরীক্ষা list. */
+  readonly isArchived: boolean;
   readonly showResultImmediately: boolean;
   readonly createdBy?: string | null;
   readonly createdAt: Date;

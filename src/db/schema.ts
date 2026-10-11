@@ -324,6 +324,8 @@ export const exams = pgTable("exams", {
   // Stored as string for exact precision; parse with parseFloat()
   negativeMarking: text("negative_marking").default("0.25").notNull(),
   isPublished: boolean("is_published").default(false).notNull(),
+  /** Admin ticks this to put the exam in the student's আর্কাইভ পরীক্ষা list. */
+  isArchived: boolean("is_archived").default(false).notNull(),
   showResultImmediately: boolean("show_result_immediately")
     .default(true)
     .notNull(),

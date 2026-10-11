@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   batchDetails,
   batchEnrollments,
+  batchExams,
   batches,
   batchMembers,
   courseClasses,
@@ -165,12 +166,14 @@ export async function getWrongAnswers(userId: string): Promise<
     question: typeof questions.$inferSelect;
     options: (typeof mcqOptions.$inferSelect)[];
     examTitle: string;
+    courseName: string;
   }[]
 > {
   const rows = await db
     .select({
       question: questions,
       examTitle: exams.title,
+      courseName: batches.name,
     })
     .from(examResponses)
     .innerJoin(
@@ -183,6 +186,8 @@ export async function getWrongAnswers(userId: string): Promise<
       eq(examResponses.submissionId, examSubmissions.id),
     )
     .innerJoin(exams, eq(examSubmissions.examId, exams.id))
+    .leftJoin(batchExams, eq(examSubmissions.batchExamId, batchExams.id))
+    .leftJoin(batches, eq(batches.id, batchExams.batchId))
     .where(
       and(
         eq(examResponses.isCorrect, false),
@@ -219,7 +224,65 @@ export async function getWrongAnswers(userId: string): Promise<
     question: row.question,
     options: optionsByQuestion.get(row.question.id) ?? [],
     examTitle: row.examTitle,
+    courseName: row.courseName ?? "",
   }));
+}
+
+export interface ArchiveExam {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly standard: string;
+  readonly totalMarks: number;
+  readonly durationMinutes: number;
+  /** Courses this exam has been linked to, by name. */
+  readonly courses: readonly string[];
+}
+
+/**
+ * Published exams the admin has ticked for the archive, each with the courses
+ * it is linked to. `isArchived` is the only gate — an exam stays hidden until
+ * an admin ticks it, whatever course it belongs to.
+ */
+export async function getArchivedExams(): Promise<readonly ArchiveExam[]> {
+  const rows = await db
+    .select({
+      id: exams.id,
+      slug: exams.slug,
+      title: exams.title,
+      standard: exams.standard,
+      totalMarks: exams.totalMarks,
+      durationMinutes: exams.durationMinutes,
+      courseName: batches.name,
+    })
+    .from(exams)
+    .leftJoin(batchExams, eq(batchExams.examId, exams.id))
+    .leftJoin(batches, eq(batches.id, batchExams.batchId))
+    .where(and(eq(exams.isArchived, true), eq(exams.isPublished, true)))
+    .orderBy(desc(exams.createdAt));
+
+  const byId = new Map<string, ArchiveExam>();
+  for (const row of rows) {
+    const existing = byId.get(row.id);
+    const course = row.courseName;
+    if (existing) {
+      if (course && !existing.courses.includes(course)) {
+        (existing.courses as string[]).push(course);
+      }
+      continue;
+    }
+    byId.set(row.id, {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      standard: row.standard,
+      totalMarks: row.totalMarks,
+      durationMinutes: row.durationMinutes,
+      courses: course ? [course] : [],
+    });
+  }
+
+  return [...byId.values()];
 }
 
 /** Routine PDF for every course the student is in. */

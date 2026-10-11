@@ -2,15 +2,15 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { Danger } from "@/components/icons";
-import { UniversalQuestionCard } from "@/components/shared/UniversalQuestionCard";
 import { Button } from "@/components/ui/button";
+import { WrongAnswersList } from "@/components/wrong-answers/wrong-answers-list";
 import { getWrongAnswers } from "@/lib/actions/student-library";
 import { auth } from "@/lib/auth";
 import { toBengaliDigits } from "@/lib/calendar-date";
 
 export const dynamic = "force-dynamic";
 
-/** Questions the student answered wrongly, for a second pass. */
+/** Questions the student answered wrongly, filterable by course. */
 export default async function WrongAnswersPage(): Promise<ReactElement> {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
@@ -24,12 +24,13 @@ export default async function WrongAnswersPage(): Promise<ReactElement> {
           ভুল ব্যাংক
         </h1>
         <p className="text-xs text-muted-foreground md:text-sm">
-          {toBengaliDigits(rows.length)} টি প্রশ্ন ভুল হয়েছে — একবার আর পড়ুন
+          যে সকল পরীক্ষায় তোমার ভুল হয়েছে সেই সকল প্রশ্ন ও উত্তর এখানে দেখো ·{" "}
+          {toBengaliDigits(rows.length)} টি প্রশ্ন
         </p>
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed bg-muted/10 px-6 py-16 text-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed bg-muted/10 px-6 py-16 text-center">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/80 text-primary">
             <Danger className="size-7" />
           </div>
@@ -42,25 +43,26 @@ export default async function WrongAnswersPage(): Promise<ReactElement> {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {rows.map((row) => (
-            <UniversalQuestionCard
-              key={row.question.id}
-              question={{
-                id: row.question.id,
-                type: row.question.type,
-                source: row.question.source,
-                standard: row.question.standard,
-                questionText: row.question.questionText,
-                explanation: row.question.explanation,
-                isFree: row.question.isFree,
-                mcqOptions: row.options,
-              }}
-              showCorrectAnswer
-              badgeText={row.examTitle}
-            />
-          ))}
-        </div>
+        <WrongAnswersList
+          rows={rows.map((row) => ({
+            id: row.question.id,
+            examTitle: row.examTitle,
+            courseName: row.courseName,
+            question: {
+              type: row.question.type,
+              source: row.question.source,
+              standard: row.question.standard,
+              questionText: row.question.questionText,
+              explanation: row.question.explanation,
+              isFree: row.question.isFree,
+            },
+            options: row.options.map((o) => ({
+              id: o.id,
+              optionText: o.optionText,
+              isCorrect: o.isCorrect,
+            })),
+          }))}
+        />
       )}
     </div>
   );

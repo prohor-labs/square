@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { Chart, Clock, StatusUp, Trophy } from "@/components/icons";
+import { ScoreChart } from "@/components/performance/score-chart";
 import { Button } from "@/components/ui/button";
 import { getStudentSubmissions } from "@/lib/actions/student-library";
 import { auth } from "@/lib/auth";
@@ -73,6 +74,14 @@ export default async function PerformancePage(): Promise<ReactElement> {
 
   const hasData = done.length > 0;
 
+  /* Chart reads newest on the right, so the list is reversed here. */
+  const chartData = [...done].reverse().map((s) => ({
+    label:
+      s.examTitle.length > 14 ? `${s.examTitle.slice(0, 13)}…` : s.examTitle,
+    percent: s.totalMarks > 0 ? Math.round((s.score / s.totalMarks) * 100) : 0,
+    score: s.score,
+  }));
+
   return (
     <div className="flex flex-col w-full max-w-5xl mx-auto pb-16 pt-1 sm:pt-4 gap-5 px-2 sm:px-6">
       <div className="space-y-1">
@@ -88,6 +97,8 @@ export default async function PerformancePage(): Promise<ReactElement> {
 
       {hasData ? (
         <>
+          <ScoreChart data={chartData} />
+
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <Stat
               label="সর্বমোট স্কোর"

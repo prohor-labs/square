@@ -1,11 +1,5 @@
 import Link from "next/link";
-import {
-  ArchiveBox,
-  Chart,
-  Clipboard,
-  Danger,
-  TaskSquare,
-} from "@/components/icons";
+import { ArchiveBox, Chart, Clipboard, Danger } from "@/components/icons";
 import {
   QB_CARD_COLORS,
   QB_SQUARE_BLOBS,
@@ -20,16 +14,16 @@ const SHORTCUTS = [
   {
     href: "/exams",
     label: "পরীক্ষার সমূহ",
-    note: "তোমার কোর্সের মধ্যে থাকা সবগুলো পরীক্ষা এখানে দেখতে পারো",
+    note: "লাইভ এক্সাম, আপকামিং এক্সাম এবং প্র্যাকটিস এক্সাম দেখো",
     Icon: Clipboard,
   },
+  { href: "/archive", label: "আর্কাইভ পরীক্ষা", Icon: ArchiveBox },
   {
-    href: "/exams?tab=practice",
-    label: "প্র্যাকটিস পরীক্ষা",
-    Icon: TaskSquare,
+    href: "/wrong-answers",
+    label: "ভুল ব্যাংক",
+    note: "যে সকল পরীক্ষায় তোমার ভুল হয়েছে সেই সকল প্রশ্ন ও উত্তর এখানে দেখো",
+    Icon: Danger,
   },
-  { href: "/my-results", label: "আর্কাইভ পরীক্ষা", Icon: ArchiveBox },
-  { href: "/wrong-answers", label: "ভুল ব্যাংক", Icon: Danger },
   { href: "/performance", label: "পারফরমেন্স রিপোর্ট", Icon: Chart },
 ] as const;
 

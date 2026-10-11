@@ -36,11 +36,12 @@ export function EditExamForm({ exam, onSuccess }: EditExamFormProps) {
     const type = (isFreeExam ? "practice" : "chapter_test") as
       | "practice"
       | "chapter_test";
-    const standard = (formData.get("standard") as
-      | "HSC"
-      | "Varsity"
-      | "Engineering"
-      | "Medical") || "HSC";
+    const standard =
+      (formData.get("standard") as
+        | "HSC"
+        | "Varsity"
+        | "Engineering"
+        | "Medical") || "HSC";
     const data = {
       title: formData.get("title") as string,
       slug: formData.get("slug") as string,
@@ -52,6 +53,7 @@ export function EditExamForm({ exam, onSuccess }: EditExamFormProps) {
       negativeMarking: formData.get("negativeMarking") as string,
       showResultImmediately: formData.get("showResultImmediately") === "true",
       isPublished: formData.get("isPublished") === "true",
+      isArchived: formData.get("isArchived") === "true",
     };
 
     const res = await updateExamAction(exam.id, data);
@@ -285,9 +287,7 @@ function ExamFormFields({
             defaultChecked={exam.showResultImmediately}
             className="size-4 rounded accent-primary"
           />
-          <span className="text-sm font-medium">
-            সাথেই রেজাল্ট দেখান
-          </span>
+          <span className="text-sm font-medium">সাথেই রেজাল্ট দেখান</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -298,6 +298,16 @@ function ExamFormFields({
             className="size-4 rounded accent-primary"
           />
           <span className="text-sm font-medium">পাবলিশ করুন (Published)</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="isArchived"
+            value="true"
+            defaultChecked={exam.isArchived}
+            className="size-4 rounded accent-primary"
+          />
+          <span className="text-sm font-medium">আর্কাইভ পরীক্ষায় দেখান</span>
         </label>
       </div>
 

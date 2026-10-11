@@ -1,5 +1,6 @@
 import {
   Add,
+  ArchiveBox,
   BookOpen,
   Calendar,
   CalendarTick,
@@ -103,6 +104,13 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         path: "/my-results",
         exact: false,
         icon: Clipboard,
+        tone: "yellow",
+      },
+      {
+        name: "আর্কাইভ পরীক্ষা",
+        path: "/archive",
+        exact: false,
+        icon: ArchiveBox,
         tone: "yellow",
       },
       {
