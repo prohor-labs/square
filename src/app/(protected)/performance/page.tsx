@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { Chart } from "@/components/icons";
+import { PerformanceTable } from "@/components/performance/performance-table";
 import { Button } from "@/components/ui/button";
 import { getStudentSubmissions } from "@/lib/actions/student-library";
 import { auth } from "@/lib/auth";
@@ -108,64 +109,17 @@ export default async function PerformancePage(): Promise<ReactElement> {
             />
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-left">
-                  <th className="px-3 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    কোর্স
-                  </th>
-                  <th className="px-3 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    এক্সাম
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    প্রাপ্ত
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    মোট
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    শতাংশ
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {done.map((s) => {
-                  const percent =
-                    s.totalMarks > 0
-                      ? Math.round((s.score / s.totalMarks) * 100)
-                      : 0;
-                  return (
-                    <tr
-                      key={s.id}
-                      className="border-b border-border last:border-0"
-                    >
-                      <td className="px-3 py-3 font-medium">
-                        {s.courseName || "—"}
-                      </td>
-                      <td className="px-3 py-3">
-                        <Link
-                          href={`/exams/${s.examSlug}/result`}
-                          className="font-medium hover:text-primary hover:underline"
-                        >
-                          {s.examTitle}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-3 text-right font-black tabular-nums">
-                        {toBengaliDigits(s.score)}
-                      </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
-                        {toBengaliDigits(s.totalMarks)}
-                      </td>
-                      <td className="px-3 py-3 text-right font-bold tabular-nums">
-                        {toBengaliDigits(percent)}%
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <PerformanceTable
+            rows={done.map((s) => ({
+              id: s.id,
+              courseName: s.courseName,
+              examTitle: s.examTitle,
+              examSlug: s.examSlug,
+              score: s.score,
+              totalMarks: s.totalMarks,
+              isLive: s.isLiveAttempt,
+            }))}
+          />
         </>
       )}
     </div>

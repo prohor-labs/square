@@ -291,6 +291,60 @@ export async function getArchivedExams(): Promise<readonly ArchiveExam[]> {
   return [...byId.values()];
 }
 
+export interface StudentCourse {
+  readonly batchId: string;
+  readonly title: string;
+  readonly liveCount: number;
+  readonly recordedCount: number;
+}
+
+/**
+ * Every course the student is in, with how many live and recorded classes each
+ * has. The live and past class pages use this for their course picker.
+ */
+export async function getStudentCourseList(
+  userId: string,
+): Promise<readonly StudentCourse[]> {
+  const batchIds = await getEnrolledBatchIds(userId);
+  if (batchIds.length === 0) return [];
+
+  const [courseRows, classRows] = await Promise.all([
+    db
+      .select({ batchId: batches.id, title: batches.name })
+      .from(batches)
+      .where(inArray(batches.id, batchIds)),
+    db
+      .select({ batchId: courseClasses.batchId, isLive: courseClasses.isLive })
+      .from(courseClasses)
+      .where(
+        and(
+          inArray(courseClasses.batchId, batchIds),
+          eq(courseClasses.isPublished, true),
+        ),
+      ),
+  ]);
+
+  return courseRows.map((course) => {
+    const own = classRows.filter((c) => c.batchId === course.batchId);
+    return {
+      batchId: course.batchId,
+      title: course.title,
+      liveCount: own.filter((c) => c.isLive).length,
+      recordedCount: own.filter((c) => !c.isLive).length,
+    };
+  });
+}
+
+/** One course's classes, newest first. */
+export async function getCourseClasses(
+  userId: string,
+  batchId: string,
+): Promise<readonly StudentClass[]> {
+  const batchIds = await getEnrolledBatchIds(userId);
+  if (!batchIds.includes(batchId)) return [];
+  return getStudentClasses(userId);
+}
+
 /** Routine PDF for every course the student is in. */
 export async function getStudentRoutines(
   userId: string,

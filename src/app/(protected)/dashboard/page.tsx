@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ArchiveBox, Chart, Clipboard, Danger } from "@/components/icons";
+import {
+  ArchiveBox,
+  Chart,
+  Clipboard,
+  Danger,
+  Video,
+} from "@/components/icons";
 import {
   QB_CARD_COLORS,
   QB_SQUARE_BLOBS,
@@ -10,26 +16,42 @@ import { toBengaliDigits } from "@/lib/calendar-date";
 
 export const dynamic = "force-dynamic";
 
+/* Each shortcut gets its own gradient so the list reads as a set of cards
+   rather than five identical bars. */
 const SHORTCUTS = [
+  {
+    href: "/live-classes",
+    label: "লাইভ ক্লাস (রেকর্ডেড ক্লাস)",
+    Icon: Video,
+    chip: "from-emerald-500 to-green-600 shadow-emerald-500/30",
+  },
   {
     href: "/exams",
     label: "পরীক্ষার সমূহ",
     note: "লাইভ এক্সাম, আপকামিং এক্সাম এবং প্র্যাকটিস এক্সাম দেখো",
     Icon: Clipboard,
+    chip: "from-violet-500 to-fuchsia-500 shadow-violet-500/30",
   },
   {
     href: "/archive",
     label: "আর্কাইভ পরীক্ষা",
     note: "আর্কাইভ পরীক্ষা গুলো দেখো",
     Icon: ArchiveBox,
+    chip: "from-amber-500 to-orange-500 shadow-amber-500/30",
   },
   {
     href: "/wrong-answers",
     label: "ভুল ব্যাংক",
     note: "যে সকল পরীক্ষায় তোমার ভুল হয়েছে সেই সকল প্রশ্ন ও উত্তর এখানে দেখো",
     Icon: Danger,
+    chip: "from-rose-500 to-red-600 shadow-rose-500/30",
   },
-  { href: "/performance", label: "পারফরমেন্স রিপোর্ট", Icon: Chart },
+  {
+    href: "/performance",
+    label: "পারফরমেন্স রিপোর্ট",
+    Icon: Chart,
+    chip: "from-emerald-500 to-teal-500 shadow-emerald-500/30",
+  },
 ] as const;
 
 export default async function DashboardPage() {
@@ -41,31 +63,39 @@ export default async function DashboardPage() {
       {/* Hero — the question bank, in three lines. */}
       <Link
         href="/qb"
-        className="group relative flex aspect-[16/9] flex-col justify-center gap-1 overflow-hidden rounded-2xl p-6 shadow-sm transition-transform hover:-translate-y-0.5 md:aspect-[2/1] md:p-8"
+        className="group relative flex aspect-[3/1] items-center gap-4 overflow-hidden rounded-2xl p-4 shadow-md transition-shadow hover:shadow-xl md:p-5"
         style={{ background: QB_CARD_COLORS.background }}
       >
         <QbCardShapes blobs={QB_SQUARE_BLOBS} />
-        <p
-          className="relative z-10 text-sm font-bold"
-          style={{ color: QB_CARD_COLORS.subText }}
-        >
-          প্রশ্নব্যাংক
-        </p>
-        <p
-          className="relative z-10 text-2xl font-black md:text-3xl"
-          style={{ color: QB_CARD_COLORS.text }}
-        >
-          প্রশ্নব্যাংক দেখুন
-        </p>
-        <p
-          className="relative z-10 text-base font-medium"
-          style={{ color: QB_CARD_COLORS.subText }}
-        >
-          মোট {toBengaliDigits(questionCount)}+ প্রশ্ন
-        </p>
+        <span className="relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/30 shadow-sm">
+          <span
+            className="size-5 rounded-full"
+            style={{ background: QB_CARD_COLORS.pill }}
+          />
+        </span>
+        <span className="relative z-10 min-w-0">
+          <span
+            className="block text-[11px] font-bold uppercase tracking-wide"
+            style={{ color: QB_CARD_COLORS.subText }}
+          >
+            প্রশ্নব্যাংক
+          </span>
+          <span
+            className="block truncate text-lg font-black md:text-xl"
+            style={{ color: QB_CARD_COLORS.text }}
+          >
+            প্রশ্নব্যাংক দেখুন
+          </span>
+          <span
+            className="block text-xs font-medium"
+            style={{ color: QB_CARD_COLORS.subText }}
+          >
+            মোট {toBengaliDigits(questionCount)}+ প্রশ্ন
+          </span>
+        </span>
       </Link>
 
-      {/* Shortcuts — squarer than before, each with its own icon. */}
+      {/* Shortcuts */}
       <nav className="flex flex-col gap-2.5">
         {SHORTCUTS.map((item) => {
           const { Icon } = item;
@@ -73,9 +103,11 @@ export default async function DashboardPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex min-h-16 items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:bg-accent md:min-h-[72px] md:px-5"
+              className="group flex min-h-16 items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:px-5"
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span
+                className={`flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg transition-transform group-hover:scale-105 ${item.chip}`}
+              >
                 <Icon size={20} />
               </span>
               <span className="min-w-0 flex-1 text-left">
@@ -88,10 +120,34 @@ export default async function DashboardPage() {
                   </span>
                 )}
               </span>
+              <Arrow />
             </Link>
           );
         })}
       </nav>
     </div>
+  );
+}
+
+/** Small chevron that leans right on hover. */
+function Arrow() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+    >
+      <path
+        d="M5 12h14M13 6l6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

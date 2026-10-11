@@ -1,6 +1,5 @@
 import {
   Add,
-  ArchiveBox,
   BookOpen,
   Calendar,
   CalendarTick,
@@ -8,8 +7,6 @@ import {
   Clipboard,
   Danger,
   DocumentDownload,
-  FileText,
-  GradCap,
   Home,
   Notification,
   StatusUp,
@@ -27,6 +24,13 @@ import type { NavGroup, NavItem, SidebarAnnouncement } from "@/types";
  * that screen already holds the live, upcoming and practice lists, so a second
  * page for each would only duplicate it.
  */
+/**
+ * Student navigation — the eleven destinations behind the menu button.
+ *
+ * The exam entries point at `/exams` with a tab rather than separate pages:
+ * that screen already holds the live, upcoming and practice lists, so a second
+ * page for each would only duplicate it.
+ */
 export const USER_NAV_GROUPS: readonly NavGroup[] = [
   {
     items: [
@@ -37,11 +41,6 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         icon: Home,
         tone: "navy",
       },
-    ],
-  },
-  {
-    label: "কনটেন্ট",
-    items: [
       {
         name: "লাইভ ক্লাস",
         path: "/live-classes",
@@ -50,33 +49,14 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         tone: "green",
       },
       {
-        name: "আগের ক্লাস",
+        name: "পাস্ট ক্লাস",
         path: "/past-classes",
         exact: false,
         icon: Video,
         tone: "green",
       },
       {
-        name: "সাজানো কনটেন্ট",
-        path: "/pdf",
-        exact: false,
-        icon: DocumentDownload,
-        tone: "green",
-      },
-      {
-        name: "কোর্সের রুটিন",
-        path: "/routine",
-        exact: false,
-        icon: CalendarTick,
-        tone: "green",
-      },
-    ],
-  },
-  {
-    label: "পরীক্ষা",
-    items: [
-      {
-        name: "লাইভ পরীক্ষা",
+        name: "লাইভ এক্সাম",
         path: "/exams?tab=live",
         matchPath: "/exams",
         exact: false,
@@ -84,7 +64,7 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         tone: "yellow",
       },
       {
-        name: "আসন্ন পরীক্ষা",
+        name: "আপকামিং এক্সাম",
         path: "/exams?tab=upcoming",
         matchPath: "/exams",
         exact: false,
@@ -92,25 +72,11 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         tone: "yellow",
       },
       {
-        name: "প্র্যাকটিস পরীক্ষা",
+        name: "প্র্যাকটিস এক্সাম",
         path: "/exams?tab=practice",
         matchPath: "/exams",
         exact: false,
         icon: Clipboard,
-        tone: "yellow",
-      },
-      {
-        name: "আগের পরীক্ষা",
-        path: "/my-results",
-        exact: false,
-        icon: Clipboard,
-        tone: "yellow",
-      },
-      {
-        name: "আর্কাইভ পরীক্ষা",
-        path: "/archive",
-        exact: false,
-        icon: ArchiveBox,
         tone: "yellow",
       },
       {
@@ -120,18 +86,6 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         icon: Danger,
         tone: "yellow",
       },
-    ],
-  },
-  {
-    label: "অন্যান্য",
-    items: [
-      {
-        name: "সলভ শিট",
-        path: "/solve-sheet",
-        exact: false,
-        icon: FileText,
-        tone: "purple",
-      },
       {
         name: "প্রশ্নব্যাংক",
         path: "/qb",
@@ -140,51 +94,25 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         tone: "purple",
       },
       {
-        name: "ক্যালেন্ডার",
-        path: "/calendar",
+        name: "কোর্স রুটিন",
+        path: "/routine",
         exact: false,
-        icon: Calendar,
+        icon: CalendarTick,
         tone: "blue",
       },
       {
-        name: "পোল",
-        path: "/poll",
-        exact: false,
-        icon: StatusUp,
-        tone: "pink",
-      },
-    ],
-  },
-  {
-    label: "আমার",
-    items: [
-      {
-        name: "আমার কোর্স",
-        path: "/my-courses",
-        exact: false,
-        icon: GradCap,
-        tone: "orange",
-      },
-      {
-        name: "পারফরম্যান্স",
+        name: "পারফরমেন্স",
         path: "/performance",
         exact: false,
         icon: Chart,
         tone: "orange",
       },
       {
-        name: "প্রশ্ন ও উত্তর",
+        name: "যোগাযোগ",
         path: "/qa",
         exact: false,
         icon: Notification,
-        tone: "orange",
-      },
-      {
-        name: "প্রোফাইল",
-        path: "/profile",
-        exact: false,
-        icon: User,
-        tone: "navy",
+        tone: "pink",
       },
     ],
   },

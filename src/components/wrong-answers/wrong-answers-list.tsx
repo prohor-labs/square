@@ -67,7 +67,7 @@ export function WrongAnswersList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <span className="text-xs font-bold text-muted-foreground">কোর্স</span>
           <Select
