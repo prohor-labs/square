@@ -86,7 +86,7 @@ export function LandingFooter() {
       className="mt-16 border-t border-white/10 bg-gradient-to-b from-red-950 via-neutral-950 to-neutral-950 text-white transition-colors"
     >
       <div className="mx-auto max-w-7xl px-4 pt-14 pb-8 md:px-8">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-10">
           {/* Brand — the logo and name match the header exactly. */}
           <div className="space-y-4">
             <Link
@@ -107,42 +107,35 @@ export function LandingFooter() {
                 Engr. Platform
               </span>
             </Link>
-            <p className="text-xs leading-relaxed text-white/60">
+            <p className="max-w-sm text-xs leading-relaxed text-white/60">
               শুধু পড়াশোনা নয়, তৈরি করো নিজেকে যুগের সাথে তাল মিলিয়ে। ইঞ্জিনিয়ারিং প্রস্তুতি
               এবার বাড়ির কাছে।
             </p>
           </div>
 
-          <FooterColumn title="দ্রুত লিংক">
+          {/* Links run left to right in a row per group, never stacked. */}
+          <FooterRow title="দ্রুত লিংক">
             <FooterLink href="/dashboard" icon={Home} label="ড্যাশবোর্ড" />
-            <FooterLink
-              href="/calendar"
-              icon={Calendar}
-              label="ভর্তি পরীক্ষার ক্যালেন্ডার"
-            />
+            <FooterLink href="/calendar" icon={Calendar} label="ভর্তি ক্যালেন্ডার" />
             <FooterLink href="/qb" icon={TaskSquare} label="প্রশ্নব্যাংক" />
             <FooterLink href="/wrong-answers" icon={Danger} label="ভুল ব্যাংক" />
-          </FooterColumn>
+          </FooterRow>
 
-          <FooterColumn title="রিসোর্স">
+          <FooterRow title="রিসোর্স">
             <FooterLink href="/free-exam" icon={BookOpen} label="ফ্রি এক্সাম" />
             <FooterLink href="/pdf" icon={FileDown} label="সাজেশন পিডিএফ" />
-            <FooterLink href="/poll" icon={Chart} label="লাইভ পোল ও কুইজ" />
+            <FooterLink href="/poll" icon={Chart} label="লাইভ পোল" />
             <FooterLink href="/routine" icon={CalendarTick} label="কোর্স রুটিন" />
-          </FooterColumn>
+          </FooterRow>
 
-          <FooterColumn title="যোগাযোগ">
+          <FooterRow title="যোগাযোগ">
             <FooterLink
               href="https://t.me/shu_yaib"
               icon={Send}
-              label="টেলিগ্রাম গ্রুপ"
+              label="টেলিগ্রাম"
             />
-            <FooterLink
-              href="https://facebook.com"
-              icon={User}
-              label="ফেসবুক কমিউনিটি"
-            />
-          </FooterColumn>
+            <FooterLink href="https://facebook.com" icon={User} label="ফেসবুক" />
+          </FooterRow>
         </div>
 
         <div className="mt-12 flex flex-col items-center gap-2 border-t border-white/10 pt-6 text-center text-xs text-white/50 sm:flex-row sm:justify-between sm:text-left">
@@ -154,8 +147,8 @@ export function LandingFooter() {
   );
 }
 
-/** A titled group of footer links. */
-function FooterColumn({
+/** A group label on the left, its links flowing left to right beside it. */
+function FooterRow({
   title,
   children,
 }: {
@@ -163,11 +156,11 @@ function FooterColumn({
   readonly children: React.ReactNode;
 }) {
   return (
-    <div>
-      <h4 className="mb-4 text-xs font-black uppercase tracking-widest text-white/80">
+    <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-baseline sm:gap-6">
+      <h4 className="shrink-0 text-xs font-black uppercase tracking-widest text-white/80 sm:w-28">
         {title}
       </h4>
-      <ul className="space-y-3">{children}</ul>
+      <ul className="flex flex-wrap gap-x-6 gap-y-2">{children}</ul>
     </div>
   );
 }

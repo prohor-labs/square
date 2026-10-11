@@ -8,7 +8,7 @@ import {
   HambergerMenu,
   User as UserIcon,
 } from "@/components/icons";
-
+import { LandingFooter } from "@/components/landing-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession } from "@/lib/auth-client";
 import type { ShellProps } from "@/types";
@@ -31,6 +31,8 @@ export default function Shell({ children, dict, lang }: ShellProps) {
 
   /* The exam runner takes the whole screen — no chrome to get in the way. */
   const shouldHideTopNav = isExamTakePage;
+  /* A quiz or exam in progress should not have a footer pushing the content. */
+  const shouldHideFooter = isExamTakePage || isPollTakingPage;
   const canOpenSidebar =
     !isLoginPage && !isQbChapterQuestionsPage && !isPollTakingPage;
 
@@ -130,6 +132,7 @@ export default function Shell({ children, dict, lang }: ShellProps) {
           className={`w-full h-full overflow-y-auto ${shouldHideTopNav ? "" : "p-2.5 sm:p-6 md:p-8 lg:p-10"}`}
         >
           {children}
+          {!shouldHideFooter && <LandingFooter />}
         </div>
       </div>
     </div>
