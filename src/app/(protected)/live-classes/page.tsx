@@ -1,41 +1,17 @@
-import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { Suspense } from "react";
-import { CoursePicker } from "@/components/classes/course-picker";
 import { Video } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import {
-  getStudentClasses,
-  getStudentCourseList,
-} from "@/lib/actions/student-library";
-import { auth } from "@/lib/auth";
-import { toBengaliDigits } from "@/lib/calendar-date";
+import { NOT_READY_MESSAGE } from "@/lib/not-ready";
 
 export const dynamic = "force-dynamic";
 
-/** Pick a course, then see that course's live classes. */
-export default async function LiveClassesPage({
-  searchParams,
-}: {
-  readonly searchParams?: Promise<{ course?: string }>;
-}): Promise<ReactElement> {
-  const { course } = (await searchParams) ?? {};
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id;
-
-  const [courses, classes] = userId
-    ? await Promise.all([
-        getStudentCourseList(userId),
-        getStudentClasses(userId),
-      ])
-    : [[], []];
-
-  const picked = course ?? "all";
-  const live = classes.filter(
-    (c) => c.isLive && (picked === "all" || c.batchId === picked),
-  );
-
+/**
+ * Live classes are not built yet. The page stays reachable by direct link and
+ * says so, so the "not ready" answer is the same everywhere the feature
+ * appears.
+ */
+export default function LiveClassesPage(): ReactElement {
   return (
     <div className="flex w-full max-w-3xl flex-col gap-5 pb-16">
       <div className="space-y-1">
@@ -47,76 +23,20 @@ export default async function LiveClassesPage({
         </p>
       </div>
 
-      {courses.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed bg-muted/10 px-6 py-16 text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/80 text-primary">
-            <Video className="size-7" />
-          </div>
-          <p className="text-lg font-bold">এখনো কোনো কোর্সে ভর্তি হয়নি</p>
-          <Link href="/my-courses">
-            <Button className="rounded-xl px-6 font-semibold">
-              আমার কোর্স দেখুন
-            </Button>
-          </Link>
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed bg-muted/10 px-6 py-16 text-center">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+          <Video className="size-7" />
         </div>
-      ) : (
-        <>
-          <Suspense fallback={null}>
-            <CoursePicker
-              value={picked}
-              allLabel="সব কোর্স"
-              courses={courses.map((c) => ({
-                batchId: c.batchId,
-                title: c.title,
-                count: c.liveCount,
-              }))}
-            />
-          </Suspense>
-
-          {live.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-muted/10 px-6 py-14 text-center">
-              <p className="text-base font-bold">
-                এই কোর্সে এখন কোনো লাইভ ক্লাস নেই
-              </p>
-              <p className="text-xs text-muted-foreground">
-                রেকর্ডেড ক্লাস দেখতে পাস্ট ক্লাসে যান
-              </p>
-              <Link
-                href="/past-classes"
-                className="mt-1 text-xs font-bold text-primary hover:underline"
-              >
-                পাস্ট ক্লাস দেখুন
-              </Link>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {live.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/my-courses/${c.batchId}`}
-                  className="flex items-center gap-4 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-accent"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600">
-                    <Video className="size-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold">
-                      {c.title}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {c.batchName} · {c.subject} ·{" "}
-                      {toBengaliDigits(c.durationMinutes)} মিনিট
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-[10px] font-bold uppercase text-red-600">
-                    লাইভ
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+        <p className="text-lg font-bold">{NOT_READY_MESSAGE}</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          লাইভ ক্লাস সিস্টেমটি তৈরি হচ্ছে। ততক্ষণে রেকর্ডেড ক্লাস দেখতে পারবেন।
+        </p>
+        <Link href="/past-classes" className="mt-1">
+          <Button className="rounded-xl px-6 font-semibold">
+            পাস্ট ক্লাস দেখুন
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

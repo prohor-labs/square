@@ -335,16 +335,6 @@ export async function getStudentCourseList(
   });
 }
 
-/** One course's classes, newest first. */
-export async function getCourseClasses(
-  userId: string,
-  batchId: string,
-): Promise<readonly StudentClass[]> {
-  const batchIds = await getEnrolledBatchIds(userId);
-  if (!batchIds.includes(batchId)) return [];
-  return getStudentClasses(userId);
-}
-
 /** Routine PDF for every course the student is in. */
 export async function getStudentRoutines(
   userId: string,

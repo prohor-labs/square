@@ -111,6 +111,11 @@ export interface NavItem {
   }>;
   readonly count?: number;
   readonly tone?: NavTone;
+  /**
+   * Visible but not openable yet. Clicking it says so instead of navigating,
+   * so a half-built screen never looks broken.
+   */
+  readonly disabled?: boolean;
 }
 
 /** A labelled run of nav items — "পরীক্ষা" then everything exam related. */

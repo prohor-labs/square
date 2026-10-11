@@ -17,14 +17,6 @@ import {
 import type { NavGroup, NavItem, SidebarAnnouncement } from "@/types";
 
 /**
- * Student navigation, grouped the way the reference academy dashboard reads:
- * a colour per area, a label per group.
- *
- * The exam entries point at `/exams` with a tab rather than separate pages —
- * that screen already holds the live, upcoming and practice lists, so a second
- * page for each would only duplicate it.
- */
-/**
  * Student navigation — the eleven destinations behind the menu button.
  *
  * The exam entries point at `/exams` with a tab rather than separate pages:
@@ -47,6 +39,7 @@ export const USER_NAV_GROUPS: readonly NavGroup[] = [
         exact: false,
         icon: Video,
         tone: "green",
+        disabled: true,
       },
       {
         name: "পাস্ট ক্লাস",

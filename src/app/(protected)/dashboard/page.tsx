@@ -4,8 +4,10 @@ import {
   Chart,
   Clipboard,
   Danger,
+  TaskSquare,
   Video,
 } from "@/components/icons";
+import { NotReadyCard } from "@/components/not-ready";
 import {
   QB_CARD_COLORS,
   QB_SQUARE_BLOBS,
@@ -24,6 +26,7 @@ const SHORTCUTS = [
     label: "লাইভ ক্লাস (রেকর্ডেড ক্লাস)",
     Icon: Video,
     chip: "from-emerald-500 to-green-600 shadow-emerald-500/30",
+    disabled: true,
   },
   {
     href: "/exams",
@@ -31,6 +34,7 @@ const SHORTCUTS = [
     note: "লাইভ এক্সাম, আপকামিং এক্সাম এবং প্র্যাকটিস এক্সাম দেখো",
     Icon: Clipboard,
     chip: "from-violet-500 to-fuchsia-500 shadow-violet-500/30",
+    disabled: false,
   },
   {
     href: "/archive",
@@ -38,6 +42,7 @@ const SHORTCUTS = [
     note: "আর্কাইভ পরীক্ষা গুলো দেখো",
     Icon: ArchiveBox,
     chip: "from-amber-500 to-orange-500 shadow-amber-500/30",
+    disabled: false,
   },
   {
     href: "/wrong-answers",
@@ -45,14 +50,19 @@ const SHORTCUTS = [
     note: "যে সকল পরীক্ষায় তোমার ভুল হয়েছে সেই সকল প্রশ্ন ও উত্তর এখানে দেখো",
     Icon: Danger,
     chip: "from-rose-500 to-red-600 shadow-rose-500/30",
+    disabled: false,
   },
   {
     href: "/performance",
     label: "পারফরমেন্স রিপোর্ট",
     Icon: Chart,
     chip: "from-emerald-500 to-teal-500 shadow-emerald-500/30",
+    disabled: false,
   },
 ] as const;
+
+const CARD_CLASS =
+  "group flex min-h-16 w-full items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:px-5";
 
 export default async function DashboardPage() {
   const banks = await getQbTree();
@@ -67,10 +77,11 @@ export default async function DashboardPage() {
         style={{ background: QB_CARD_COLORS.background }}
       >
         <QbCardShapes blobs={QB_SQUARE_BLOBS} />
-        <span className="relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/30 shadow-sm">
-          <span
-            className="size-5 rounded-full"
-            style={{ background: QB_CARD_COLORS.pill }}
+        <span className="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/30 shadow-sm">
+          <TaskSquare
+            size={26}
+            color={QB_CARD_COLORS.text}
+            className="drop-shadow-sm"
           />
         </span>
         <span className="relative z-10 min-w-0">
@@ -99,12 +110,8 @@ export default async function DashboardPage() {
       <nav className="flex flex-col gap-2.5">
         {SHORTCUTS.map((item) => {
           const { Icon } = item;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group flex min-h-16 items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:px-5"
-            >
+          const inner = (
+            <>
               <span
                 className={`flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg transition-transform group-hover:scale-105 ${item.chip}`}
               >
@@ -121,6 +128,19 @@ export default async function DashboardPage() {
                 )}
               </span>
               <Arrow />
+            </>
+          );
+
+          return item.disabled ? (
+            <NotReadyCard
+              key={item.href}
+              className={`${CARD_CLASS} cursor-not-allowed opacity-70 hover:translate-y-0 hover:shadow-sm`}
+            >
+              {inner}
+            </NotReadyCard>
+          ) : (
+            <Link key={item.href} href={item.href} className={CARD_CLASS}>
+              {inner}
             </Link>
           );
         })}

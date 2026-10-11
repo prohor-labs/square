@@ -4,13 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight2, SquareLogo } from "@/components/icons";
+import { SquareLogo } from "@/components/icons";
 import { LanguageToggler } from "@/components/language-toggler";
 import { Button } from "@/components/ui/button";
 import { useLogout, useUser } from "@/hooks/use-auth";
 import { getNavGroups, sidebarAnnouncement } from "@/lib/navigation";
+import { notifyNotReady } from "@/lib/not-ready";
 import { cn } from "@/lib/utils";
-import type { NavItem, NavTone, SidebarProps } from "@/types";
+import type { NavTone, SidebarProps } from "@/types";
 
 /**
  * Each area keeps one colour so a student recognises where they are from the
@@ -26,59 +27,15 @@ const TONES: Record<NavTone, string> = {
   yellow: "bg-amber-100 text-amber-700",
 };
 
-/**
- * How many items a phone shows before the "আরও দেখুন" toggle. The drawer is
- * 80% of a small screen, so all sixteen items would push the course link and
- * the logout off the bottom.
- */
-const PHONE_VISIBLE_ITEMS = 3;
-
-/** A group label or an item, flattened so the phone can count items only. */
-type NavRow =
-  | { readonly kind: "label"; readonly key: string; readonly label: string }
-  | {
-      readonly kind: "item";
-      readonly key: string;
-      readonly item: NavItem;
-      /** 1-based position among items, ignoring labels. */
-      readonly position: number;
-    };
-
-function flattenGroups(
-  groups: ReturnType<typeof getNavGroups>,
-): readonly NavRow[] {
-  const rows: NavRow[] = [];
-  let position = 0;
-
-  for (const group of groups) {
-    if (group.label) {
-      rows.push({
-        kind: "label",
-        key: `label-${group.label}`,
-        label: group.label,
-      });
-    }
-    for (const item of group.items) {
-      position += 1;
-      rows.push({ kind: "item", key: item.name, item, position });
-    }
-  }
-
-  return rows;
-}
-
 export function Sidebar({ onClose, dict, lang }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
   const { data: user } = useUser();
   const logoutMutation = useLogout();
 
   const d = dict.sidebar;
   const isAdmin = pathname.startsWith("/admin");
-  const rows = flattenGroups(getNavGroups(isAdmin));
-  const itemCount = rows.filter((r) => r.kind === "item").length;
-  const hasOverflow = itemCount > PHONE_VISIBLE_ITEMS;
+  const groups = getNavGroups(isAdmin);
 
   return (
     <aside
@@ -156,116 +113,110 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
           </span>
         </Button>
 
+        {/* Every destination is listed at once — no "show more" toggle. */}
         <nav className="flex flex-col gap-[14px] lg:-mt-[16px]">
-          {rows.map((row, index) => {
-            /* A label is only worth showing on a phone when at least one of the
-               items under it survives the cut. */
-            const isOverflowLabel =
-              row.kind === "label" &&
-              !rows
-                .slice(index + 1)
-                .some(
-                  (next) =>
-                    next.kind === "item" &&
-                    next.position <= PHONE_VISIBLE_ITEMS,
-                );
-
-            const isOverflowItem =
-              row.kind === "item" && row.position > PHONE_VISIBLE_ITEMS;
-
-            const isOverflow = isOverflowLabel || isOverflowItem;
-
-            if (row.kind === "label") {
-              return (
+          {groups.map((group, groupIndex) => (
+            <div
+              key={group.label ?? `group-${groupIndex}`}
+              className="flex flex-col gap-[4px]"
+            >
+              {group.label && (
                 <p
-                  key={row.key}
                   className={cn(
                     "px-[8px] text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-opacity duration-200",
                     isCollapsed && "lg:opacity-0 lg:h-0 lg:overflow-hidden",
-                    isOverflow && !isExpanded && "hidden lg:block",
                   )}
                 >
-                  {row.label}
+                  {group.label}
                 </p>
-              );
-            }
+              )}
 
-            const { item } = row;
-            const Icon = item.icon;
-            /* `pathname` never carries a query string, so an item like
-               `/exams?tab=live` needs the bare path to highlight correctly. */
-            const href = item.matchPath ?? item.path;
-            const isActive = item.exact
-              ? pathname === href
-              : pathname.startsWith(href);
-            const tone = item.tone ?? "navy";
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                /* `pathname` never carries a query string, so an item like
+                   `/exams?tab=live` needs the bare path to highlight right. */
+                const href = item.matchPath ?? item.path;
+                const isActive = item.exact
+                  ? pathname === href
+                  : pathname.startsWith(href);
+                const tone = item.tone ?? "navy";
 
-            return (
-              <Link
-                key={row.key}
-                href={item.path}
-                onClick={onClose}
-                className={cn(
-                  "relative flex items-center gap-[10px] px-[6px] py-[6px] rounded-[10px] transition-colors overflow-hidden shrink-0",
-                  isActive ? "bg-accent" : "hover:bg-accent",
-                  isOverflow && !isExpanded && "hidden lg:flex",
-                )}
-                title={isCollapsed ? item.name : undefined}
-              >
-                <span
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-[8px]",
-                    TONES[tone],
-                  )}
-                >
-                  <Icon size={16} />
-                </span>
-                <span
-                  className={cn(
-                    "truncate text-[14px] text-foreground transition-opacity duration-200",
-                    isActive && "font-bold",
-                    isCollapsed && "opacity-0",
-                  )}
-                >
-                  {item.name}
-                </span>
-                {item.count && (
-                  <div
-                    className={cn(
-                      "absolute right-[8px] bg-success-badge rounded-[8px] px-[8px] py-[2px] flex items-center transition-opacity duration-200",
-                      isCollapsed
-                        ? "opacity-0 pointer-events-none"
-                        : "opacity-100",
-                    )}
-                  >
-                    <span className="text-success-badge-foreground text-[12px] font-[600]">
-                      {item.count}
+                const inner = (
+                  <>
+                    <span
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-[8px]",
+                        TONES[tone],
+                      )}
+                    >
+                      <Icon size={16} />
                     </span>
-                  </div>
-                )}
-              </Link>
-            );
-          })}
+                    <span
+                      className={cn(
+                        "truncate text-[14px] transition-opacity duration-200",
+                        isActive
+                          ? "font-bold text-foreground"
+                          : "text-foreground",
+                        item.disabled && "opacity-50",
+                        isCollapsed && "opacity-0",
+                      )}
+                    >
+                      {item.name}
+                    </span>
+                    {item.count && (
+                      <div
+                        className={cn(
+                          "absolute right-[8px] bg-success-badge rounded-[8px] px-[8px] py-[2px] flex items-center transition-opacity duration-200",
+                          isCollapsed
+                            ? "opacity-0 pointer-events-none"
+                            : "opacity-100",
+                        )}
+                      >
+                        <span className="text-success-badge-foreground text-[12px] font-[600]">
+                          {item.count}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
 
-          {/* Phones get a short menu with a toggle; the sidebar has room for
-              everything, so the button is hidden there. */}
-          {hasOverflow && (
-            <button
-              type="button"
-              onClick={() => setIsExpanded((open) => !open)}
-              className="lg:hidden flex items-center gap-[8px] px-[8px] py-[6px] rounded-[10px] text-[13px] font-bold text-primary hover:bg-accent transition-colors cursor-pointer"
-            >
-              {isExpanded
-                ? "কম দেখান"
-                : `আরও ${itemCount - PHONE_VISIBLE_ITEMS} টি দেখুন`}
-              <ArrowRight2
-                className={cn(
-                  "size-4 transition-transform duration-200",
-                  isExpanded && "rotate-90",
-                )}
-              />
-            </button>
-          )}
+                const rowClass = cn(
+                  "relative flex w-full items-center gap-[10px] px-[6px] py-[6px] rounded-[10px] transition-colors overflow-hidden shrink-0 text-left",
+                  isActive ? "bg-accent" : "hover:bg-accent",
+                  item.disabled &&
+                    "cursor-not-allowed opacity-60 hover:bg-transparent",
+                );
+
+                /* A half-built screen is a button that says so, not a link
+                   that would open an empty page. */
+                if (item.disabled) {
+                  return (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={notifyNotReady}
+                      className={rowClass}
+                      title={item.name}
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.path}
+                    onClick={onClose}
+                    className={rowClass}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    {inner}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <Link

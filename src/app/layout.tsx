@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ReactQueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { anekBangla } from "@/lib/fonts";
 import "@/app/globals.css";
@@ -96,6 +97,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <ReactQueryProvider>
             <TooltipProvider>{children}</TooltipProvider>
+            <Toaster />
           </ReactQueryProvider>
         </ThemeProvider>
       </body>
