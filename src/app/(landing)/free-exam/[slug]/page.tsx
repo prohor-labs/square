@@ -1,31 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
+import { FreeExamStartForm } from "@/components/free-exam/free-exam-start-form";
 import {
   ArrowLeft2,
   Award,
-  BookOpen,
   Clock,
   Danger,
-  Flash,
   Information,
-  SecurityCard,
   TaskSquare,
   TickCircle,
 } from "@/components/icons";
-import { LandingFooter, LandingHeader } from "@/components/landing-nav";
+import { LandingHeader } from "@/components/landing-nav";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { getPublicFreeExamDetailsAction } from "@/lib/actions/free-exam";
-import { FreeExamStartForm } from "@/components/free-exam/free-exam-start-form";
-
 
 interface FreeExamOverviewPageProps {
   readonly params: Promise<{ readonly slug: string }>;
@@ -117,19 +105,27 @@ export default async function FreeExamOverviewPage({
                 <ul className="text-xs text-muted-foreground space-y-2 leading-relaxed">
                   <li className="flex items-start gap-2">
                     <TickCircle className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>কোনো লগইন বা একাউন্টের প্রয়োজন নেই। শুধু নাম লিখে শুরু করুন।</span>
+                    <span>
+                      কোনো লগইন বা একাউন্টের প্রয়োজন নেই। শুধু নাম লিখে শুরু করুন।
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <TickCircle className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>টাইমার শেষ হওয়ার সাথে সাথে পরীক্ষাটি স্বয়ংক্রিয়ভাবে জমা হয়ে যাবে।</span>
+                    <span>
+                      টাইমার শেষ হওয়ার সাথে সাথে পরীক্ষাটি স্বয়ংক্রিয়ভাবে জমা হয়ে যাবে।
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <TickCircle className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>ভুল উত্তরের জন্য প্রতিটিতে {exam.negativeMarking} মার্ক কাটা যাবে।</span>
+                    <span>
+                      ভুল উত্তরের জন্য প্রতিটিতে {exam.negativeMarking} মার্ক কাটা যাবে।
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <TickCircle className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>পরীক্ষা শেষে তাৎক্ষণিক পূর্ণাঙ্গ সমাধান ও লাইভ মেধা তালিকা দেখতে পাবেন।</span>
+                    <span>
+                      পরীক্ষা শেষে তাৎক্ষণিক পূর্ণাঙ্গ সমাধান ও লাইভ মেধা তালিকা দেখতে পাবেন।
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -154,8 +150,6 @@ export default async function FreeExamOverviewPage({
           </div>
         </div>
       </main>
-
-      <LandingFooter />
     </div>
   );
 }

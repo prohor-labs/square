@@ -3,6 +3,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  batchArchivedExams,
   batchDetails,
   batchEnrollments,
   batchExams,
@@ -241,16 +242,23 @@ export interface ArchiveExam {
   readonly standard: string;
   readonly totalMarks: number;
   readonly durationMinutes: number;
-  /** Courses this exam has been linked to, by name. */
+  /** The courses in this student's list that archive the exam, by name. */
   readonly courses: readonly string[];
 }
 
 /**
- * Published exams the admin has ticked for the archive, each with the courses
- * it is linked to. `isArchived` is the only gate — an exam stays hidden until
- * an admin ticks it, whatever course it belongs to.
+ * Past exams archived for a course the student is enrolled in.
+ *
+ * The archive is kept per batch, so this only returns exams an admin ticked on
+ * one of the student's own courses — an exam archived for some other batch is
+ * invisible here.
  */
-export async function getArchivedExams(): Promise<readonly ArchiveExam[]> {
+export async function getArchivedExams(
+  userId: string,
+): Promise<readonly ArchiveExam[]> {
+  const batchIds = await getEnrolledBatchIds(userId);
+  if (batchIds.length === 0) return [];
+
   const rows = await db
     .select({
       id: exams.id,
@@ -261,11 +269,16 @@ export async function getArchivedExams(): Promise<readonly ArchiveExam[]> {
       durationMinutes: exams.durationMinutes,
       courseName: batches.name,
     })
-    .from(exams)
-    .leftJoin(batchExams, eq(batchExams.examId, exams.id))
-    .leftJoin(batches, eq(batches.id, batchExams.batchId))
-    .where(and(eq(exams.isArchived, true), eq(exams.isPublished, true)))
-    .orderBy(desc(exams.createdAt));
+    .from(batchArchivedExams)
+    .innerJoin(exams, eq(exams.id, batchArchivedExams.examId))
+    .innerJoin(batches, eq(batches.id, batchArchivedExams.batchId))
+    .where(
+      and(
+        inArray(batchArchivedExams.batchId, batchIds),
+        eq(exams.isPublished, true),
+      ),
+    )
+    .orderBy(desc(batchArchivedExams.addedAt));
 
   const byId = new Map<string, ArchiveExam>();
   for (const row of rows) {

@@ -1,5 +1,4 @@
 import type { ReactElement, ReactNode } from "react";
-import { LandingFooter } from "@/components/landing-nav";
 
 export default async function AuthLayout({
   children,
@@ -11,7 +10,6 @@ export default async function AuthLayout({
       <main className="flex-1 flex flex-col justify-center items-center p-4">
         {children}
       </main>
-      <LandingFooter />
     </div>
   );
 }

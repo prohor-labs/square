@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { FreeExamLeaderboardView } from "@/components/free-exam/free-exam-leaderboard-view";
-import { LandingFooter, LandingHeader } from "@/components/landing-nav";
+import { LandingHeader } from "@/components/landing-nav";
 import { getFreeExamLeaderboardAction } from "@/lib/actions/free-exam";
-
 
 interface FreeExamLeaderboardPageProps {
   readonly params: Promise<{ readonly slug: string }>;
@@ -30,8 +29,6 @@ export default async function FreeExamLeaderboardPage({
           leaderboard={res.leaderboard}
         />
       </main>
-
-      <LandingFooter />
     </div>
   );
 }

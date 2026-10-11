@@ -1,10 +1,11 @@
 "use server";
 
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, notExists, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
+  batchExams,
   examQuestions,
   examResponses,
   examSubmissions,
@@ -28,7 +29,11 @@ export interface FreeExamListItem {
 }
 
 /**
- * Fetch all published practice / public exams for the free exam portal
+ * Fetch the free exam portal list.
+ *
+ * Only exams that belong to no course. An exam linked to a batch through
+ * `batch_exams` belongs to that batch, so it stays out of the public list even
+ * when it is published and marked as practice.
  */
 export async function getPublicFreeExamsListAction(): Promise<{
   success: boolean;
@@ -37,7 +42,16 @@ export async function getPublicFreeExamsListAction(): Promise<{
 }> {
   try {
     const list = await db.query.exams.findMany({
-      where: and(eq(exams.isPublished, true), eq(exams.type, "practice")),
+      where: and(
+        eq(exams.isPublished, true),
+        eq(exams.type, "practice"),
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(batchExams)
+            .where(eq(batchExams.examId, exams.id)),
+        ),
+      ),
       orderBy: [desc(exams.createdAt)],
       with: {
         examQuestions: true,
@@ -84,6 +98,13 @@ export async function getPublicFreeExamDetailsAction(slug: string) {
         eq(exams.slug, slug),
         eq(exams.isPublished, true),
         eq(exams.type, "practice"),
+        // Same rule as the list: an exam linked to a course is never a free exam.
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(batchExams)
+            .where(eq(batchExams.examId, exams.id)),
+        ),
       ),
       with: {
         examQuestions: true,
@@ -124,6 +145,13 @@ export async function getFreeExamQuestionsForTakingAction(slug: string) {
         eq(exams.slug, slug),
         eq(exams.isPublished, true),
         eq(exams.type, "practice"),
+        // Same rule as the list: an exam linked to a course is never a free exam.
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(batchExams)
+            .where(eq(batchExams.examId, exams.id)),
+        ),
       ),
       with: {
         examQuestions: {
@@ -329,9 +357,7 @@ export async function submitFreeGuestExamAction(payload: {
     const insertResponses: InsertResponse[] = [];
 
     for (const eqData of examQs) {
-      const userResp = responses.find(
-        (r) => r.examQuestionId === eqData.id,
-      );
+      const userResp = responses.find((r) => r.examQuestionId === eqData.id);
       const selectedOptionId = userResp?.selectedOptionId || null;
       const cqAnswerText = userResp?.cqAnswerText || null;
 
@@ -402,7 +428,9 @@ export async function submitFreeGuestExamAction(payload: {
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to submit exam attempt",
+        error instanceof Error
+          ? error.message
+          : "Failed to submit exam attempt",
     };
   }
 }
@@ -462,7 +490,9 @@ export async function getFreeExamResultAction(submissionId: string) {
 
     const existingResponses = submission.responses || [];
     const completeResponses = allExamQuestions.map((eqData) => {
-      const found = existingResponses.find((r) => r.examQuestionId === eqData.id);
+      const found = existingResponses.find(
+        (r) => r.examQuestionId === eqData.id,
+      );
       if (found) return found;
       return {
         id: `unattempted-${eqData.id}`,
@@ -549,11 +579,14 @@ export async function getFreeExamLeaderboardAction(slug: string): Promise<{
       with: {
         user: true,
       },
-      orderBy: [asc(examSubmissions.attemptNumber), asc(examSubmissions.startedAt)],
+      orderBy: [
+        asc(examSubmissions.attemptNumber),
+        asc(examSubmissions.startedAt),
+      ],
     });
 
     // Count only first attempt per student in merit leaderboard
-    const firstAttemptsMap = new Map<string, typeof list[0]>();
+    const firstAttemptsMap = new Map<string, (typeof list)[0]>();
     for (const sub of list) {
       if (!firstAttemptsMap.has(sub.userId)) {
         firstAttemptsMap.set(sub.userId, sub);

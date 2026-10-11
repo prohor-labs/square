@@ -20,6 +20,8 @@ export default async function CalendarPage() {
         <div className="flex flex-col min-h-screen pb-20 max-w-5xl mx-auto w-full pt-2 md:pt-6 gap-6 font-sans">
           <CalendarView content={content} />
         </div>
+
+        <LandingFooter />
       </Shell>
     );
   }

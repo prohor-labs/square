@@ -53,7 +53,6 @@ export function EditExamForm({ exam, onSuccess }: EditExamFormProps) {
       negativeMarking: formData.get("negativeMarking") as string,
       showResultImmediately: formData.get("showResultImmediately") === "true",
       isPublished: formData.get("isPublished") === "true",
-      isArchived: formData.get("isArchived") === "true",
     };
 
     const res = await updateExamAction(exam.id, data);
@@ -298,16 +297,6 @@ function ExamFormFields({
             className="size-4 rounded accent-primary"
           />
           <span className="text-sm font-medium">পাবলিশ করুন (Published)</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            name="isArchived"
-            value="true"
-            defaultChecked={exam.isArchived}
-            className="size-4 rounded accent-primary"
-          />
-          <span className="text-sm font-medium">আর্কাইভ পরীক্ষায় দেখান</span>
         </label>
       </div>
 

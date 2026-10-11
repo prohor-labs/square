@@ -1,11 +1,13 @@
 "use client";
 
+import { BatchArchiveTab } from "@/components/admin/batch-archive-tab";
 import { BatchClassesTab } from "@/components/admin/batch-classes-tab";
 import { BatchExamsTab } from "@/components/admin/batch-exams-tab";
 import { BatchMembersTab } from "@/components/admin/batch-members-tab";
 import { BatchPdfsTab } from "@/components/admin/batch-pdfs-tab";
 import { BatchSettingsTab } from "@/components/admin/batch-settings-tab";
 import {
+  ArchiveBox,
   Edit,
   FileText,
   Profile2user,
@@ -107,6 +109,14 @@ export function BatchDetailView({ batch }: { batch: BatchDetail }) {
             </TabsTrigger>
 
             <TabsTrigger
+              value="archive"
+              className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:bg-accent hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:font-bold transition-all shrink-0 whitespace-nowrap"
+            >
+              <ArchiveBox className="size-4 shrink-0" />
+              <span>আর্কাইভ পরীক্ষা</span>
+            </TabsTrigger>
+
+            <TabsTrigger
               value="members"
               className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:bg-accent hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:font-bold transition-all shrink-0 whitespace-nowrap"
             >
@@ -133,6 +143,10 @@ export function BatchDetailView({ batch }: { batch: BatchDetail }) {
 
         <TabsContent value="exams">
           <BatchExamsTab batchId={batch.id} batchExams={batchExams} />
+        </TabsContent>
+
+        <TabsContent value="archive">
+          <BatchArchiveTab batchId={batch.id} />
         </TabsContent>
 
         <TabsContent value="members">

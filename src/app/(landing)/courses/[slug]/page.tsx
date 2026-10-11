@@ -12,7 +12,7 @@ import {
   Star,
   User,
 } from "@/components/icons";
-import { LandingFooter, LandingHeader } from "@/components/landing-nav";
+import { LandingHeader } from "@/components/landing-nav";
 import {
   Accordion,
   AccordionContent,
@@ -60,9 +60,7 @@ export default async function CourseDetailPage({
       courseWithDetails.details?.duration ||
       "১ বছর কমপ্লিট এক্সেস",
     rating:
-      courseWithDetails.rating ||
-      courseWithDetails.details?.rating ||
-      "5.0",
+      courseWithDetails.rating || courseWithDetails.details?.rating || "5.0",
     ratingCount:
       courseWithDetails.ratingCount ||
       courseWithDetails.details?.ratingCount ||
@@ -76,9 +74,7 @@ export default async function CourseDetailPage({
       courseWithDetails.details?.telegramGroupUrl ||
       "https://t.me/shu_yaib",
     features:
-      courseWithDetails.features ||
-      courseWithDetails.details?.features ||
-      [],
+      courseWithDetails.features || courseWithDetails.details?.features || [],
     instructors:
       courseWithDetails.instructors ||
       courseWithDetails.details?.instructors ||
@@ -91,10 +87,7 @@ export default async function CourseDetailPage({
         : Array.isArray(courseWithDetails.details?.curriculum)
           ? courseWithDetails.details.curriculum
           : [],
-    faqs:
-      courseWithDetails.faqs ||
-      courseWithDetails.details?.faqs ||
-      [],
+    faqs: courseWithDetails.faqs || courseWithDetails.details?.faqs || [],
   };
 
   let enrollmentStatus = "none";
@@ -368,7 +361,9 @@ export default async function CourseDetailPage({
                   </div>
                 ) : !session?.user?.id ? (
                   <Button
-                    render={<Link href={`/login?callbackUrl=/courses/${slug}`} />}
+                    render={
+                      <Link href={`/login?callbackUrl=/courses/${slug}`} />
+                    }
                     className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-extrabold py-4 h-auto rounded-xl text-sm shadow-md transition-all hover:scale-101 cursor-pointer"
                   >
                     এখনই ভর্তি হোন
@@ -419,8 +414,6 @@ export default async function CourseDetailPage({
           </aside>
         </div>
       </main>
-
-      <LandingFooter />
     </div>
   );
 }

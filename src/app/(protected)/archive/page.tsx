@@ -1,8 +1,10 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { ArchiveBox } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { getArchivedExams } from "@/lib/actions/student-library";
+import { auth } from "@/lib/auth";
 import { toBengaliDigits } from "@/lib/calendar-date";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +16,10 @@ const STANDARD_LABELS: Record<string, string> = {
   Medical: "মেডিকেল",
 };
 
-/** Every exam an admin has ticked for the archive, with the courses it is
- *  linked to printed on the card itself. */
+/** Past exams the student's own courses have put in their archive. */
 export default async function ArchivePage(): Promise<ReactElement> {
-  const list = await getArchivedExams();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const list = session?.user ? await getArchivedExams(session.user.id) : [];
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-5 pb-16">

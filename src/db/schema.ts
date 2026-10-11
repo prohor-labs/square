@@ -324,8 +324,6 @@ export const exams = pgTable("exams", {
   // Stored as string for exact precision; parse with parseFloat()
   negativeMarking: text("negative_marking").default("0.25").notNull(),
   isPublished: boolean("is_published").default(false).notNull(),
-  /** Admin ticks this to put the exam in the student's আর্কাইভ পরীক্ষা list. */
-  isArchived: boolean("is_archived").default(false).notNull(),
   showResultImmediately: boolean("show_result_immediately")
     .default(true)
     .notNull(),
@@ -358,6 +356,30 @@ export const batchExams = pgTable(
   },
   (table) => [
     uniqueIndex("batch_exam_unique_idx").on(table.batchId, table.examId),
+  ],
+);
+
+// Which past exams a batch keeps on its আর্কাইভ পরীক্ষা list. Per batch, so
+// one exam can be archived for a course without touching the others.
+export const batchArchivedExams = pgTable(
+  "batch_archived_exams",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchId: text("batch_id")
+      .notNull()
+      .references(() => batches.id, { onDelete: "cascade" }),
+    examId: text("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("batch_archived_exam_unique_idx").on(
+      table.batchId,
+      table.examId,
+    ),
   ],
 );
 
