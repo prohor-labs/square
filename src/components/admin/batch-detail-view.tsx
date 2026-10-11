@@ -21,7 +21,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { deleteBatchAction } from "@/lib/actions/batch";
 import type { BatchDetail } from "@/types";
 
-export function BatchDetailView({ batch }: { batch: BatchDetail }) {
+export function BatchDetailView({
+  batch,
+  courses,
+}: {
+  readonly batch: BatchDetail;
+  /** Every active course, so the archive tab can file an exam under any of them. */
+  readonly courses: readonly { id: string; name: string }[];
+}) {
   const members = (batch.members || []) as unknown as Array<{
     id: string;
     userId: string;
@@ -146,7 +153,7 @@ export function BatchDetailView({ batch }: { batch: BatchDetail }) {
         </TabsContent>
 
         <TabsContent value="archive">
-          <BatchArchiveTab batchId={batch.id} />
+          <BatchArchiveTab batchId={batch.id} courses={courses} />
         </TabsContent>
 
         <TabsContent value="members">

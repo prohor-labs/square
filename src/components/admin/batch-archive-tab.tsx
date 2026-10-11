@@ -3,9 +3,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArchiveBox, TickCircle } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { getBatchesAction } from "@/lib/actions/batch";
 import {
   getBatchArchiveOptionsAction,
   setBatchArchiveAction,
@@ -20,25 +27,44 @@ const STANDARD_LABELS: Record<string, string> = {
 };
 
 /**
- * Every exam in the system, one checkbox each. Ticking puts the exam on this
- * batch's আর্কাইভ পরীক্ষা list — the archive belongs to the batch, so the same
- * exam can be archived for one course and left off another.
+ * Every exam in the system, one checkbox each. Ticking puts the exam on the
+ * chosen course's আর্কাইভ পরীক্ষা list — the archive belongs to the course, so
+ * the same exam can be archived for one batch and left off another.
  */
-export function BatchArchiveTab({ batchId }: { readonly batchId: string }) {
+export function BatchArchiveTab({
+  batchId,
+  courses,
+}: {
+  /** The course whose page this tab sits on; the picker starts here. */
+  readonly batchId: string;
+  /** Every active course, for the picker. */
+  readonly courses: readonly { id: string; name: string }[];
+}) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [courseId, setCourseId] = useState(batchId);
+
+  // A tab opened for one course can be pointed at any other.
+  const { data: allCourses = courses } = useQuery({
+    queryKey: ["archive-courses"],
+    queryFn: async () => {
+      const res = await getBatchesAction();
+      return (res.data ?? []) as { id: string; name: string }[];
+    },
+    initialData: courses,
+  });
 
   const { data: exams = [], isLoading } = useQuery({
-    queryKey: ["batch-archive-options", batchId],
-    queryFn: () => getBatchArchiveOptionsAction(batchId),
+    queryKey: ["batch-archive-options", courseId],
+    queryFn: () => getBatchArchiveOptionsAction(courseId),
   });
 
   const mutation = useMutation({
     mutationFn: (input: { examId: string; archived: boolean }) =>
-      setBatchArchiveAction(batchId, input.examId, input.archived),
+      setBatchArchiveAction(courseId, input.examId, input.archived),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["batch-archive-options", batchId],
+        queryKey: ["batch-archive-options", courseId],
       });
     },
   });
@@ -48,31 +74,42 @@ export function BatchArchiveTab({ batchId }: { readonly batchId: string }) {
     ? exams.filter((exam) => exam.title.toLowerCase().includes(trimmed))
     : exams;
   const archivedCount = exams.filter((exam) => exam.archived).length;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-        <Spinner className="size-4" />
-        <span>লোড হচ্ছে...</span>
-      </div>
-    );
-  }
+  const courseName = allCourses.find((c) => c.id === courseId)?.name;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h3 className="flex items-center gap-2 font-bold">
-            <ArchiveBox className="size-5 text-primary" />
-            আর্কাইভ পরীক্ষা
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            টিক দিলে পরীক্ষাটি এই কোর্সের আর্কাইভে যোগ হবে। ছাত্ররা কেবল নিজ কোর্সের
-            আর্কাইভই দেখবে।
-          </p>
+      <div className="space-y-1">
+        <h3 className="flex items-center gap-2 font-bold">
+          <ArchiveBox className="size-5 text-primary" />
+          আর্কাইভ পরীক্ষা
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          কোর্স বেছে নিয়ে টিক দিন — পরীক্ষাটি ওই কোর্সের আর্কাইভে যোগ হবে।
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div className="space-y-1.5">
+          <span className="text-xs font-bold text-muted-foreground">
+            কোন কোর্সের আর্কাইভ
+          </span>
+          <Select value={courseId} onValueChange={(v) => v && setCourseId(v)}>
+            <SelectTrigger className="h-11 w-full rounded-xl">
+              <SelectValue placeholder="কোর্স নির্বাচন করুন" />
+            </SelectTrigger>
+            <SelectContent>
+              {allCourses.map((course) => (
+                <SelectItem key={course.id} value={course.id}>
+                  {course.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <span className="shrink-0 rounded-xl bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">
-          আর্কাইভে {archivedCount} টি
+
+        <span className="shrink-0 rounded-xl bg-primary/10 px-3 py-2.5 text-xs font-bold text-primary sm:mb-0.5">
+          {courseName ? `${courseName} · ` : ""}আর্কাইভে{" "}
+          {archivedCount.toLocaleString("bn-BD")} টি
         </span>
       </div>
 
@@ -84,7 +121,12 @@ export function BatchArchiveTab({ batchId }: { readonly batchId: string }) {
         aria-label="পরীক্ষা খুঁজুন"
       />
 
-      {shown.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+          <Spinner className="size-4" />
+          <span>লোড হচ্ছে...</span>
+        </div>
+      ) : shown.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border/70 p-8 text-center text-xs text-muted-foreground">
           কোনো পরীক্ষা পাওয়া যায়নি।
         </p>
@@ -126,16 +168,6 @@ export function BatchArchiveTab({ batchId }: { readonly batchId: string }) {
             </label>
           ))}
         </div>
-      )}
-
-      {mutation.isError && (
-        <Button
-          variant="outline"
-          className="rounded-xl"
-          onClick={() => mutation.reset()}
-        >
-          আবার চেষ্টা করুন
-        </Button>
       )}
     </div>
   );
