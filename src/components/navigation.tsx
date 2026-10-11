@@ -4,39 +4,85 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import {
-  ArrowRight2,
-  Category,
-  HambergerMenu,
-  SquareLogo,
-} from "@/components/icons";
+import { ArrowRight2, SquareLogo } from "@/components/icons";
 import { LanguageToggler } from "@/components/language-toggler";
-
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { useLogout, useUser } from "@/hooks/use-auth";
-import { getNavItems, sidebarAnnouncement } from "@/lib/navigation";
-import type { Dictionary, SidebarProps } from "@/types";
+import { getNavGroups, sidebarAnnouncement } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
+import type { NavItem, NavTone, SidebarProps } from "@/types";
+
+/**
+ * Each area keeps one colour so a student recognises where they are from the
+ * icon alone — the same trick the reference academy dashboard uses.
+ */
+const TONES: Record<NavTone, string> = {
+  navy: "bg-indigo-100 text-indigo-700",
+  green: "bg-emerald-100 text-emerald-700",
+  orange: "bg-orange-100 text-orange-700",
+  purple: "bg-purple-100 text-purple-700",
+  blue: "bg-sky-100 text-sky-700",
+  pink: "bg-pink-100 text-pink-700",
+  yellow: "bg-amber-100 text-amber-700",
+};
+
+/**
+ * How many items a phone shows before the "আরও দেখুন" toggle. The drawer is
+ * 80% of a small screen, so all sixteen items would push the course link and
+ * the logout off the bottom.
+ */
+const PHONE_VISIBLE_ITEMS = 3;
+
+/** A group label or an item, flattened so the phone can count items only. */
+type NavRow =
+  | { readonly kind: "label"; readonly key: string; readonly label: string }
+  | {
+      readonly kind: "item";
+      readonly key: string;
+      readonly item: NavItem;
+      /** 1-based position among items, ignoring labels. */
+      readonly position: number;
+    };
+
+function flattenGroups(
+  groups: ReturnType<typeof getNavGroups>,
+): readonly NavRow[] {
+  const rows: NavRow[] = [];
+  let position = 0;
+
+  for (const group of groups) {
+    if (group.label) {
+      rows.push({
+        kind: "label",
+        key: `label-${group.label}`,
+        label: group.label,
+      });
+    }
+    for (const item of group.items) {
+      position += 1;
+      rows.push({ kind: "item", key: item.name, item, position });
+    }
+  }
+
+  return rows;
+}
 
 export function Sidebar({ onClose, dict, lang }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
   const { data: user } = useUser();
   const logoutMutation = useLogout();
 
   const d = dict.sidebar;
   const isAdmin = pathname.startsWith("/admin");
-  const navItems = getNavItems(dict, isAdmin);
+  const rows = flattenGroups(getNavGroups(isAdmin));
+  const itemCount = rows.filter((r) => r.kind === "item").length;
+  const hasOverflow = itemCount > PHONE_VISIBLE_ITEMS;
 
   return (
     <aside
-      className={`w-full h-full lg:h-[calc(100vh-40px)] lg:m-[20px] shrink-0 z-10 flex flex-col pt-0 lg:pt-[16px] justify-between overflow-x-hidden overflow-y-auto no-scrollbar transition-all duration-[300ms] ease-[cubic-bezier(0.83,0,0.17,1)] ${isCollapsed ? "lg:w-[40px]" : "lg:w-[192px]"}`}
+      className={`w-full h-full lg:h-[calc(100vh-40px)] lg:m-[20px] shrink-0 z-10 flex flex-col pt-0 lg:pt-[16px] justify-between overflow-x-hidden overflow-y-auto no-scrollbar transition-all duration-[300ms] ease-[cubic-bezier(0.83,0,0.17,1)] ${isCollapsed ? "lg:w-[40px]" : "lg:w-[200px]"}`}
     >
       <div className="flex flex-col gap-[24px]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-[48px] lg:gap-0">
@@ -50,10 +96,11 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
               <h3
                 className={`font-[800] text-[18px] lg:text-[16px] whitespace-nowrap mt-[3px] transition-opacity duration-200 ${isCollapsed ? "opacity-0" : "opacity-100"}`}
               >
-                স্কয়ার
+                স্কয়ার
               </h3>
             </Link>
 
+            {/* Closes the drawer on phones; the shell keeps it open on desktop. */}
             <Button
               variant="ghost"
               size="icon"
@@ -109,33 +156,87 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
           </span>
         </Button>
 
-        <nav className="flex flex-col gap-[4px] lg:-mt-[16px]">
-          {navItems.map((item) => {
+        <nav className="flex flex-col gap-[14px] lg:-mt-[16px]">
+          {rows.map((row, index) => {
+            /* A label is only worth showing on a phone when at least one of the
+               items under it survives the cut. */
+            const isOverflowLabel =
+              row.kind === "label" &&
+              !rows
+                .slice(index + 1)
+                .some(
+                  (next) =>
+                    next.kind === "item" &&
+                    next.position <= PHONE_VISIBLE_ITEMS,
+                );
+
+            const isOverflowItem =
+              row.kind === "item" && row.position > PHONE_VISIBLE_ITEMS;
+
+            const isOverflow = isOverflowLabel || isOverflowItem;
+
+            if (row.kind === "label") {
+              return (
+                <p
+                  key={row.key}
+                  className={cn(
+                    "px-[8px] text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-opacity duration-200",
+                    isCollapsed && "lg:opacity-0 lg:h-0 lg:overflow-hidden",
+                    isOverflow && !isExpanded && "hidden lg:block",
+                  )}
+                >
+                  {row.label}
+                </p>
+              );
+            }
+
+            const { item } = row;
             const Icon = item.icon;
+            /* `pathname` never carries a query string, so an item like
+               `/exams?tab=live` needs the bare path to highlight correctly. */
+            const href = item.matchPath ?? item.path;
             const isActive = item.exact
-              ? pathname === item.path
-              : pathname.startsWith(item.path);
+              ? pathname === href
+              : pathname.startsWith(href);
+            const tone = item.tone ?? "navy";
+
             return (
               <Link
-                key={item.name}
+                key={row.key}
                 href={item.path}
                 onClick={onClose}
-                className={`relative flex items-center px-[8px] py-[4px] rounded-[8px] transition-colors overflow-hidden shrink-0 ${
-                  isActive ? "bg-accent" : "hover:bg-accent"
-                }`}
+                className={cn(
+                  "relative flex items-center gap-[10px] px-[6px] py-[6px] rounded-[10px] transition-colors overflow-hidden shrink-0",
+                  isActive ? "bg-accent" : "hover:bg-accent",
+                  isOverflow && !isExpanded && "hidden lg:flex",
+                )}
                 title={isCollapsed ? item.name : undefined}
               >
-                <div className="flex items-center gap-[8px]">
-                  <Icon size={24} className="shrink-0" />
-                  <span
-                    className={`text-[14px] text-foreground whitespace-nowrap transition-opacity duration-200 ${isCollapsed ? "opacity-0" : "opacity-100"}`}
-                  >
-                    {item.name}
-                  </span>
-                </div>
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-[8px]",
+                    TONES[tone],
+                  )}
+                >
+                  <Icon size={16} />
+                </span>
+                <span
+                  className={cn(
+                    "truncate text-[14px] text-foreground transition-opacity duration-200",
+                    isActive && "font-bold",
+                    isCollapsed && "opacity-0",
+                  )}
+                >
+                  {item.name}
+                </span>
                 {item.count && (
                   <div
-                    className={`absolute right-[8px] bg-success-badge rounded-[8px] px-[8px] py-[2px] flex items-center transition-opacity duration-200 ${isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                    className={cn(
+                      "absolute right-[8px] bg-success-badge rounded-[8px] px-[8px] py-[2px] flex items-center transition-opacity duration-200",
+                      isCollapsed
+                        ? "opacity-0 pointer-events-none"
+                        : "opacity-100",
+                    )}
                   >
                     <span className="text-success-badge-foreground text-[12px] font-[600]">
                       {item.count}
@@ -145,16 +246,38 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
               </Link>
             );
           })}
+
+          {/* Phones get a short menu with a toggle; the sidebar has room for
+              everything, so the button is hidden there. */}
+          {hasOverflow && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded((open) => !open)}
+              className="lg:hidden flex items-center gap-[8px] px-[8px] py-[6px] rounded-[10px] text-[13px] font-bold text-primary hover:bg-accent transition-colors cursor-pointer"
+            >
+              {isExpanded
+                ? "কম দেখান"
+                : `আরও ${itemCount - PHONE_VISIBLE_ITEMS} টি দেখুন`}
+              <ArrowRight2
+                className={cn(
+                  "size-4 transition-transform duration-200",
+                  isExpanded && "rotate-90",
+                )}
+              />
+            </button>
+          )}
         </nav>
 
         <Link
           href={sidebarAnnouncement.href}
           onClick={onClose}
-          className={`hidden lg:flex flex-col gap-[8px] bg-background border-[0.5px] border-border rounded-[16px] hover:bg-muted transition-all duration-300 overflow-hidden shrink-0 ${
+          className={cn(
+            "hidden lg:flex flex-col gap-[8px] rounded-[16px] overflow-hidden shrink-0 transition-all duration-300",
+            "bg-gradient-to-br from-indigo-600 via-indigo-600 to-fuchsia-600 p-[10px] pb-[12px]",
             isCollapsed
-              ? "max-h-0 opacity-0 p-0 border-0 mb-0 pointer-events-none"
-              : "max-h-[280px] opacity-100 p-[8px] pb-[12px] mb-[4px]"
-          }`}
+              ? "max-h-0 opacity-0 p-0 mb-0 pointer-events-none"
+              : "max-h-[280px] opacity-100 mb-[4px]",
+          )}
         >
           <Image
             src={sidebarAnnouncement.imageSrc || "/images/image.png"}
@@ -165,10 +288,10 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
             priority
           />
           <div className="flex flex-col gap-[2px] px-[4px]">
-            <h4 className="text-[14px] text-foreground font-semibold">
+            <h4 className="text-[14px] text-white font-semibold">
               {sidebarAnnouncement.title}
             </h4>
-            <h6 className="text-[10px] text-muted-foreground leading-normal">
+            <h6 className="text-[10px] text-white/75 leading-normal">
               {sidebarAnnouncement.subtitle}
             </h6>
           </div>
@@ -207,135 +330,5 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
         </a>
       </div>
     </aside>
-  );
-}
-
-interface MobileBottomNavProps {
-  readonly dict: Dictionary;
-}
-
-export function MobileBottomNav({ dict }: MobileBottomNavProps) {
-  const pathname = usePathname();
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const isAdmin = pathname.startsWith("/admin");
-  const allNavItems = getNavItems(dict, isAdmin);
-
-  const primaryNavItems = allNavItems.slice(0, 4);
-  const moreNavItems = allNavItems.slice(4);
-
-  const isMoreActive = moreNavItems.some((item) =>
-    item.exact ? pathname === item.path : pathname.startsWith(item.path),
-  );
-
-  return (
-    <div className="lg:hidden fixed bottom-[12px] left-[12px] right-[12px] sm:left-[16px] sm:right-[16px] z-30 flex justify-center pointer-events-none">
-      <div className="flex items-center justify-between bg-background/90 backdrop-blur-xl border border-border/80 rounded-[24px] p-[5px] shadow-xl pointer-events-auto w-full max-w-[430px]">
-        {primaryNavItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.exact
-            ? pathname === item.path
-            : pathname.startsWith(item.path);
-
-          return (
-            <Link
-              key={item.name}
-              href={item.path}
-              className={`flex flex-1 flex-col items-center justify-center py-[7px] px-[2px] rounded-[18px] transition-all duration-200 ${
-                isActive
-                  ? "bg-foreground text-background shadow-xs font-bold"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              }`}
-            >
-              <Icon size={22} className="mb-[3px]" />
-              <span className="text-[11px] tracking-tight whitespace-nowrap">
-                {item.name}
-              </span>
-            </Link>
-          );
-        })}
-
-        {/* 5th Tab: Udvash-style Three-Line Menu Trigger */}
-        {moreNavItems.length > 0 && (
-          <Drawer open={isMoreOpen} onOpenChange={setIsMoreOpen}>
-            <DrawerTrigger
-              render={
-                <button
-                  type="button"
-                  className={`flex flex-1 flex-col items-center justify-center py-[7px] px-[2px] rounded-[18px] transition-all duration-200 outline-none cursor-pointer ${
-                    isMoreActive || isMoreOpen
-                      ? "bg-foreground text-background shadow-xs font-bold"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                  }`}
-                />
-              }
-            >
-              <HambergerMenu size={22} className="mb-[3px]" />
-              <span className="text-[11px] tracking-tight whitespace-nowrap">
-                মেনু
-              </span>
-            </DrawerTrigger>
-
-            <DrawerContent className="px-4 sm:px-6 pb-8 pt-3 bg-card border-t border-border rounded-t-[28px] max-w-lg mx-auto">
-              <DrawerHeader className="px-1 pt-1 pb-3 text-left">
-                <DrawerTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
-                  <HambergerMenu className="size-5 text-primary" />
-                  মেনু ও অন্যান্য ফিচার
-                </DrawerTitle>
-              </DrawerHeader>
-
-              {/* Separated, distinct full-width items */}
-              <div className="flex flex-col gap-2 pt-1">
-                {moreNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = item.exact
-                    ? pathname === item.path
-                    : pathname.startsWith(item.path);
-
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.path}
-                      onClick={() => setIsMoreOpen(false)}
-                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
-                        isActive
-                          ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
-                          : "bg-muted/30 border-border/70 text-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3.5">
-                        <div
-                          className={`p-2.5 rounded-xl shrink-0 ${
-                            isActive
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-background text-primary border border-border/50 shadow-2xs"
-                          }`}
-                        >
-                          <Icon size={22} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold">{item.name}</span>
-                          <span className="text-[11px] text-muted-foreground font-normal">
-                            {item.name === "পিডিএফ" ||
-                            item.name === "পিডিএফ সাজেশন"
-                              ? "লেকচার নোটস ও সাজেশন শিট"
-                              : item.name === "পোল"
-                                ? "কুইক পোলিং ও এমসিকিউ কুইজ"
-                                : item.name === "হিরো স্লাইডার"
-                                  ? "হোমপেজ ব্যানার ম্যানেজমেন্ট"
-                                  : "সরাসরি ব্রাউজ করুন"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <ArrowRight2 className="size-4 text-muted-foreground shrink-0" />
-                    </Link>
-                  );
-                })}
-              </div>
-            </DrawerContent>
-          </Drawer>
-        )}
-      </div>
-    </div>
   );
 }

@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft2, User as UserIcon } from "@/components/icons";
+import {
+  ArrowLeft2,
+  HambergerMenu,
+  User as UserIcon,
+} from "@/components/icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession } from "@/lib/auth-client";
 import type { ShellProps } from "@/types";
-import { MobileBottomNav, Sidebar } from "./navigation";
+import { Sidebar } from "./navigation";
 
 export default function Shell({ children, dict, lang }: ShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -19,21 +23,16 @@ export default function Shell({ children, dict, lang }: ShellProps) {
   const initial = user?.name?.charAt(0).toUpperCase() || "U";
 
   const isLoginPage = pathname.startsWith("/login");
-  const segments = pathname.split("/").filter(Boolean);
-  // /qb/[container]/[subject]/[chapter] has 4 segments: e.g. ["qb", "hsc-2026", "higher-math-2nd", "complex-numbers"]
-  const isQbChapterQuestionsPage = segments[0] === "qb" && segments.length >= 4;
+  const isQbChapterQuestionsPage = pathname.startsWith("/qb/");
   const isPollTakingPage =
     pathname.startsWith("/poll/take") || pathname.startsWith("/poll/solve");
-  const isExamSubPage = pathname.startsWith("/exams/");
   const isExamTakePage =
     pathname.startsWith("/exams/") && pathname.endsWith("/take");
 
-  const shouldShowBottomNav =
-    !isLoginPage &&
-    !isQbChapterQuestionsPage &&
-    !isPollTakingPage &&
-    !isExamSubPage;
+  /* The exam runner takes the whole screen — no chrome to get in the way. */
   const shouldHideTopNav = isExamTakePage;
+  const canOpenSidebar =
+    !isLoginPage && !isQbChapterQuestionsPage && !isPollTakingPage;
 
   return (
     <div className="flex h-[100dvh] w-full bg-muted text-foreground font-sans overflow-hidden relative">
@@ -42,21 +41,32 @@ export default function Shell({ children, dict, lang }: ShellProps) {
         <div className="lg:hidden fixed top-0 left-0 right-0 z-20 flex w-full border-b border-border bg-background/80 backdrop-blur-xl px-3 sm:px-4 py-2.5 shadow-xs">
           <div className="w-full flex flex-row items-center justify-between">
             <div className="flex flex-row items-center gap-[10px]">
-              <button
-                type="button"
-                aria-label="Go Back"
-                onClick={() => router.back()}
-                className="p-1 rounded-lg hover:bg-muted active:scale-95 transition-all text-foreground"
-              >
-                <ArrowLeft2 className="size-6 text-foreground" />
-              </button>
+              {canOpenSidebar ? (
+                <button
+                  type="button"
+                  aria-label="খুলুন"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="p-1 -ml-1 rounded-lg hover:bg-muted active:scale-95 transition-all text-foreground"
+                >
+                  <HambergerMenu className="size-6" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Go Back"
+                  onClick={() => router.back()}
+                  className="p-1 rounded-lg hover:bg-muted active:scale-95 transition-all text-foreground"
+                >
+                  <ArrowLeft2 className="size-6 text-foreground" />
+                </button>
+              )}
               <Link
                 href={`/`}
                 className="flex flex-row items-center"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <h3 className="text-[18px] font-[800] text-foreground whitespace-nowrap mt-[1px]">
-                  স্কয়ার
+                  স্কয়ার
                 </h3>
               </Link>
             </div>
@@ -117,13 +127,11 @@ export default function Shell({ children, dict, lang }: ShellProps) {
         className={`flex-1 bg-background relative overflow-hidden rounded-[0px] lg:rounded-[24px] border-0 lg:border-[0.5px] lg:border-border ${shouldHideTopNav ? "m-0" : "mt-0 lg:my-[20px] lg:mr-[20px] pt-[50px] lg:pt-0"}`}
       >
         <div
-          className={`w-full h-full overflow-y-auto ${shouldHideTopNav ? "" : "p-2.5 sm:p-6 md:p-8 lg:p-10"} ${shouldShowBottomNav ? "pb-20 sm:pb-24 lg:pb-10" : "pb-0"}`}
+          className={`w-full h-full overflow-y-auto ${shouldHideTopNav ? "" : "p-2.5 sm:p-6 md:p-8 lg:p-10"}`}
         >
           {children}
         </div>
       </div>
-
-      {shouldShowBottomNav && <MobileBottomNav dict={dict} />}
     </div>
   );
 }

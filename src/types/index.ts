@@ -84,9 +84,25 @@ export interface ResourceRowCardProps {
   readonly downloadText: string;
 }
 
+/** Icon tile colour, so each area of the portal is recognisable at a glance. */
+export type NavTone =
+  | "navy"
+  | "green"
+  | "orange"
+  | "purple"
+  | "blue"
+  | "pink"
+  | "yellow";
+
 export interface NavItem {
   readonly name: string;
   readonly path: string;
+  /**
+   * Path used to decide whether the item is active. `pathname` never carries
+   * a query string, so an item like `/exams?tab=live` needs the bare `/exams`
+   * spelled out here or it would never highlight.
+   */
+  readonly matchPath?: string;
   readonly exact: boolean;
   readonly icon: ComponentType<{
     readonly size?: number;
@@ -94,6 +110,13 @@ export interface NavItem {
     readonly className?: string;
   }>;
   readonly count?: number;
+  readonly tone?: NavTone;
+}
+
+/** A labelled run of nav items — "পরীক্ষা" then everything exam related. */
+export interface NavGroup {
+  readonly label?: string;
+  readonly items: readonly NavItem[];
 }
 
 export interface Exam {
