@@ -3,12 +3,17 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  batchDetails,
   batchEnrollments,
   batches,
   batchMembers,
   courseClasses,
+  examQuestions,
+  examResponses,
   examSubmissions,
   exams,
+  mcqOptions,
+  questions,
 } from "@/db/schema";
 
 /**
@@ -148,4 +153,93 @@ export async function getStudentSubmissions(
         ? r.submittedAt
         : new Date(r.submittedAt ?? 0),
   }));
+}
+
+/**
+ * Every question the student got wrong, with its options, newest first. A
+ * question missed in three exams appears once — the bank is meant for review,
+ * not for counting mistakes.
+ */
+export async function getWrongAnswers(userId: string): Promise<
+  readonly {
+    question: typeof questions.$inferSelect;
+    options: (typeof mcqOptions.$inferSelect)[];
+    examTitle: string;
+  }[]
+> {
+  const rows = await db
+    .select({
+      question: questions,
+      examTitle: exams.title,
+    })
+    .from(examResponses)
+    .innerJoin(
+      examQuestions,
+      eq(examResponses.examQuestionId, examQuestions.id),
+    )
+    .innerJoin(questions, eq(examQuestions.questionId, questions.id))
+    .innerJoin(
+      examSubmissions,
+      eq(examResponses.submissionId, examSubmissions.id),
+    )
+    .innerJoin(exams, eq(examSubmissions.examId, exams.id))
+    .where(
+      and(
+        eq(examResponses.isCorrect, false),
+        eq(examSubmissions.userId, userId),
+      ),
+    )
+    .orderBy(desc(examSubmissions.submittedAt));
+
+  const firstSeen = new Map<string, (typeof rows)[number]>();
+  for (const row of rows) {
+    if (!firstSeen.has(row.question.id)) {
+      firstSeen.set(row.question.id, row);
+    }
+  }
+  if (firstSeen.size === 0) return [];
+
+  const optionRows = await db
+    .select()
+    .from(mcqOptions)
+    .where(inArray(mcqOptions.questionId, [...firstSeen.keys()]))
+    .orderBy(mcqOptions.orderNo);
+
+  const optionsByQuestion = new Map<
+    string,
+    (typeof mcqOptions.$inferSelect)[]
+  >();
+  for (const option of optionRows) {
+    const list = optionsByQuestion.get(option.questionId) ?? [];
+    list.push(option);
+    optionsByQuestion.set(option.questionId, list);
+  }
+
+  return [...firstSeen.values()].map((row) => ({
+    question: row.question,
+    options: optionsByQuestion.get(row.question.id) ?? [],
+    examTitle: row.examTitle,
+  }));
+}
+
+/** Routine PDF for every course the student is in. */
+export async function getStudentRoutines(
+  userId: string,
+): Promise<readonly { title: string; routineUrl: string; batchId: string }[]> {
+  const batchIds = await getEnrolledBatchIds(userId);
+  if (batchIds.length === 0) return [];
+
+  const rows = await db
+    .select({
+      title: batches.name,
+      routineUrl: batchDetails.routineUrl,
+      batchId: batches.id,
+    })
+    .from(batches)
+    .innerJoin(batchDetails, eq(batchDetails.batchId, batches.id))
+    .where(inArray(batches.id, batchIds));
+
+  return rows.flatMap((r) =>
+    r.routineUrl ? [{ ...r, routineUrl: r.routineUrl }] : [],
+  );
 }

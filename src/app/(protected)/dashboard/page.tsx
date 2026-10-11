@@ -1,75 +1,79 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { DashboardMoreMenu } from "@/components/dashboard/dashboard-more-menu";
+import {
+  QB_CARD_COLORS,
+  QB_SQUARE_BLOBS,
+  QbCardShapes,
+} from "@/components/qb/card-skin";
 import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
 
 export const dynamic = "force-dynamic";
 
-/** The four shortcuts the sketch puts under the summary row. */
 const SHORTCUTS = [
-  { href: "/live-classes", label: "লাইভ ক্লাস (সময়সূচি ও ক্লাস)" },
-  { href: "/pdf", label: "কোর্স সাজেশন ও পিডিএফ" },
-  { href: "/qb", label: "ইনফো সংগ্রহ" },
-  { href: "/my-results", label: "আর্কাইভ এক্সাম" },
+  {
+    href: "/exams",
+    label: "পরীক্ষার সমূহ",
+    note: "তোমার কোর্সের মধ্যে থাকা সবগুলো পরীক্ষা এখানে দেখতে পারো",
+  },
+  { href: "/exams?tab=practice", label: "প্র্যাকটিস পরীক্ষা" },
+  { href: "/my-results", label: "আর্কাইভ পরীক্ষা" },
+  { href: "/wrong-answers", label: "ভুল ব্যাংক" },
+  { href: "/performance", label: "পারফরমেন্স রিপোর্ট" },
 ] as const;
 
 export default async function DashboardPage() {
   const banks = await getQbTree();
-
-  const banksCount = banks.length;
   const questionCount = banks.reduce((sum, b) => sum + b.questions, 0);
 
   return (
-    <div className="flex w-full max-w-5xl flex-col gap-4 pb-16">
-      <section className="grid gap-4 lg:grid-cols-[1.9fr_1fr]">
-        {/* Left — greeting */}
-        <div className="relative flex min-h-44 flex-col justify-center overflow-hidden rounded-3xl border border-border bg-card p-6 md:min-h-48 md:p-8">
-          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
-            Dashboard
-          </h1>
-          <p className="mt-2 text-base text-muted-foreground md:text-lg">
-            প্রিয় শিক্ষার্থী, স্বাগতম
-          </p>
-
-          {/* Hatched quarter-round in the bottom-right corner. */}
-          <div
-            aria-hidden
-            className="absolute right-0 bottom-0 size-28 rounded-tl-full text-foreground opacity-15 [mask-image:linear-gradient(135deg,#000_32%,transparent_80%)] bg-[repeating-linear-gradient(to_bottom,currentColor_0_1px,transparent_1px_8px)]"
-          />
-        </div>
-
-        {/* Right — question bank summary + practice */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-1 flex-col items-center justify-center rounded-3xl border border-border bg-card p-6 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              প্রশ্নব্যাংক
-            </p>
-            <p className="text-3xl font-black tracking-tight md:text-4xl">
-              সর্বমোট: {toBengaliDigits(banksCount)}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {toBengaliDigits(questionCount)}+ প্রশ্ন
-            </p>
-          </div>
-
-          <Button
-            render={<Link href="/exams?tab=practice" />}
-            className="h-12 w-full rounded-full text-base font-semibold"
+    <div className="flex w-full max-w-3xl flex-col gap-4 pb-16">
+      <div className="flex items-start justify-between gap-3">
+        {/* Question bank card — same red-and-white skin as the bank grid. */}
+        <Link
+          href="/qb"
+          className="group relative flex aspect-[5/3] w-full max-w-sm flex-col justify-end overflow-hidden rounded-3xl p-5 shadow-sm transition-transform hover:-translate-y-0.5"
+          style={{ background: QB_CARD_COLORS.background }}
+        >
+          <QbCardShapes blobs={QB_SQUARE_BLOBS} />
+          <p
+            className="relative z-10 text-sm font-bold"
+            style={{ color: QB_CARD_COLORS.subText }}
           >
-            প্র্যাকটিস পরীক্ষা
-          </Button>
-        </div>
-      </section>
+            প্রশ্নব্যাংক
+          </p>
+          <h1
+            className="relative z-10 text-2xl font-black md:text-3xl"
+            style={{ color: QB_CARD_COLORS.text }}
+          >
+            প্রশ্নব্যাংক দেখুন
+          </h1>
+          <p
+            className="relative z-10 text-sm"
+            style={{ color: QB_CARD_COLORS.subText }}
+          >
+            {toBengaliDigits(questionCount)}+ প্রশ্ন
+          </p>
+        </Link>
 
-      {/* Shortcuts */}
+        <DashboardMoreMenu />
+      </div>
+
       <nav className="flex flex-col gap-3">
         {SHORTCUTS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="flex min-h-16 items-center justify-center rounded-full border border-border bg-card px-6 py-4 text-center text-base font-semibold transition-colors hover:bg-accent md:min-h-[76px] md:text-lg"
+            className="flex min-h-16 flex-col items-center justify-center rounded-full border border-border bg-card px-6 py-3 text-center transition-colors hover:bg-accent md:min-h-[76px]"
           >
-            {item.label}
+            <span className="text-base font-semibold md:text-lg">
+              {item.label}
+            </span>
+            {"note" in item && (
+              <span className="mt-0.5 text-xs text-muted-foreground">
+                {item.note}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
