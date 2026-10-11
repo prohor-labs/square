@@ -360,11 +360,6 @@ function AllDatesTable({
           </tbody>
         </table>
       </div>
-
-      <p className="px-3 sm:px-4 py-2.5 text-[11px] text-muted-foreground border-t">
-        মোট {toBengaliDigits(visible.length)} টি তারিখ · আগের তারিখ আগে দেখানো
-        হয়েছে
-      </p>
     </div>
   );
 }

@@ -2,7 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Calendar, Chart, FileDown, Send, User } from "@/components/icons";
+import type { ComponentType } from "react";
+import {
+  BookOpen,
+  Calendar,
+  CalendarTick,
+  Chart,
+  Danger,
+  FileDown,
+  Home,
+  Send,
+  TaskSquare,
+  User,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
 import { useSession } from "@/lib/auth-client";
@@ -42,7 +54,9 @@ export function LandingHeader() {
             <div className="w-24 h-10 rounded-full bg-muted animate-pulse" />
           ) : session?.user ? (
             <Button
-              render={<Link href="/dashboard" className="flex items-center gap-2" />}
+              render={
+                <Link href="/dashboard" className="flex items-center gap-2" />
+              }
               className="rounded-full px-6 py-2.5 font-bold shadow-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-102 text-sm cursor-pointer"
             >
               <User data-icon="inline-start" className="size-4" />
@@ -50,7 +64,9 @@ export function LandingHeader() {
             </Button>
           ) : (
             <Button
-              render={<Link href="/login" className="flex items-center gap-2" />}
+              render={
+                <Link href="/login" className="flex items-center gap-2" />
+              }
               className="rounded-full px-6 py-2.5 font-bold shadow-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-102 text-sm cursor-pointer"
             >
               <User data-icon="inline-start" className="size-4" />
@@ -67,121 +83,128 @@ export function LandingFooter() {
   return (
     <footer
       id="main-footer"
-      className="bg-card text-foreground pt-12 pb-8 border-t border-border mt-16 transition-colors"
+      className="mt-16 border-t border-white/10 bg-gradient-to-b from-red-950 via-neutral-950 to-neutral-950 text-white transition-colors"
     >
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-          {/* Brand Info */}
+      <div className="mx-auto max-w-7xl px-4 pt-14 pb-8 md:px-8">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Brand — the logo and name match the header exactly. */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="size-9 bg-foreground/10 p-1 rounded-xl flex items-center justify-center">
+            <Link
+              href="/"
+              className="group flex w-fit cursor-pointer items-center gap-1.5"
+            >
+              <div className="flex size-14 items-center justify-center rounded-xl border-2 border-white bg-white p-0.5 transition-all duration-300">
                 <Image
                   alt="Logo"
                   className="size-full object-contain"
                   src="https://raw.githubusercontent.com/shuyaib105/square/refs/heads/main/1536-removebg-preview.png"
-                  width={36}
-                  height={36}
+                  width={56}
+                  height={56}
                   unoptimized
                 />
               </div>
-              <span className="text-lg font-black tracking-tight text-foreground">
+              <span className="text-xl font-extrabold tracking-tight text-white">
                 Engr. Platform
               </span>
-            </div>
-            <p className="text-muted-foreground text-xs leading-loose italic border-l-2 border-primary/40 pl-3">
-              &quot;শুধু পড়াশোনা নয়, তৈরি করো নিজেকে যুগের সাথে তাল মিলিয়ে। ইঞ্জিনিয়ারিং
-              প্রস্তুতি এবার বাড়ির কাছে।&quot;
+            </Link>
+            <p className="text-xs leading-relaxed text-white/60">
+              শুধু পড়াশোনা নয়, তৈরি করো নিজেকে যুগের সাথে তাল মিলিয়ে। ইঞ্জিনিয়ারিং প্রস্তুতি
+              এবার বাড়ির কাছে।
             </p>
           </div>
 
-          {/* Useful resources */}
-          <div>
-            <h4 className="text-xs font-black mb-4 text-foreground uppercase tracking-widest">
-              সহায়ক রিসোর্স
-            </h4>
-            <ul className="space-y-3 text-muted-foreground text-xs font-semibold">
-              <li>
-                <Link
-                  href="/free-exam"
-                  className="hover:text-foreground flex items-center gap-2.5 transition-colors"
-                >
-                  <BookOpen
-                    data-icon="inline-start"
-                    className="size-3.5 text-violet-500"
-                  />
-                  <span>সবার জন্য উন্মুক্ত ফ্রি এক্সাম</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pdf"
-                  className="hover:text-foreground flex items-center gap-2.5 transition-colors"
-                >
-                  <FileDown
-                    data-icon="inline-start"
-                    className="size-3.5 text-rose-500"
-                  />
-                  <span>সাজেশন পিডিএফ পোর্টাল</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/poll"
-                  className="hover:text-foreground flex items-center gap-2.5 transition-colors"
-                >
-                  <Chart
-                    data-icon="inline-start"
-                    className="size-3.5 text-blue-500"
-                  />
-                  <span>লাইভ পোল ও এমসিকিউ কুইজ</span>
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <FooterColumn title="দ্রুত লিংক">
+            <FooterLink href="/dashboard" icon={Home} label="ড্যাশবোর্ড" />
+            <FooterLink
+              href="/calendar"
+              icon={Calendar}
+              label="ভর্তি পরীক্ষার ক্যালেন্ডার"
+            />
+            <FooterLink href="/qb" icon={TaskSquare} label="প্রশ্নব্যাংক" />
+            <FooterLink href="/wrong-answers" icon={Danger} label="ভুল ব্যাংক" />
+          </FooterColumn>
 
-          {/* Social Links */}
-          <div>
-            <h4 className="text-xs font-black mb-4 text-foreground uppercase tracking-widest">
-              যোগাযোগ ও সোশ্যাল মিডিয়া
-            </h4>
-            <ul className="space-y-3 text-muted-foreground text-xs font-semibold">
-              <li>
-                <a
-                  href="https://t.me/shu_yaib"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground flex items-center gap-2.5 transition-colors group"
-                >
-                  <Send
-                    data-icon="inline-start"
-                    className="size-3.5 text-sky-500"
-                  />
-                  <span>টেলিগ্রাম গ্রুপে যুক্ত হোন</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground flex items-center gap-2.5 transition-colors group"
-                >
-                  <User
-                    data-icon="inline-start"
-                    className="size-3.5 text-blue-600"
-                  />
-                  <span>ফেসবুক সাপোর্ট কমিউনিটি</span>
-                </a>
-              </li>
-            </ul>
-          </div>
+          <FooterColumn title="রিসোর্স">
+            <FooterLink href="/free-exam" icon={BookOpen} label="ফ্রি এক্সাম" />
+            <FooterLink href="/pdf" icon={FileDown} label="সাজেশন পিডিএফ" />
+            <FooterLink href="/poll" icon={Chart} label="লাইভ পোল ও কুইজ" />
+            <FooterLink href="/routine" icon={CalendarTick} label="কোর্স রুটিন" />
+          </FooterColumn>
+
+          <FooterColumn title="যোগাযোগ">
+            <FooterLink
+              href="https://t.me/shu_yaib"
+              icon={Send}
+              label="টেলিগ্রাম গ্রুপ"
+            />
+            <FooterLink
+              href="https://facebook.com"
+              icon={User}
+              label="ফেসবুক কমিউনিটি"
+            />
+          </FooterColumn>
         </div>
 
-        <div className="pt-8 border-t border-border text-center text-muted-foreground text-xs">
-          © 2026 Engr. Platform. All rights reserved. Developed with absolute
-          craft &amp; precision.
+        <div className="mt-12 flex flex-col items-center gap-2 border-t border-white/10 pt-6 text-center text-xs text-white/50 sm:flex-row sm:justify-between sm:text-left">
+          <span>© ২০২৬ Engr. Platform · সর্বস্বত্ব সংরক্ষিত</span>
+          <span>ইঞ্জিনিয়ারিং ভর্তি পরীক্ষার প্রস্তুতি প্ল্যাটফর্ম</span>
         </div>
       </div>
     </footer>
+  );
+}
+
+/** A titled group of footer links. */
+function FooterColumn({
+  title,
+  children,
+}: {
+  readonly title: string;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h4 className="mb-4 text-xs font-black uppercase tracking-widest text-white/80">
+        {title}
+      </h4>
+      <ul className="space-y-3">{children}</ul>
+    </div>
+  );
+}
+
+/** One footer row — an external link opens in a new tab, an internal one does not. */
+function FooterLink({
+  href,
+  icon: Icon,
+  label,
+}: {
+  readonly href: string;
+  readonly icon: ComponentType<{ readonly className?: string }>;
+  readonly label: string;
+}) {
+  const row =
+    "group flex items-center gap-2.5 text-xs font-semibold text-white/60 transition-colors hover:text-white";
+  const inner = (
+    <>
+      <Icon
+        data-icon="inline-start"
+        className="size-3.5 text-red-400 transition-colors group-hover:text-red-300"
+      />
+      <span>{label}</span>
+    </>
+  );
+
+  return href.startsWith("http") ? (
+    <li>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={row}>
+        {inner}
+      </a>
+    </li>
+  ) : (
+    <li>
+      <Link href={href} className={row}>
+        {inner}
+      </Link>
+    </li>
   );
 }
