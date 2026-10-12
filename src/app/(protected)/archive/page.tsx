@@ -92,6 +92,17 @@ export default async function ArchivePage(): Promise<ReactElement> {
                   </div>
                 )}
               </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
+                <p className="text-[11px] text-muted-foreground">
+                  এটি আগের পরীক্ষা — আবার দিতে পারবে
+                </p>
+                <Link href={`/exams/${exam.slug}`} className="shrink-0">
+                  <Button className="rounded-xl px-5 font-semibold">
+                    পরীক্ষা দাও
+                  </Button>
+                </Link>
+              </div>
             </div>
           ))}
         </div>

@@ -4,6 +4,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
+  batchArchivedExams,
   batchEnrollments,
   batchExams,
   batchMembers,
@@ -140,8 +141,36 @@ export async function getStudentExams(userId: string) {
   }
 }
 
+/** Every batch the student belongs to, by paid enrolment or direct membership. */
+async function enrolledBatchIds(userId: string): Promise<string[]> {
+  const [members, enrolments] = await Promise.all([
+    db.query.batchMembers.findMany({
+      where: and(
+        eq(batchMembers.userId, userId),
+        eq(batchMembers.status, "active"),
+      ),
+      columns: { batchId: true },
+    }),
+    db.query.batchEnrollments.findMany({
+      where: and(
+        eq(batchEnrollments.userId, userId),
+        eq(batchEnrollments.status, "active"),
+      ),
+      columns: { batchId: true },
+    }),
+  ]);
+
+  return [
+    ...new Set([
+      ...members.map((m) => m.batchId),
+      ...enrolments.map((e) => e.batchId),
+    ]),
+  ];
+}
+
 /**
- * Check if user can access an exam (either via batch assignment or it's a public practice exam).
+ * Check if user can access an exam (batch assignment, public practice, or a
+ * course archive the student is part of).
  */
 export async function checkExamAccess(userId: string, examId: string) {
   try {
@@ -176,8 +205,25 @@ export async function checkExamAccess(userId: string, examId: string) {
       where: eq(batchExams.examId, examId),
     });
 
-    if (bExams.length === 0)
-      return { allowed: false, error: "Not assigned to any batch" };
+    if (bExams.length === 0) {
+      // A past exam can sit in a course's archive without being scheduled, so
+      // check the archive before turning the student away.
+      const myBatches = await enrolledBatchIds(userId);
+      const archived =
+        myBatches.length > 0 &&
+        (await db.query.batchArchivedExams.findFirst({
+          where: and(
+            eq(batchArchivedExams.examId, examId),
+            inArray(batchArchivedExams.batchId, myBatches),
+          ),
+        }));
+
+      if (!archived) {
+        return { allowed: false, error: "Not assigned to any batch" };
+      }
+
+      return { allowed: true, batchExamId: null, previousAttemptsCount: 0 };
+    }
 
     const targetBatchIds = bExams.map((be) => be.batchId);
 
