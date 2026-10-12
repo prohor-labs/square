@@ -232,8 +232,8 @@ export const batchEnrollments = pgTable("batch_enrollments", {
   }),
 }); // ─── Batches ──────────────────────────────────────────────────────────────────
 // A batch is a cohort of students, optionally tied to a course.
-// hscYear is omitted — courses.hscBatch is the canonical source of truth for
-// the academic year; duplicating it here risks contradictory data.
+// hscYear is omitted — batches.hscBatch is the canonical course category
+// ("Academic" | "Admission"); duplicating it here risks contradictory data.
 
 export const batches = pgTable("batches", {
   id: text("id")
@@ -243,7 +243,7 @@ export const batches = pgTable("batches", {
   slug: text("slug").notNull().unique(),
   subtitle: text("subtitle"),
   description: text("description").notNull(),
-  hscBatch: text("hsc_batch").notNull(), // "HSC 26" | "HSC 27" | "Admission"
+  hscBatch: text("hsc_batch").notNull(), // "Academic" | "Admission"
   price: integer("price").notNull(),
   originalPrice: integer("original_price"),
   image: text("image").notNull(),

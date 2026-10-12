@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { updateBatchDetailsAction } from "@/lib/actions/batch";
+import { HSC_BATCH_TAGS, normalizeHscBatch } from "@/lib/utils";
 import type { BatchDetail } from "@/types";
 
 export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
@@ -27,7 +28,9 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
   const [name, setName] = useState(batch.name || "");
   const [slug, setSlug] = useState(batch.slug || "");
   const [subtitle, setSubtitle] = useState((batch as any).subtitle || "");
-  const [hscBatch, setHscBatch] = useState((batch as any).hscBatch || "HSC 26");
+  const [hscBatch, setHscBatch] = useState<string>(
+    normalizeHscBatch((batch as any).hscBatch),
+  );
   const [price, setPrice] = useState((batch as any).price || 0);
   const [originalPrice, setOriginalPrice] = useState<number | string>(
     (batch as any).originalPrice || "",
@@ -53,7 +56,10 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
 
   // Details
   const [routinePdfUrl, setRoutinePdfUrl] = useState(
-    details.routinePdfUrl || details.routineUrl || curriculumObj.routinePdfUrl || "",
+    details.routinePdfUrl ||
+      details.routineUrl ||
+      curriculumObj.routinePdfUrl ||
+      "",
   );
   const [telegramGroupUrl, setTelegramGroupUrl] = useState(
     details.telegramGroupUrl || curriculumObj.telegramGroupUrl || "",
@@ -120,10 +126,7 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
   // Handlers for FAQs
   const addFaq = () => {
     if (newFaqQ.trim() && newFaqA.trim()) {
-      setFaqs([
-        ...faqs,
-        { question: newFaqQ.trim(), answer: newFaqA.trim() },
-      ]);
+      setFaqs([...faqs, { question: newFaqQ.trim(), answer: newFaqA.trim() }]);
       setNewFaqQ("");
       setNewFaqA("");
     }
@@ -192,7 +195,8 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
             কোর্স সেটিংস ও ল্যান্ডিং পেজ বিস্তারিত
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            কোর্সের ল্যান্ডিং পেজে প্রদর্শিত সকল বিবরণ, ফিচার, মেন্টর ও প্রায়শ জিজ্ঞাসিত প্রশ্ন কনফিগার করুন।
+            কোর্সের ল্যান্ডিং পেজে প্রদর্শিত সকল বিবরণ, ফিচার, মেন্টর ও প্রায়শ জিজ্ঞাসিত
+            প্রশ্ন কনফিগার করুন।
           </p>
         </div>
         <Button
@@ -247,11 +251,13 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="hscBatch">HSC Batch Tag / ক্যাটাগরি</Label>
-              <span className="text-[11px] text-muted-foreground">ক্লিক করে সিলেক্ট করুন</span>
+              <Label htmlFor="hscBatch">কোর্স ক্যাটাগরি</Label>
+              <span className="text-[11px] text-muted-foreground">
+                ক্লিক করে সিলেক্ট করুন
+              </span>
             </div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              {(["HSC 26", "HSC 27", "Admission"] as const).map((tag) => (
+              {HSC_BATCH_TAGS.map((tag) => (
                 <button
                   key={tag}
                   type="button"
@@ -270,7 +276,7 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
               id="hscBatch"
               value={hscBatch}
               onChange={(e) => setHscBatch(e.target.value)}
-              placeholder="e.g. HSC 26 / HSC 27 / Admission"
+              placeholder="Academic / Admission"
               className="rounded-xl"
             />
           </div>
@@ -561,9 +567,7 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
                 <div className="font-bold text-foreground">
                   প্রশ্ন: {faq.question}
                 </div>
-                <div className="text-muted-foreground">
-                  উত্তর: {faq.answer}
-                </div>
+                <div className="text-muted-foreground">উত্তর: {faq.answer}</div>
               </div>
               <Button
                 type="button"

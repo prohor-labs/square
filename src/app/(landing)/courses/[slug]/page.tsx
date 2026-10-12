@@ -162,7 +162,7 @@ export default async function CourseDetailPage({
                     ● {course.duration}
                   </span>
                   <span className="inline-flex items-center text-[11px] font-bold bg-muted text-foreground/80 px-3 py-1 rounded-full border border-border">
-                    {course.hscBatch || "এডমিশন স্পেশাল"}
+                    {course.hscBatch || "Admission"}
                   </span>
                 </div>
 

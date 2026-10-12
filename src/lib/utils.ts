@@ -5,17 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function normalizeHscBatch(raw?: string | null): string {
-  if (!raw || typeof raw !== "string") return "HSC 26";
-  const trimmed = raw.trim();
-  const lower = trimmed.toLowerCase();
+/** The only two course categories a batch can sit in. */
+export const HSC_BATCH_TAGS = ["Academic", "Admission"] as const;
+export type HscBatchTag = (typeof HSC_BATCH_TAGS)[number];
 
-  if (lower.includes("27") || lower.includes("সাতাস") || lower.includes("২৭")) {
-    return "HSC 27";
-  }
-  if (lower.includes("26") || lower.includes("ছাব্বিশ") || lower.includes("২৬")) {
-    return "HSC 26";
-  }
+/**
+ * Folds whatever a form or an old row sends into one of the two categories.
+ * The "HSC 26" / "HSC 27" tags this replaces all belong to Academic.
+ */
+export function normalizeHscBatch(raw?: string | null): HscBatchTag {
+  if (!raw || typeof raw !== "string") return "Academic";
+  const lower = raw.trim().toLowerCase();
+
   if (
     lower.includes("admi") ||
     lower.includes("এডমিশন") ||
@@ -25,5 +26,5 @@ export function normalizeHscBatch(raw?: string | null): string {
   ) {
     return "Admission";
   }
-  return trimmed;
+  return "Academic";
 }

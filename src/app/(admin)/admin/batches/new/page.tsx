@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { createBatchAction } from "@/lib/actions/batch";
+import { HSC_BATCH_TAGS } from "@/lib/utils";
 
 export default function NewBatchPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hscBatchTag, setHscBatchTag] = useState("HSC 26");
+  const [hscBatchTag, setHscBatchTag] = useState<string>("Academic");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -75,12 +76,17 @@ export default function NewBatchPage() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="hscBatch" className="text-sm font-medium flex items-center justify-between">
-            <span>HSC Batch / ক্যাটাগরি</span>
-            <span className="text-xs text-muted-foreground">ক্লিক করে সিলেক্ট করুন</span>
+          <label
+            htmlFor="hscBatch"
+            className="text-sm font-medium flex items-center justify-between"
+          >
+            <span>কোর্স ক্যাটাগরি</span>
+            <span className="text-xs text-muted-foreground">
+              ক্লিক করে সিলেক্ট করুন
+            </span>
           </label>
           <div className="flex items-center gap-2 mb-2">
-            {(["HSC 26", "HSC 27", "Admission"] as const).map((tag) => (
+            {HSC_BATCH_TAGS.map((tag) => (
               <button
                 key={tag}
                 type="button"
@@ -101,7 +107,7 @@ export default function NewBatchPage() {
             value={hscBatchTag}
             onChange={(e) => setHscBatchTag(e.target.value)}
             required
-            placeholder="e.g. HSC 26 / HSC 27 / Admission"
+            placeholder="Academic / Admission"
             className="rounded-xl"
           />
         </div>
@@ -115,7 +121,10 @@ export default function NewBatchPage() {
             defaultChecked
             className="size-4 rounded border-border text-primary cursor-pointer"
           />
-          <label htmlFor="isPublished" className="text-sm font-medium cursor-pointer select-none">
+          <label
+            htmlFor="isPublished"
+            className="text-sm font-medium cursor-pointer select-none"
+          >
             অবিলম্বে ওয়েবসাইটে প্রকাশ করুন (Publish Course Immediately)
           </label>
         </div>

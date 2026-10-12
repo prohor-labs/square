@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { getCourses } from "@/lib/actions/course";
+import { HSC_BATCH_TAGS, type HscBatchTag } from "@/lib/utils";
 
 type CourseItem = {
   readonly id: string;
@@ -20,9 +21,7 @@ type CourseItem = {
 };
 
 export function CoursesPricingSection() {
-  const [selectedBatch, setSelectedBatch] = useState<
-    "HSC 26" | "HSC 27" | "Admission"
-  >("HSC 26");
+  const [selectedBatch, setSelectedBatch] = useState<HscBatchTag>("Academic");
   const [coursesList, setCoursesList] = useState<readonly CourseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -48,39 +47,20 @@ export function CoursesPricingSection() {
           </h2>
           <div className="flex justify-center mt-6">
             <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl bg-muted/60 dark:bg-muted/30 border border-border/50 overflow-x-auto no-scrollbar max-w-full">
-              <button
-                type="button"
-                onClick={() => setSelectedBatch("HSC 26")}
-                className={`px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                  selectedBatch === "HSC 26"
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                HSC 26
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedBatch("HSC 27")}
-                className={`px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                  selectedBatch === "HSC 27"
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                HSC 27
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedBatch("Admission")}
-                className={`px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                  selectedBatch === "Admission"
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                Admission
-              </button>
+              {HSC_BATCH_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedBatch(tag)}
+                  className={`px-4 sm:px-8 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    selectedBatch === tag
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  {tag === "Academic" ? "একাডেমিক" : "এডমিশন"}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -163,13 +143,13 @@ export function CoursesPricingSection() {
               </Card>
             ))}
           </div>
-        ) : selectedBatch === "HSC 27" ? (
+        ) : selectedBatch === "Academic" ? (
           <Card className="py-16 text-center flex flex-col items-center justify-center gap-3 bg-card rounded-3xl border-border/60 p-8 shadow-xs">
             <div className="size-12 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
               <Flame className="size-6" />
             </div>
             <h3 className="font-bold text-lg sm:text-xl text-foreground">
-              HSC 27 ব্যাচের কোর্স খুব শীঘ্রই উন্মুক্ত করা হবে
+              একাডেমিক কোর্স খুব শীঘ্রই উন্মুক্ত করা হবে
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
               আমাদের টেলিগ্রাম সাপোর্ট গ্রুপে যুক্ত হয়ে সবার আগে ব্যাচ সংক্রান্ত আপডেট ও স্পেশাল
