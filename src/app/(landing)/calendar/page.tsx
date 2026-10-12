@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { LandingFooter, LandingHeader } from "@/components/landing-nav";
 import Shell from "@/components/shell";
-import { getCalendarCategoryContent } from "@/lib/actions/settings";
+import { getCalendarGroups } from "@/lib/actions/settings";
 import { auth } from "@/lib/auth";
 import { dictionary } from "@/lib/dictionary";
 
@@ -11,7 +11,7 @@ import { dictionary } from "@/lib/dictionary";
 export default async function CalendarPage() {
   const [session, content] = await Promise.all([
     auth.api.getSession({ headers: await headers() }),
-    getCalendarCategoryContent(),
+    getCalendarGroups(),
   ]);
 
   if (session?.user) {

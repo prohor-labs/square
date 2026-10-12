@@ -1,18 +1,16 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { siteSettings } from "../db/schema";
-import { DEFAULT_CALENDAR_CONTENT } from "../lib/calendar-content";
+import { DEFAULT_CALENDAR_GROUPS } from "../lib/calendar-content";
 
-const CONTENT_KEY = "calendar_categories";
+const CONTENT_KEY = "calendar_groups";
 
 async function main() {
-  console.log("Saving calendar thumbnails and info tables...");
+  console.log("Saving the admission exam schedule...");
 
-  const value = DEFAULT_CALENDAR_CONTENT.map((item) => ({
-    category: item.category,
-    thumbnail: item.thumbnail,
-    thumbnailAlt: item.thumbnailAlt,
-    sections: item.sections,
+  const value = DEFAULT_CALENDAR_GROUPS.map((group) => ({
+    label: group.label,
+    rows: group.rows,
   }));
 
   const existing = await db.query.siteSettings.findFirst({
@@ -24,25 +22,16 @@ async function main() {
       .update(siteSettings)
       .set({ value, updatedAt: new Date() })
       .where(eq(siteSettings.key, CONTENT_KEY));
-    console.log("Existing calendar_categories row updated.");
+    console.log("Existing calendar_groups row updated.");
   } else {
     await db
       .insert(siteSettings)
       .values({ key: CONTENT_KEY, value, updatedAt: new Date() });
-    console.log("New calendar_categories row inserted.");
+    console.log("New calendar_groups row inserted.");
   }
 
-  for (const item of value) {
-    const rows = item.sections.reduce(
-      (total, section) =>
-        total +
-        section.groups.reduce((sum, group) => sum + group.rows.length, 0),
-      0,
-    );
-    console.log(
-      `  ${item.category}: ${item.sections.length} section(s), ${rows} row(s)`,
-    );
-  }
+  const rows = value.reduce((total, group) => total + group.rows.length, 0);
+  console.log(`  ${value.length} universities, ${rows} exams`);
 
   console.log("Calendar content seed completed successfully!");
   process.exit(0);

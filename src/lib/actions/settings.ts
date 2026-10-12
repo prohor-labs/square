@@ -7,10 +7,9 @@ import { db } from "@/db";
 import { siteSettings } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import {
-  type CalendarCategoryContent,
-  getDefaultCalendarContent,
+  type CalendarGroup,
+  DEFAULT_CALENDAR_GROUPS,
 } from "@/lib/calendar-content";
-import { CALENDAR_CATEGORIES } from "@/types";
 
 export interface SliderItem {
   id: string;
@@ -100,49 +99,36 @@ export async function updateHeroSliders(sliders: SliderItem[]) {
   }
 }
 
-// ─── Calendar category content (thumbnail + custom info tables) ───────────────
-// Stored as JSON in `site_settings`, same as `hero_sliders`. Each of the four
-// admission tracks owns one thumbnail and any number of titled table sections.
+// ─── Calendar groups ───────────────────────────────────────────────────────────
+// Stored as JSON in `site_settings`, same as `hero_sliders`. One flat list of
+// universities and their exam dates — the only thing the calendar renders.
 
-export type {
-  CalendarCategoryContent,
-  CalendarTableGroup,
-  CalendarTableSection,
-} from "@/lib/calendar-content";
+export type { CalendarGroup } from "@/lib/calendar-content";
 
-const CALENDAR_CONTENT_KEY = "calendar_categories";
+const CALENDAR_CONTENT_KEY = "calendar_groups";
 
 /**
- * Public read. Always returns one entry per category, falling back to the
- * built-in default content for any track the admin has not saved yet — and for
- * every track when the database is unreachable, so the page still renders.
+ * Public read. Falls back to the built-in schedule when nothing is saved, and
+ * again when the database is unreachable, so the page always renders.
  */
-export async function getCalendarCategoryContent(): Promise<
-  CalendarCategoryContent[]
-> {
+export async function getCalendarGroups(): Promise<CalendarGroup[]> {
   try {
     const setting = await db.query.siteSettings.findFirst({
       where: eq(siteSettings.key, CALENDAR_CONTENT_KEY),
     });
 
     const stored = Array.isArray(setting?.value)
-      ? (setting.value as CalendarCategoryContent[])
+      ? (setting.value as CalendarGroup[])
       : [];
-    const byCategory = new Map(stored.map((item) => [item.category, item]));
 
-    return CALENDAR_CATEGORIES.map(
-      (category) =>
-        byCategory.get(category) ?? getDefaultCalendarContent(category),
-    );
+    return stored.length > 0 ? stored : [...DEFAULT_CALENDAR_GROUPS];
   } catch (error) {
-    console.error("Failed to fetch calendar category content:", error);
-    return CALENDAR_CATEGORIES.map(getDefaultCalendarContent);
+    console.error("Failed to fetch calendar groups:", error);
+    return [...DEFAULT_CALENDAR_GROUPS];
   }
 }
 
-export async function updateCalendarCategoryContent(
-  items: CalendarCategoryContent[],
-) {
+export async function updateCalendarGroups(groups: CalendarGroup[]) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (session?.user?.role !== "admin") {
@@ -152,23 +138,14 @@ export async function updateCalendarCategoryContent(
       };
     }
 
-    // Rows are re-padded to the current column count, so a stale row width from
-    // the editor can never break rendering downstream.
-    const value = items.map((item) => ({
-      category: item.category,
-      thumbnail: item.thumbnail.trim(),
-      thumbnailAlt: item.thumbnailAlt.trim(),
-      sections: item.sections.map((section) => ({
-        title: section.title.trim(),
-        columns: section.columns.map((column) => column.trim()),
-        groups: section.groups.map((group) => ({
-          label: group.label.trim(),
-          rows: group.rows.map((row) =>
-            section.columns.map((_, index) => (row[index] ?? "").trim()),
-          ),
-        })),
-        footer: section.footer.trim(),
-      })),
+    // Every row is re-padded to two cells, so a stale width from the editor can
+    // never break rendering downstream. A row with neither cell is dropped, or
+    // it would render as an empty line on the calendar.
+    const value = groups.map((group) => ({
+      label: group.label.trim(),
+      rows: group.rows
+        .map((row) => [(row[0] ?? "").trim(), (row[1] ?? "").trim()])
+        .filter((row) => row[0] !== "" || row[1] !== ""),
     }));
 
     const existing = await db.query.siteSettings.findFirst({
@@ -195,10 +172,7 @@ export async function updateCalendarCategoryContent(
   } catch (error: unknown) {
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "ক্যালেন্ডার কনটেন্ট সংরক্ষণ করতে সমস্যা হয়েছে",
+      error: error instanceof Error ? error.message : "সংরক্ষণ করতে সমস্যা হয়েছে",
     };
   }
 }

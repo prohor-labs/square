@@ -7,7 +7,7 @@ import {
   Search,
   Star,
 } from "@/components/icons";
-import type { CalendarCategoryContent } from "@/lib/calendar-content";
+import type { CalendarGroup } from "@/lib/calendar-content";
 import {
   daysUntil,
   endOfExamDay,
@@ -47,7 +47,6 @@ const FAVORITES_KEY = "admission-calendar-favorites";
 
 interface CalendarRow {
   readonly key: string;
-  readonly category: string;
   readonly groupLabel: string;
   readonly unitLabel: string;
   /** "ঢাকা বিশ্ববিদ্যালয় (A ইউনিট)" — the university and its unit in one cell. */
@@ -67,7 +66,7 @@ interface CalendarRow {
 export function CalendarView({
   content = [],
 }: {
-  readonly content?: readonly CalendarCategoryContent[];
+  readonly content?: readonly CalendarGroup[];
 }) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<TabId>("calendar");
@@ -107,32 +106,25 @@ export function CalendarView({
   const rows = useMemo<readonly CalendarRow[]>(() => {
     const collected: CalendarRow[] = [];
 
-    for (const item of content) {
-      for (const section of item.sections) {
-        for (const group of section.groups) {
-          const groupLabel = group.label.trim();
+    for (const group of content) {
+      const groupLabel = group.label.trim();
 
-          group.rows.forEach((row, index) => {
-            // A single-cell row is a date-only table: the group is the institute
-            // (e.g. "কুয়েট") and there is no unit to name.
-            const hasUnit = row.length > 1;
-            const unitLabel = hasUnit ? (row[0] ?? "").trim() : "";
-            const dateText = row[row.length - 1] ?? "";
-            const date = parseBengaliDate(dateText);
+      group.rows.forEach((row, index) => {
+        // The unit may be blank — the university is still worth listing.
+        const unitLabel = (row[0] ?? "").trim();
+        const dateText = row[1] ?? "";
+        const date = parseBengaliDate(dateText);
 
-            collected.push({
-              key: `${item.category}-${groupLabel}-${unitLabel}-${index}`,
-              category: item.category,
-              groupLabel,
-              unitLabel,
-              label: unitLabel ? `${groupLabel} (${unitLabel})` : groupLabel,
-              dateText,
-              date,
-              month: date ? date.getMonth() : null,
-            });
-          });
-        }
-      }
+        collected.push({
+          key: `${groupLabel}-${unitLabel}-${index}`,
+          groupLabel,
+          unitLabel,
+          label: unitLabel ? `${groupLabel} (${unitLabel})` : groupLabel,
+          dateText,
+          date,
+          month: date ? date.getMonth() : null,
+        });
+      });
     }
 
     return collected;
