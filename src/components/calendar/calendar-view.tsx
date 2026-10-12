@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Award,
   Calendar as CalendarIcon,
   Clock,
+  DocumentDownload,
   Export,
   Search,
   Star,
@@ -261,7 +263,7 @@ export function CalendarView({
         ) : tab === "application" ? (
           <ApplicationTab applications={applications} now={now} />
         ) : (
-          <ReferenceTab id={tab} rows={visible} />
+          <ReferenceTab id={tab} />
         )}
       </div>
     </div>
@@ -540,86 +542,27 @@ function StartsIn({
 }
 
 /**
- * The reference tabs share one table and differ only in their last two
- * columns. The dates already exist, so the other columns stay blank until the
- * admit-card and result data is entered.
+ * প্রবেশপত্র and রেজাল্ট have no published data yet. Rather than fill the table
+ * with dashes, the tab says so until the universities release their own.
  */
 function ReferenceTab({
   id,
-  rows,
 }: {
   readonly id: Exclude<TabId, "calendar" | "application">;
-  readonly rows: readonly CalendarRow[];
 }) {
-  const columns = {
-    admit: {
-      middle: "প্রবেশপত্রের সময়সীমা",
-      last: "প্রবেশপত্র",
-    },
-    result: {
-      middle: "রেজাল্ট স্ট্যাটাস",
-      last: "লিংক",
-    },
+  const meta = {
+    admit: { icon: DocumentDownload, label: "প্রবেশপত্র" },
+    result: { icon: Award, label: "রেজাল্ট" },
   }[id];
-
-  // Only the result tab has a status to show; the other still waits on its own
-  // dates and links.
-  const status = id === "result" ? "প্রকাশিত হয়নি" : "—";
-
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-        কোনো তথ্য পাওয়া যায়নি।
-      </div>
-    );
-  }
+  const Icon = meta.icon;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-primary text-primary-foreground">
-            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
-              বিশ্ববিদ্যালয় (ইউনিট)
-            </th>
-            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
-              ভর্তি পরীক্ষার তারিখ
-            </th>
-            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
-              {columns.middle}
-            </th>
-            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
-              {columns.last}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr
-              key={row.key}
-              className={cn(
-                "border-b last:border-b-0",
-                index % 2 === 1 && "bg-black/[0.02] dark:bg-white/[0.02]",
-              )}
-            >
-              <td className="px-3 py-2 font-medium">{row.label}</td>
-              <td className="px-3 py-2 whitespace-nowrap">{row.dateText}</td>
-              <td
-                className={cn(
-                  "px-3 py-2",
-                  id === "result"
-                    ? "font-bold text-destructive"
-                    : "text-muted-foreground",
-                )}
-              >
-                {status}
-              </td>
-              <td className="px-3 py-2 text-muted-foreground">—</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="border-t px-3 py-2 text-[11px] text-muted-foreground">
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+        <Icon className="size-7" />
+      </span>
+      <p className="text-base font-bold sm:text-lg">{meta.label}</p>
+      <p className="text-sm text-muted-foreground">
         এই ট্যাবের তথ্য শীঘ্রই যোগ করা হবে
       </p>
     </div>
