@@ -4,15 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Calendar as CalendarIcon,
   Clock,
+  Export,
   Search,
   Star,
 } from "@/components/icons";
-import type { CalendarGroup } from "@/lib/calendar-content";
+import type { ApplicationEntry, CalendarGroup } from "@/lib/calendar-content";
 import {
   daysUntil,
   endOfExamDay,
   findNextExam,
   formatCountdown,
+  parseApplicationStart,
   parseBengaliDate,
   splitRemaining,
   toBengaliDigits,
@@ -65,8 +67,10 @@ interface CalendarRow {
  */
 export function CalendarView({
   content = [],
+  applications = [],
 }: {
   readonly content?: readonly CalendarGroup[];
+  readonly applications?: readonly ApplicationEntry[];
 }) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<TabId>("calendar");
@@ -182,12 +186,6 @@ export function CalendarView({
     [byDate, favorites],
   );
 
-  const otherRows = useMemo(
-    () =>
-      visible.filter((row) => row.unitLabel !== "" && row.groupLabel !== ""),
-    [visible],
-  );
-
   return (
     <div className="flex flex-col gap-4 sm:gap-6 w-full">
       {/* Headline */}
@@ -260,11 +258,10 @@ export function CalendarView({
             query={trimmed}
             now={now}
           />
+        ) : tab === "application" ? (
+          <ApplicationTab applications={applications} now={now} />
         ) : (
-          <ReferenceTab
-            id={tab}
-            rows={tab === "result" ? otherRows : visible}
-          />
+          <ReferenceTab id={tab} rows={visible} />
         )}
       </div>
     </div>
@@ -431,22 +428,130 @@ function DateTable({
 }
 
 /**
+ * The আবেদন লিংক tab: one card per unit, with its window, the fee and — once a
+ * university publishes it — the apply link.
+ */
+function ApplicationTab({
+  applications,
+  now,
+}: {
+  readonly applications: readonly ApplicationEntry[];
+  readonly now: number | null;
+}) {
+  if (applications.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        কোনো আবেদন তথ্য পাওয়া যায়নি।
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b bg-primary text-primary-foreground">
+            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
+              বিশ্ববিদ্যালয়
+            </th>
+            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
+              সময়কাল
+            </th>
+            <th className="px-3 py-2.5 text-left font-bold whitespace-nowrap">
+              ফি ও লিংক
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {applications.map((entry, index) => (
+            <tr
+              key={entry.label}
+              className={cn(
+                "border-b last:border-b-0",
+                index % 2 === 1 && "bg-black/[0.02] dark:bg-white/[0.02]",
+              )}
+            >
+              <td className="px-3 py-3 align-top font-bold whitespace-nowrap">
+                {entry.label}
+              </td>
+              <td className="px-3 py-3 align-top whitespace-nowrap">
+                <p className="font-medium text-destructive">
+                  {entry.period || "—"}
+                </p>
+                <StartsIn period={entry.period} now={now} />
+              </td>
+              <td className="px-3 py-3 align-top">
+                {entry.fee && (
+                  <p className="font-semibold whitespace-nowrap text-orange-600 dark:text-orange-400">
+                    {entry.fee}
+                  </p>
+                )}
+                {entry.link ? (
+                  <a
+                    href={entry.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 whitespace-nowrap font-semibold text-primary hover:underline"
+                  >
+                    লিংক
+                    <Export className="size-3" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    লিংক প্রকাশিত হবে
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** "২৯ দিন পর শুরু" — counts down to the opening date in the window text. */
+function StartsIn({
+  period,
+  now,
+}: {
+  readonly period: string;
+  readonly now: number | null;
+}) {
+  // The application year: a November window means the session already under way.
+  const year =
+    now === null ? new Date().getFullYear() : new Date(now).getFullYear();
+  const start = parseApplicationStart(period, year);
+  if (!start) return null;
+
+  const days = daysUntil(start);
+  const tone = countdownTone(days);
+
+  return (
+    <span
+      className={cn(
+        "mt-1 inline-block rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap",
+        tone,
+      )}
+    >
+      {days > 0 ? `${toBengaliDigits(days)} দিন পর শুরু` : "শুরু হয়ে গেছে"}
+    </span>
+  );
+}
+
+/**
  * The reference tabs share one table and differ only in their last two
  * columns. The dates already exist, so the other columns stay blank until the
- * application, admit-card and result data is entered.
+ * admit-card and result data is entered.
  */
 function ReferenceTab({
   id,
   rows,
 }: {
-  readonly id: Exclude<TabId, "calendar">;
+  readonly id: Exclude<TabId, "calendar" | "application">;
   readonly rows: readonly CalendarRow[];
 }) {
   const columns = {
-    application: {
-      middle: "আবেদনের সময়সীমা",
-      last: "আবেদন লিংক",
-    },
     admit: {
       middle: "প্রবেশপত্রের সময়সীমা",
       last: "প্রবেশপত্র",
@@ -457,8 +562,8 @@ function ReferenceTab({
     },
   }[id];
 
-  // Only the result tab has a status to show; the others still wait on their
-  // own dates and links.
+  // Only the result tab has a status to show; the other still waits on its own
+  // dates and links.
   const status = id === "result" ? "প্রকাশিত হয়নি" : "—";
 
   if (rows.length === 0) {

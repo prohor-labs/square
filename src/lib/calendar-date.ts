@@ -81,6 +81,41 @@ export function parseBengaliDate(value: string): Date | null {
   return date;
 }
 
+// "১১ নভেম্বর" — a day and month with no year, as an application window is
+// written.
+const SHORT_DATE_PATTERN =
+  /^(\d{1,2})\s+(\p{Script=Bengali}[\p{Script=Bengali}\s]*?)$/u;
+
+/**
+ * Reads the opening date out of an application window such as
+ * "১১ নভেম্বর - ২৫ নভেম্বর". Returns null when the text cannot be read, so a
+ * typo hides the countdown instead of showing a wrong one.
+ */
+export function parseApplicationStart(
+  period: string,
+  year: number,
+): Date | null {
+  const normalized = period
+    .replace(/[০-৯]/g, (digit) => BENGALI_TO_ENGLISH[digit] ?? digit)
+    .trim()
+    .split(/[-–—]/)[0]
+    .trim();
+
+  const match = SHORT_DATE_PATTERN.exec(normalized);
+  if (!match) return null;
+
+  const month = BENGALI_MONTHS[match[2].trim()];
+  if (month === undefined) return null;
+
+  const day = Number(match[1]);
+  if (day < 1 || day > 31) return null;
+
+  const date = new Date(year, month, day);
+  if (date.getDate() !== day || date.getMonth() !== month) return null;
+
+  return date;
+}
+
 /** Whole days from today to `date`. Negative once the day has passed. */
 export function daysUntil(date: Date): number {
   const now = new Date();

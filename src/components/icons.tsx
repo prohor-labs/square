@@ -38,6 +38,7 @@ import Information from "reicon-react/icons/Information";
 import Language from "reicon-react/icons/Language";
 import Lightbulb from "reicon-react/icons/Lightbulb";
 import Like from "reicon-react/icons/Like";
+import Link2 from "reicon-react/icons/Link2";
 import Lock from "reicon-react/icons/Lock";
 import Login from "reicon-react/icons/Login";
 import Logout from "reicon-react/icons/Logout";
@@ -101,6 +102,7 @@ export {
   Language,
   Lightbulb,
   Like,
+  Link2,
   Lock,
   Login,
   Logout,

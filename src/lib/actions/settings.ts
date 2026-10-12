@@ -7,7 +7,9 @@ import { db } from "@/db";
 import { siteSettings } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import {
+  type ApplicationEntry,
   type CalendarGroup,
+  DEFAULT_CALENDAR_APPLICATIONS,
   DEFAULT_CALENDAR_GROUPS,
 } from "@/lib/calendar-content";
 
@@ -103,9 +105,13 @@ export async function updateHeroSliders(sliders: SliderItem[]) {
 // Stored as JSON in `site_settings`, same as `hero_sliders`. One flat list of
 // universities and their exam dates — the only thing the calendar renders.
 
-export type { CalendarGroup } from "@/lib/calendar-content";
+export type {
+  ApplicationEntry,
+  CalendarGroup,
+} from "@/lib/calendar-content";
 
 const CALENDAR_CONTENT_KEY = "calendar_groups";
+const CALENDAR_APPLICATIONS_KEY = "calendar_applications";
 
 /**
  * Public read. Falls back to the built-in schedule when nothing is saved, and
@@ -160,6 +166,73 @@ export async function updateCalendarGroups(groups: CalendarGroup[]) {
     } else {
       await db.insert(siteSettings).values({
         key: CALENDAR_CONTENT_KEY,
+        value,
+        updatedAt: new Date(),
+      });
+    }
+
+    revalidatePath("/calendar");
+    revalidatePath("/admin/calendar");
+
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "সংরক্ষণ করতে সমস্যা হয়েছে",
+    };
+  }
+}
+
+/** Application windows for the আবেদন লিংক tab, same fallback rules. */
+export async function getCalendarApplications(): Promise<ApplicationEntry[]> {
+  try {
+    const setting = await db.query.siteSettings.findFirst({
+      where: eq(siteSettings.key, CALENDAR_APPLICATIONS_KEY),
+    });
+
+    const stored = Array.isArray(setting?.value)
+      ? (setting.value as ApplicationEntry[])
+      : [];
+
+    return stored.length > 0 ? stored : [...DEFAULT_CALENDAR_APPLICATIONS];
+  } catch (error) {
+    console.error("Failed to fetch calendar applications:", error);
+    return [...DEFAULT_CALENDAR_APPLICATIONS];
+  }
+}
+
+export async function updateCalendarApplications(entries: ApplicationEntry[]) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (session?.user?.role !== "admin") {
+      return {
+        success: false,
+        error: "অননুমোদিত অ্যাক্সেস। শুধুমাত্র অ্যাডমিনরা কনটেন্ট পরিবর্তন করতে পারবেন।",
+      };
+    }
+
+    const value = entries
+      .map((entry) => ({
+        label: entry.label.trim(),
+        period: entry.period.trim(),
+        fee: entry.fee.trim(),
+        link: entry.link.trim(),
+      }))
+      // A row with no name is a leftover blank line in the editor.
+      .filter((entry) => entry.label !== "");
+
+    const existing = await db.query.siteSettings.findFirst({
+      where: eq(siteSettings.key, CALENDAR_APPLICATIONS_KEY),
+    });
+
+    if (existing) {
+      await db
+        .update(siteSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(siteSettings.key, CALENDAR_APPLICATIONS_KEY));
+    } else {
+      await db.insert(siteSettings).values({
+        key: CALENDAR_APPLICATIONS_KEY,
         value,
         updatedAt: new Date(),
       });

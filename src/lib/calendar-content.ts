@@ -14,6 +14,65 @@ export interface CalendarGroup {
 }
 
 /**
+ * One line on the আবেদন লিংক tab.
+ *
+ * `period` is free text because universities write it differently; its first
+ * date drives the "কত দিন পর শুরু" countdown. `fee` and `link` stay blank
+ * until the university publishes them.
+ */
+export interface ApplicationEntry {
+  /** University and unit together, e.g. "ঢাবি (A)". */
+  label: string;
+  /** e.g. "১১ নভেম্বর - ২৫ নভেম্বর" */
+  period: string;
+  fee: string;
+  link: string;
+}
+
+/**
+ * Application windows for the ২০২৬–২৭ session. The opening dates sit in November
+ * ২০২৬, ahead of the December exam round.
+ */
+const DU_LINK =
+  "https://admission.eis.du.ac.bd/bn/408b7c8ad06e4d9954fa2d948a01f508";
+const CU_LINK = "https://admission.cu.ac.bd/";
+
+export const DEFAULT_CALENDAR_APPLICATIONS: readonly ApplicationEntry[] = [
+  ...["A", "B", "CHA", "C", "IBA"].map(
+    (unit): ApplicationEntry => ({
+      label: `ঢাবি (${unit})`,
+      period: "১১ নভেম্বর - ২৫ নভেম্বর",
+      fee: "",
+      link: DU_LINK,
+    }),
+  ),
+  ...["A", "B", "C"].map(
+    (unit): ApplicationEntry => ({
+      label: `রাবি (${unit})`,
+      period: "১২ নভেম্বর - ২৭ নভেম্বর",
+      fee: "",
+      link: "",
+    }),
+  ),
+  ...["A", "C", "D", "E", "B"].map(
+    (unit): ApplicationEntry => ({
+      label: `জবি (${unit})`,
+      period: "১৫ নভেম্বর - ১০ ডিসেম্বর",
+      fee: "",
+      link: "",
+    }),
+  ),
+  ...["A", "B", "B1", "B2", "C", "D1", "D"].map(
+    (unit): ApplicationEntry => ({
+      label: `চবি (${unit})`,
+      period: "১৫ নভেম্বর - ১০ ডিসেম্বর",
+      fee: "",
+      link: CU_LINK,
+    }),
+  ),
+];
+
+/**
  * The ২০২৬–২৭ admission schedule, ordered the way the calendar reads: the soonest
  * exams first. Used when nothing has been saved yet, and as the single source
  * of truth for the seed script — so the data lives here only once.
