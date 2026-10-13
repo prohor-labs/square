@@ -7,6 +7,7 @@ import { NewChapterForm } from "@/components/admin/forms/new-chapter-form";
 import { NewQuestionBankForm } from "@/components/admin/forms/new-qb-form";
 import { NewSubjectForm } from "@/components/admin/forms/new-subject-form";
 import { NewTopicForm } from "@/components/admin/forms/new-topic-form";
+import { QbMetadataPanel } from "@/components/admin/qb-metadata-panel";
 import {
   Add,
   ArrowLeft2,
@@ -44,6 +45,7 @@ import {
   importYearBasedQuestionsAction,
 } from "@/lib/actions/universal-qb";
 import { parseQuestionsCsv } from "@/lib/csv-parser";
+import type { QbMetaInput } from "@/lib/qb-meta-write";
 
 interface UniversalQuestionCreatorProps {
   readonly hierarchy: HierarchyContainer[];
@@ -85,6 +87,10 @@ export function UniversalQuestionCreator({
   const [standard, setStandard] = useState("Varsity");
   const [source, setSource] = useState("ঢাকা বিশ্ববিদ্যালয় ২০২৩-২৪");
   const [isFree, setIsFree] = useState(false);
+
+  // Exam / subject dimensions — filled once per upload, then every question in
+  // it is filed under them in both the exam-wise and subject-wise views.
+  const [qbMeta, setQbMeta] = useState<QbMetaInput>({});
 
   // UI States
   const [formError, setFormError] = useState<string | null>(null);
@@ -338,13 +344,18 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
         return;
       }
 
-      const res = await importQuestionsAction(selectedChapterId, parsed, {
-        type,
-        standard,
-        source,
-        isFree,
-        topicId: selectedTopicId || undefined,
-      });
+      const res = await importQuestionsAction(
+        selectedChapterId,
+        parsed,
+        {
+          type,
+          standard,
+          source,
+          isFree,
+          topicId: selectedTopicId || undefined,
+        },
+        qbMeta,
+      );
       setIsPendingUpload(false);
       if (res.error) throw new Error(res.error);
 
@@ -399,6 +410,7 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
         isFree,
         source:
           source.trim() || `${currentContainer?.title} ${yearInput.trim()}`,
+        meta: qbMeta,
       });
 
       setIsPendingUpload(false);
@@ -914,6 +926,9 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
               </div>
             </div>
           </div>
+
+          {/* STEP 2b: the dimensions every question in this upload is filed under */}
+          <QbMetadataPanel value={qbMeta} onChange={setQbMeta} />
 
           {/* STEP 3: JSON / CSV UPLOAD PANEL */}
           <div className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-xs flex flex-col gap-4 sm:gap-5">

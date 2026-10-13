@@ -4,7 +4,6 @@ import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
-import { auth } from "@/lib/auth";
 import {
   containers,
   cqParts,
@@ -14,7 +13,13 @@ import {
   subitems,
   topics,
 } from "@/db/schema";
-import type { CreateQuestionPayload, ImportQuestionItem } from "@/types";
+import { auth } from "@/lib/auth";
+import {
+  type QbMetaInput,
+  resolveQbMetaTargets,
+  writeQbMeta,
+} from "@/lib/qb-meta-write";
+import type { CreateQuestionPayload } from "@/types";
 
 export async function createContainerAction(
   title: string,
@@ -231,7 +236,10 @@ export async function updateSubitemAction(
       updatePayload.orderNo = data.orderNo;
     }
 
-    await db.update(subitems).set(updatePayload).where(eq(subitems.id, subitemId));
+    await db
+      .update(subitems)
+      .set(updatePayload)
+      .where(eq(subitems.id, subitemId));
 
     revalidatePath(`/admin/qb/${qbSlug}/${itemSlug}`);
     revalidatePath(`/admin/qb/${qbSlug}/${itemSlug}/${finalSlug}`);
@@ -321,7 +329,6 @@ export async function updateTopicAction(
   }
 }
 
-
 export async function createQuestionAction(payload: CreateQuestionPayload) {
   try {
     const questionId = await db.transaction(async (tx) => {
@@ -390,7 +397,8 @@ export async function updateQuestionAction(
     await db.transaction(async (tx) => {
       const updateData: Record<string, unknown> = {};
       if (payload.type !== undefined) updateData.type = payload.type;
-      if (payload.topicId !== undefined) updateData.topicId = payload.topicId || null;
+      if (payload.topicId !== undefined)
+        updateData.topicId = payload.topicId || null;
       if (payload.source !== undefined)
         updateData.source = payload.source || "custom";
       if (payload.standard !== undefined)
@@ -399,8 +407,7 @@ export async function updateQuestionAction(
         updateData.questionText = payload.questionText;
       if (payload.explanation !== undefined)
         updateData.explanation = payload.explanation || null;
-      if (payload.isFree !== undefined)
-        updateData.isFree = payload.isFree;
+      if (payload.isFree !== undefined) updateData.isFree = payload.isFree;
 
       if (Object.keys(updateData).length > 0) {
         await tx.update(questions).set(updateData).where(eq(questions.id, id));
@@ -470,6 +477,7 @@ export async function importQuestionsAction(
   chapterId: string,
   questionsList: readonly any[],
   topicIdOrDefaults?: string | ImportDefaults,
+  meta?: QbMetaInput,
 ) {
   try {
     if (!questionsList || questionsList.length === 0) {
@@ -481,8 +489,13 @@ export async function importQuestionsAction(
         ? { topicId: topicIdOrDefaults }
         : topicIdOrDefaults || {};
 
+    // Resolved before the transaction so the upserts are not part of it; a
+    // failed import must not leave an orphaned subject behind.
+    const metaTargets = meta ? await resolveQbMetaTargets(meta) : null;
+
     const insertedCount = await db.transaction(async (tx) => {
       let count = 0;
+      const questionIds: string[] = [];
 
       for (const item of questionsList) {
         const qText = (
@@ -494,20 +507,25 @@ export async function importQuestionsAction(
         if (!qText) continue;
 
         // Always enforce the manual selections from the page
-        const resolvedType = (defaults.type || item.type || "mcq") === "cq" ? "cq" : "mcq";
-        const resolvedStandard = (
-          defaults.standard ||
+        const resolvedType =
+          (defaults.type || item.type || "mcq") === "cq" ? "cq" : "mcq";
+        const resolvedStandard = (defaults.standard ||
           item.standard ||
-          "HSC"
-        ) as "HSC" | "Varsity" | "Engineering" | "Medical";
-        const resolvedSource = (defaults.source || item.source || "Custom").trim();
+          "HSC") as "HSC" | "Varsity" | "Engineering" | "Medical";
+        const resolvedSource = (
+          defaults.source ||
+          item.source ||
+          "Custom"
+        ).trim();
         const resolvedIsFree = Boolean(
           defaults.isFree !== undefined
             ? defaults.isFree
             : (item.isFree ?? item.is_free ?? false),
         );
-        const resolvedTopicId = defaults.topicId || item.topicId || item.topic_id || null;
-        const resolvedExplanation = (item.explanation || item.solution || "").trim() || null;
+        const resolvedTopicId =
+          defaults.topicId || item.topicId || item.topic_id || null;
+        const resolvedExplanation =
+          (item.explanation || item.solution || "").trim() || null;
 
         const [question] = await tx
           .insert(questions)
@@ -525,10 +543,12 @@ export async function importQuestionsAction(
 
         if (!question) continue;
         count++;
+        questionIds.push(question.id);
 
         // Handle MCQ Options
         if (resolvedType === "mcq") {
-          const rawOptions = item.mcqOptions || item.mcq_options || item.options || [];
+          const rawOptions =
+            item.mcqOptions || item.mcq_options || item.options || [];
           if (Array.isArray(rawOptions) && rawOptions.length > 0) {
             const correctIndex =
               typeof item.correctIdx === "number"
@@ -549,7 +569,9 @@ export async function importQuestionsAction(
               const isOptCorrect =
                 typeof opt === "object" && opt !== null && "isCorrect" in opt
                   ? Boolean(opt.isCorrect)
-                  : typeof opt === "object" && opt !== null && "is_correct" in opt
+                  : typeof opt === "object" &&
+                      opt !== null &&
+                      "is_correct" in opt
                     ? Boolean(opt.is_correct)
                     : correctIndex === idx;
 
@@ -562,7 +584,10 @@ export async function importQuestionsAction(
             });
 
             // Ensure at least one option is marked correct if not already
-            if (!optionsToInsert.some((o) => o.isCorrect) && optionsToInsert.length > 0) {
+            if (
+              !optionsToInsert.some((o) => o.isCorrect) &&
+              optionsToInsert.length > 0
+            ) {
               optionsToInsert[0].isCorrect = true;
             }
 
@@ -572,7 +597,12 @@ export async function importQuestionsAction(
           // Handle CQ Parts
           const rawParts = item.cqParts || item.cq_parts || item.parts || [];
           if (Array.isArray(rawParts) && rawParts.length > 0) {
-            const defaultKeys: Array<"a" | "b" | "c" | "d"> = ["a", "b", "c", "d"];
+            const defaultKeys: Array<"a" | "b" | "c" | "d"> = [
+              "a",
+              "b",
+              "c",
+              "d",
+            ];
             const partsToInsert = rawParts.map((pt: any, idx: number) => ({
               questionId: question.id,
               partKey: (pt.partKey || pt.part_key || defaultKeys[idx] || "a") as
@@ -580,8 +610,15 @@ export async function importQuestionsAction(
                 | "b"
                 | "c"
                 | "d",
-              questionText: (pt.questionText || pt.question_text || pt.text || "").trim(),
-              answerText: (pt.answerText || pt.answer_text || pt.answer || "").trim() || null,
+              questionText: (
+                pt.questionText ||
+                pt.question_text ||
+                pt.text ||
+                ""
+              ).trim(),
+              answerText:
+                (pt.answerText || pt.answer_text || pt.answer || "").trim() ||
+                null,
               marks: typeof pt.marks === "number" ? pt.marks : idx + 1,
               orderNo: idx + 1,
             }));
@@ -590,10 +627,18 @@ export async function importQuestionsAction(
         }
       }
 
+      // One meta row per question, inside the same transaction as the insert, so
+      // the exam views and the subject views can never see half a set.
+      if (metaTargets) {
+        await writeQbMeta(tx, questionIds, metaTargets);
+      }
+
       return count;
     });
 
     revalidatePath("/admin/qb");
+    revalidatePath("/qb");
+    revalidatePath("/qb/subjects");
     return { success: true, count: insertedCount };
   } catch (error: unknown) {
     return {
@@ -632,17 +677,14 @@ export async function getQuestionsAdminAction(filters?: {
     if (filters?.search && filters.search.trim()) {
       const s = `%${filters.search.trim()}%`;
       conditions.push(
-        or(
-          ilike(questions.questionText, s),
-          ilike(questions.source, s),
-        ),
+        or(ilike(questions.questionText, s), ilike(questions.source, s)),
       );
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const limit = filters?.limit || 50;
 
-    let baseQuery = db
+    const baseQuery = db
       .select({
         id: questions.id,
         subitemId: questions.subitemId,
@@ -662,9 +704,7 @@ export async function getQuestionsAdminAction(filters?: {
           .where(whereClause)
           .orderBy(desc(questions.createdAt))
           .limit(limit)
-      : await baseQuery
-          .orderBy(desc(questions.createdAt))
-          .limit(limit);
+      : await baseQuery.orderBy(desc(questions.createdAt)).limit(limit);
 
     if (rawQuestions.length === 0) {
       return [];

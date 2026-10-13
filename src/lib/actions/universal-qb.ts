@@ -14,6 +14,11 @@ import {
   topics,
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import {
+  type QbMetaInput,
+  resolveQbMetaTargets,
+  writeQbMeta,
+} from "@/lib/qb-meta-write";
 import type { CreateQuestionPayload } from "@/types";
 
 export interface HierarchyTopic {
@@ -134,7 +139,9 @@ export async function getFullQbHierarchy(): Promise<HierarchyContainer[]> {
   }
 }
 
-export async function createQuickQuestionAction(payload: CreateQuestionPayload) {
+export async function createQuickQuestionAction(
+  payload: CreateQuestionPayload,
+) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (session?.user?.role !== "admin") {
@@ -208,7 +215,8 @@ export async function createQuickQuestionAction(payload: CreateQuestionPayload) 
     console.error("Error creating quick question:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "প্রশ্ন যুক্ত করতে সমস্যা হয়েছে।",
+      message:
+        error instanceof Error ? error.message : "প্রশ্ন যুক্ত করতে সমস্যা হয়েছে।",
     };
   }
 }
@@ -282,10 +290,10 @@ export async function getRecentUploadedQuestions(limit = 10) {
 
     return rawQuestions.map((q) => {
       const qOpts = (optionsByQuestionId.get(q.id) || []).sort(
-        (a, b) => (a.orderNo || 0) - (b.orderNo || 0)
+        (a, b) => (a.orderNo || 0) - (b.orderNo || 0),
       );
       const qParts = (partsByQuestionId.get(q.id) || []).sort(
-        (a, b) => (a.orderNo || 0) - (b.orderNo || 0)
+        (a, b) => (a.orderNo || 0) - (b.orderNo || 0),
       );
 
       return {
@@ -343,6 +351,8 @@ export interface ImportYearQuestionsPayload {
   type?: "mcq" | "cq";
   source?: string;
   isFree?: boolean;
+  /** Dimensions the exam and subject views filter on. */
+  meta?: QbMetaInput;
 }
 
 export async function importYearBasedQuestionsAction(
@@ -450,8 +460,20 @@ export async function importYearBasedQuestionsAction(
           ? "Medical"
           : "Varsity");
 
+    // Resolved before the transaction so a failed import leaves no orphan
+    // subject or institute behind.
+    const metaTargets = payload.meta
+      ? // The year typed on the form is the fallback when the metadata panel
+        // was skipped, so the year view can always filter on it.
+        await resolveQbMetaTargets({
+          ...payload.meta,
+          year: payload.meta.year || yearName,
+        })
+      : null;
+
     const insertedCount = await db.transaction(async (tx) => {
       let count = 0;
+      const questionIds: string[] = [];
 
       for (const itemData of payload.questionsList) {
         const qText = (
@@ -499,10 +521,14 @@ export async function importYearBasedQuestionsAction(
 
         if (!question) continue;
         count++;
+        questionIds.push(question.id);
 
         if (resolvedType === "mcq") {
           const rawOptions =
-            itemData.mcqOptions || itemData.mcq_options || itemData.options || [];
+            itemData.mcqOptions ||
+            itemData.mcq_options ||
+            itemData.options ||
+            [];
           if (Array.isArray(rawOptions) && rawOptions.length > 0) {
             const correctIndex =
               typeof itemData.correctIdx === "number"
@@ -523,7 +549,9 @@ export async function importYearBasedQuestionsAction(
               const isOptCorrect =
                 typeof opt === "object" && opt !== null && "isCorrect" in opt
                   ? Boolean(opt.isCorrect)
-                  : typeof opt === "object" && opt !== null && "is_correct" in opt
+                  : typeof opt === "object" &&
+                      opt !== null &&
+                      "is_correct" in opt
                     ? Boolean(opt.is_correct)
                     : correctIndex === idx;
 
@@ -556,10 +584,11 @@ export async function importYearBasedQuestionsAction(
             ];
             const partsToInsert = rawParts.map((pt: any, idx: number) => ({
               questionId: question.id,
-              partKey: (pt.partKey ||
-                pt.part_key ||
-                defaultKeys[idx] ||
-                "a") as "a" | "b" | "c" | "d",
+              partKey: (pt.partKey || pt.part_key || defaultKeys[idx] || "a") as
+                | "a"
+                | "b"
+                | "c"
+                | "d",
               questionText: (
                 pt.questionText ||
                 pt.question_text ||
@@ -567,18 +596,19 @@ export async function importYearBasedQuestionsAction(
                 ""
               ).trim(),
               answerText:
-                (
-                  pt.answerText ||
-                  pt.answer_text ||
-                  pt.answer ||
-                  ""
-                ).trim() || null,
+                (pt.answerText || pt.answer_text || pt.answer || "").trim() ||
+                null,
               marks: typeof pt.marks === "number" ? pt.marks : idx + 1,
               orderNo: idx + 1,
             }));
             await tx.insert(cqParts).values(partsToInsert);
           }
         }
+      }
+
+      // One meta row per question, written in the same transaction as the insert.
+      if (metaTargets) {
+        await writeQbMeta(tx, questionIds, metaTargets);
       }
 
       return count;
@@ -596,6 +626,7 @@ export async function importYearBasedQuestionsAction(
       revalidatePath("/admin/qb");
       revalidatePath(`/admin/qb/${container.slug}`);
       revalidatePath("/qb");
+      revalidatePath("/qb/subjects");
       revalidatePath(`/qb/${container.slug}`);
       revalidatePath(
         `/qb/${container.slug}/${targetItem.slug}/${targetSubitem.slug}`,
@@ -621,9 +652,7 @@ export async function importYearBasedQuestionsAction(
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "প্রশ্ন আপলোড করতে সমস্যা হয়েছে।",
+        error instanceof Error ? error.message : "প্রশ্ন আপলোড করতে সমস্যা হয়েছে।",
     };
   }
 }
@@ -676,4 +705,3 @@ export async function getContainerYearsAction(containerId: string) {
     return [];
   }
 }
-

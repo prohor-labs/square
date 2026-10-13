@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   json,
   pgTable,
@@ -163,6 +164,112 @@ export const cqParts = pgTable("cq_parts", {
   marks: integer("marks").notNull(),
   orderNo: integer("order_no").notNull(),
 });
+
+// ─── Question metadata ───────────────────────────────────────────────────────
+// The container → item → subitem tree above is the original bank layout and
+// stays untouched. These tables add the dimensions that tree cannot express,
+// so one uploaded question can be listed by exam *and* by subject / chapter
+// without ever being copied.
+
+/** Who runs the exam — decides which bank a question is listed under. */
+export const QB_EXAM_TYPES = [
+  "board",
+  "university",
+  "engineering",
+  "medical",
+  "other",
+] as const;
+export type QbExamType = (typeof QB_EXAM_TYPES)[number];
+
+/** A board, a university or an engineering institute. */
+export const qbInstitutes = pgTable(
+  "qb_institutes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    type: text("type", { enum: QB_EXAM_TYPES }).notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+  },
+  (table) => [uniqueIndex("qb_institute_slug_unique_idx").on(table.slug)],
+);
+
+/** A subject with its paper, e.g. পদার্থবিজ্ঞান · ১ম পত্র. */
+export const qbSubjects = pgTable(
+  "qb_subjects",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    /** "1st Paper" / "2nd Paper" — blank when the subject has no paper split. */
+    paper: text("paper").default("").notNull(),
+    slug: text("slug").notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+  },
+  (table) => [uniqueIndex("qb_subject_slug_unique_idx").on(table.slug)],
+);
+
+/** A chapter inside a subject — নিউটনের গতিসূত্র. */
+export const qbChapters = pgTable(
+  "qb_chapters",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    subjectId: text("subject_id")
+      .notNull()
+      .references(() => qbSubjects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+  },
+  (table) => [
+    // Per subject, not global: two subjects may each have a chapter called
+    // "সমীকরণ", and the slug then stays readable in the URL.
+    uniqueIndex("qb_chapter_slug_unique_idx").on(table.subjectId, table.slug),
+    index("qb_chapter_subject_idx").on(table.subjectId),
+  ],
+);
+
+/**
+ * One row per question — the primary key on questionId is what guarantees a
+ * question is stored once and merely *listed* differently. Every dimension is
+ * nullable so a question can be filed under whatever the uploader supplied.
+ */
+export const qbQuestionMeta = pgTable(
+  "qb_question_meta",
+  {
+    questionId: text("question_id")
+      .primaryKey()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    examType: text("exam_type", { enum: QB_EXAM_TYPES }),
+    instituteId: text("institute_id").references(() => qbInstitutes.id, {
+      onDelete: "set null",
+    }),
+    /** Science / Humanities / Commerce. */
+    groupName: text("group_name").default("").notNull(),
+    /** "A Unit" / "A Group". */
+    unitName: text("unit_name").default("").notNull(),
+    /** "2025" or "2024-25". */
+    year: text("year").default("").notNull(),
+    subjectId: text("subject_id").references(() => qbSubjects.id, {
+      onDelete: "set null",
+    }),
+    chapterId: text("chapter_id").references(() => qbChapters.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    index("qb_meta_exam_type_idx").on(table.examType),
+    index("qb_meta_institute_idx").on(table.instituteId),
+    index("qb_meta_subject_idx").on(table.subjectId),
+    index("qb_meta_chapter_idx").on(table.chapterId),
+    index("qb_meta_year_idx").on(table.year),
+  ],
+);
 
 export const tags = pgTable("tags", {
   id: text("id")
