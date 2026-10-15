@@ -5,7 +5,6 @@ import {
   Clipboard,
   Danger,
   SquareLogo,
-  TaskSquare,
   Video,
 } from "@/components/icons";
 import { NotReadyCard } from "@/components/not-ready";
@@ -71,33 +70,40 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-3 pb-16">
-      {/* Brand — the same mark and name as the header and the sidebar. */}
-      <div className="flex items-center gap-3 pb-1">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-border/60">
-          <SquareLogo className="size-full object-contain p-[7%]" />
-        </span>
-        <span className="flex flex-col leading-none">
-          <span className="text-xl font-black tracking-tight">স্কয়ার</span>
-          <span className="mt-1 text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
-            Engr. Platform
-          </span>
-        </span>
-      </div>
-
-      {/* Hero — the question bank, in three lines. */}
+      {/* Hero — the brand on the left, the question bank in three lines on the
+          right, in one card rather than a separate block above it. */}
       <Link
         href="/qb"
-        className="group relative flex aspect-[3/1] items-center gap-4 overflow-hidden rounded-2xl p-4 shadow-md transition-shadow hover:shadow-xl md:p-5"
+        className="group relative flex aspect-[3/1] items-center gap-3 overflow-hidden rounded-2xl p-4 shadow-md transition-shadow hover:shadow-xl md:gap-4 md:p-5"
         style={{ background: QB_CARD_COLORS.background }}
       >
         <QbCardShapes blobs={QB_SQUARE_BLOBS} />
-        <span className="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/30 shadow-sm">
-          <TaskSquare
-            size={26}
-            color={QB_CARD_COLORS.text}
-            className="drop-shadow-sm"
-          />
+
+        <span className="relative z-10 flex shrink-0 items-center gap-2.5">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-white/70 p-1.5 shadow-sm">
+            <SquareLogo className="size-full object-contain" />
+          </span>
+          <span className="flex flex-col leading-none">
+            <span
+              className="text-base font-black tracking-tight"
+              style={{ color: QB_CARD_COLORS.text }}
+            >
+              স্কয়ার
+            </span>
+            <span
+              className="mt-1 text-[9px] font-bold tracking-wide uppercase"
+              style={{ color: QB_CARD_COLORS.subText }}
+            >
+              Engr. Platform
+            </span>
+          </span>
         </span>
+
+        <span
+          aria-hidden
+          className="relative z-10 h-10 w-px shrink-0 bg-black/15"
+        />
+
         <span className="relative z-10 min-w-0">
           <span
             className="block text-[11px] font-bold uppercase tracking-wide"
