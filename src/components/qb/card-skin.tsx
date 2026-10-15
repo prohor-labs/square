@@ -90,7 +90,7 @@ export function QbCardFrame({
       className={cn(
         "relative flex overflow-hidden rounded-2xl border border-border/40 shadow-sm",
         flat
-          ? "h-[78px] items-center p-3 sm:h-[84px]"
+          ? "min-h-[78px] items-center p-3 sm:min-h-[84px]"
           : "aspect-square flex-col justify-center px-3 pt-9 pb-4 sm:px-4 sm:pt-11 sm:pb-5",
         className,
       )}

@@ -10,7 +10,7 @@ import {
 } from "@/components/admin/admin-qb-card";
 import { EditQuestionBankForm } from "@/components/admin/forms/edit-qb-form";
 import { NewQuestionBankForm } from "@/components/admin/forms/new-qb-form";
-import { Add, Edit, Flash, Trash2 } from "@/components/icons";
+import { Add, ArchiveBox, Edit, Flash, Trash2 } from "@/components/icons";
 import { ResponsiveDialog } from "@/components/responsive-dialog";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,15 @@ export function AdminContainersManager({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            render={<Link href="/admin/qb/backup" />}
+            variant="outline"
+            className="rounded-xl gap-1.5 font-bold cursor-pointer text-xs h-10 px-4"
+          >
+            <ArchiveBox className="size-4" />
+            <span>ব্যাকআপ</span>
+          </Button>
+
           <Button
             render={<Link href="/admin/qb/add-question" />}
             className="rounded-xl gap-1.5 font-bold shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer text-xs h-10 px-4"

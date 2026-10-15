@@ -12,7 +12,7 @@ export default function NotFound() {
       <body className="min-h-full flex flex-col">
         <main className="flex flex-grow min-h-screen flex-col items-center justify-center bg-background px-6">
           <div className="flex flex-col items-center gap-6 text-center">
-            <SquareLogo className="size-24" />
+            <SquareLogo className="size-28" plate />
 
             <div className="flex flex-col gap-2">
               <h1 className="text-balance text-4xl font-normal tracking-tight font-serif text-foreground">

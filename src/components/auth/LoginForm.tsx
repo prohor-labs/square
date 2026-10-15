@@ -65,7 +65,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
     <div className="flex flex-col items-center w-full py-[24px] md:py-[40px]">
       <div className="flex flex-col items-center gap-[48px] w-full max-w-[400px] px-[24px]">
         <div className="flex flex-col items-center gap-8 w-full">
-          <SquareLogo className="size-12" />
+          <SquareLogo className="size-14" plate />
 
           <div className="flex flex-col gap-2 text-center">
             <h1 className="text-balance font-semibold text-3xl text-foreground">
@@ -216,18 +216,6 @@ export default function LoginForm({ dict }: LoginFormProps) {
               </Button>
             </form>
           )}
-
-          <p className="w-11/12 text-pretty text-center text-muted-foreground text-xs">
-            {l.termsText1}{" "}
-            <Link className="underline hover:text-foreground" href="/">
-              {l.termsLink}
-            </Link>{" "}
-            {l.and}{" "}
-            <Link className="underline hover:text-foreground" href="/">
-              {l.privacyLink}
-            </Link>
-            {l.termsText2}
-          </p>
         </div>
       </div>
     </div>

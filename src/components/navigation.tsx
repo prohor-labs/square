@@ -49,12 +49,17 @@ export function Sidebar({ onClose, dict, lang }: SidebarProps) {
               onClick={onClose}
               className="flex items-center px-[8px] py-[4px] rounded-[8px] hover:bg-accent transition-colors overflow-hidden shrink-0"
             >
-              <SquareLogo className="shrink-0 mr-[12px] size-6" />
-              <h3
-                className={`font-[800] text-[18px] lg:text-[16px] whitespace-nowrap mt-[3px] transition-opacity duration-200 ${isCollapsed ? "opacity-0" : "opacity-100"}`}
+              <span className="shrink-0 mr-[10px] flex size-8 items-center justify-center rounded-lg bg-white shadow-xs">
+                <SquareLogo className="size-full object-contain p-[5%]" />
+              </span>
+              <span
+                className={`flex flex-col leading-none whitespace-nowrap transition-opacity duration-200 ${isCollapsed ? "opacity-0" : "opacity-100"}`}
               >
-                স্কয়ার
-              </h3>
+                <span className="font-[800] text-[16px]">স্কয়ার</span>
+                <span className="mt-[3px] text-[9px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Engr. Platform
+                </span>
+              </span>
             </Link>
 
             {/* Closes the drawer on phones; the shell keeps it open on desktop. */}

@@ -4,6 +4,7 @@ import {
   Chart,
   Clipboard,
   Danger,
+  SquareLogo,
   TaskSquare,
   Video,
 } from "@/components/icons";
@@ -70,6 +71,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-3 pb-16">
+      {/* Brand — the same mark and name as the header and the sidebar. */}
+      <div className="flex items-center gap-3 pb-1">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-border/60">
+          <SquareLogo className="size-full object-contain p-[7%]" />
+        </span>
+        <span className="flex flex-col leading-none">
+          <span className="text-xl font-black tracking-tight">স্কয়ার</span>
+          <span className="mt-1 text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            Engr. Platform
+          </span>
+        </span>
+      </div>
+
       {/* Hero — the question bank, in three lines. */}
       <Link
         href="/qb"

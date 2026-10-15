@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import {
@@ -12,6 +11,7 @@ import {
   FileDown,
   Home,
   Send,
+  SquareLogo,
   TaskSquare,
   User,
 } from "@/components/icons";
@@ -31,20 +31,18 @@ export function LandingHeader() {
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-1.5 cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="size-14 p-0.5 border-2 border-transparent group-hover:border-foreground rounded-xl transition-all duration-300 flex items-center justify-center">
-            <Image
-              alt="Logo"
-              className="size-full object-contain"
-              src="https://raw.githubusercontent.com/shuyaib105/square/refs/heads/main/1536-removebg-preview.png"
-              width={56}
-              height={56}
-              unoptimized
-            />
+          <div className="size-11 p-1 border-2 border-transparent group-hover:border-foreground rounded-xl transition-all duration-300 flex items-center justify-center">
+            <SquareLogo className="size-full object-contain" />
           </div>
-          <span className="text-xl font-extrabold text-foreground tracking-tight">
-            Engr. Platform
+          <span className="flex flex-col leading-none">
+            <span className="text-lg font-extrabold text-foreground tracking-tight">
+              স্কয়ার
+            </span>
+            <span className="mt-0.5 text-[10px] font-bold text-muted-foreground tracking-wide uppercase">
+              Engr. Platform
+            </span>
           </span>
         </Link>
 
@@ -91,20 +89,18 @@ export function LandingFooter() {
           <div className="space-y-4">
             <Link
               href="/"
-              className="group flex w-fit cursor-pointer items-center gap-1.5"
+              className="group flex w-fit cursor-pointer items-center gap-2.5"
             >
-              <div className="flex size-14 items-center justify-center rounded-xl border-2 border-white bg-white p-0.5 transition-all duration-300">
-                <Image
-                  alt="Logo"
-                  className="size-full object-contain"
-                  src="https://raw.githubusercontent.com/shuyaib105/square/refs/heads/main/1536-removebg-preview.png"
-                  width={56}
-                  height={56}
-                  unoptimized
-                />
+              <div className="flex size-12 items-center justify-center rounded-xl border-2 border-white bg-white p-1 transition-all duration-300">
+                <SquareLogo className="size-full object-contain" />
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-white">
-                Engr. Platform
+              <span className="flex flex-col leading-none">
+                <span className="text-lg font-extrabold tracking-tight text-white">
+                  স্কয়ার
+                </span>
+                <span className="mt-0.5 text-[10px] font-bold tracking-wide text-white/60 uppercase">
+                  Engr. Platform
+                </span>
               </span>
             </Link>
             <p className="max-w-sm text-xs leading-relaxed text-white/60">

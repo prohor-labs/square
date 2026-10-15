@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  cqParts,
   mcqOptions,
   qbChapters,
   qbInstitutes,
@@ -19,6 +20,7 @@ import {
   qbSubjects,
   questions,
 } from "@/db/schema";
+import type { CQPart, MCQOption, Question } from "@/types";
 
 /**
  * The subject-wise view reads the same `qb_question_meta` rows the exam view
@@ -52,26 +54,6 @@ export interface QbInstituteCount {
   readonly name: string;
   readonly type: string;
   readonly questions: number;
-}
-
-/** Question ids for a chapter, narrowed by whichever facet is selected. */
-export interface QbChapterQuestionPage {
-  readonly questions: readonly {
-    readonly id: string;
-    readonly questionText: string;
-    readonly type: string;
-    readonly explanation: string | null;
-    readonly source: string;
-    readonly instituteName: string | null;
-    readonly unitName: string;
-    readonly year: string;
-    readonly options: readonly {
-      readonly id: string;
-      readonly optionText: string;
-      readonly isCorrect: boolean;
-    }[];
-  }[];
-  readonly total: number;
 }
 
 /** Every subject that has at least one question. */
@@ -306,8 +288,9 @@ export async function getChapterFacets(
 /**
  * The questions themselves, with the optional filters applied.
  *
- * Every path — subject, chapter, exam — ends here, so they all return the same
- * rows for the same question.
+ * Returned in the shape ChapterQuestionsViewer already understands, so the
+ * subject-wise view and the exam-wise view render a question through the same
+ * card and the same controls.
  */
 export async function getChapterQuestions(
   chapterId: string,
@@ -317,9 +300,8 @@ export async function getChapterQuestions(
     readonly unitName?: string;
     readonly year?: string;
     readonly search?: string;
-    readonly limit?: number;
   } = {},
-): Promise<QbChapterQuestionPage> {
+): Promise<Question[]> {
   const conditions = [eq(qbQuestionMeta.chapterId, chapterId)];
 
   if (filters.examType)
@@ -330,10 +312,10 @@ export async function getChapterQuestions(
     conditions.push(eq(qbQuestionMeta.unitName, filters.unitName));
   if (filters.year) conditions.push(eq(qbQuestionMeta.year, filters.year));
 
-  // The search needs the questions table, so it only applies to the two
-  // queries that join it — the row query and the count.
-  const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
   const search = filters.search?.trim();
+  const where = search
+    ? and(...conditions, ilike(questions.questionText, `%${search}%`))
+    : and(...conditions);
 
   const rows = await db
     .select({
@@ -342,76 +324,88 @@ export async function getChapterQuestions(
       type: questions.type,
       explanation: questions.explanation,
       source: questions.source,
-      instituteName: qbInstitutes.name,
-      unitName: qbQuestionMeta.unitName,
-      year: qbQuestionMeta.year,
+      standard: questions.standard,
+      isFree: questions.isFree,
+      topicId: questions.topicId,
+      subitemId: questions.subitemId,
     })
     .from(qbQuestionMeta)
     .innerJoin(questions, eq(questions.id, qbQuestionMeta.questionId))
-    .leftJoin(qbInstitutes, eq(qbInstitutes.id, qbQuestionMeta.instituteId))
-    .where(
-      search
-        ? and(...conditions, ilike(questions.questionText, `%${search}%`))
-        : and(...conditions),
-    )
-    .orderBy(asc(questions.id))
-    .limit(limit);
+    .where(where)
+    .orderBy(asc(questions.id));
 
-  // Options are fetched in one extra query rather than joined, so a chapter of
-  // 1,000 questions does not return 4,000 option rows to show 50 of them.
+  // Options and sub-parts are fetched in two extra queries rather than joined:
+  // a left join would multiply the rows by the option count and break the
+  // one-row-per-question grouping the maps below rely on.
   const ids = rows.map((row) => row.id);
-  const optionRows = ids.length
-    ? await db
-        .select({
-          id: mcqOptions.id,
-          questionId: mcqOptions.questionId,
-          optionText: mcqOptions.optionText,
-          isCorrect: mcqOptions.isCorrect,
-          orderNo: mcqOptions.orderNo,
-        })
-        .from(mcqOptions)
-        .where(inArray(mcqOptions.questionId, ids))
-        .orderBy(asc(mcqOptions.orderNo))
-    : [];
+  const [optionRows, partRows] = ids.length
+    ? await Promise.all([
+        db
+          .select({
+            id: mcqOptions.id,
+            questionId: mcqOptions.questionId,
+            optionText: mcqOptions.optionText,
+            isCorrect: mcqOptions.isCorrect,
+            orderNo: mcqOptions.orderNo,
+          })
+          .from(mcqOptions)
+          .where(inArray(mcqOptions.questionId, ids))
+          .orderBy(asc(mcqOptions.orderNo)),
+        db
+          .select({
+            id: cqParts.id,
+            questionId: cqParts.questionId,
+            partKey: cqParts.partKey,
+            questionText: cqParts.questionText,
+            answerText: cqParts.answerText,
+            marks: cqParts.marks,
+            orderNo: cqParts.orderNo,
+          })
+          .from(cqParts)
+          .where(inArray(cqParts.questionId, ids))
+          .orderBy(asc(cqParts.orderNo)),
+      ])
+    : [[], []];
 
-  const optionsByQuestion = new Map<
-    string,
-    { id: string; optionText: string; isCorrect: boolean }[]
-  >();
+  const optionsBy = new Map<string, MCQOption[]>();
   for (const option of optionRows) {
-    const list = optionsByQuestion.get(option.questionId) ?? [];
+    const list = optionsBy.get(option.questionId) ?? [];
     list.push({
       id: option.id,
+      questionId: option.questionId,
       optionText: option.optionText,
       isCorrect: option.isCorrect,
+      orderNo: option.orderNo,
     });
-    optionsByQuestion.set(option.questionId, list);
+    optionsBy.set(option.questionId, list);
   }
 
-  // Counted with the same join and the same search, so the number on the
-  // "প্রশ্ন" label is the number of questions actually listed below it.
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(qbQuestionMeta)
-    .innerJoin(questions, eq(questions.id, qbQuestionMeta.questionId))
-    .where(
-      search
-        ? and(...conditions, ilike(questions.questionText, `%${search}%`))
-        : and(...conditions),
-    );
+  const partsBy = new Map<string, CQPart[]>();
+  for (const part of partRows) {
+    const list = partsBy.get(part.questionId) ?? [];
+    list.push({
+      id: part.id,
+      questionId: part.questionId,
+      partKey: part.partKey,
+      questionText: part.questionText,
+      answerText: part.answerText,
+      marks: part.marks,
+      orderNo: part.orderNo,
+    });
+    partsBy.set(part.questionId, list);
+  }
 
-  return {
-    questions: rows.map((row) => ({
-      id: row.id,
-      questionText: row.questionText,
-      type: row.type,
-      explanation: row.explanation,
-      source: row.source,
-      instituteName: row.instituteName,
-      unitName: row.unitName,
-      year: row.year,
-      options: optionsByQuestion.get(row.id) ?? [],
-    })),
-    total: Number(total),
-  };
+  return rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    source: row.source,
+    standard: row.standard,
+    question_text: row.questionText,
+    explanation: row.explanation,
+    topic_id: row.topicId,
+    subitemId: row.subitemId,
+    is_free: row.isFree,
+    mcq_options: optionsBy.get(row.id) ?? [],
+    cq_parts: partsBy.get(row.id) ?? [],
+  }));
 }

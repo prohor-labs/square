@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { TaskSquare } from "@/components/icons";
 import { QbCard } from "@/components/qb/QbCard";
 import { getQbTree } from "@/lib/actions/qb-nav";
+import { getSubjectList } from "@/lib/actions/qb-subject";
 import { toBengaliDigits } from "@/lib/calendar-date";
 import {
   QB_BANKS,
@@ -39,6 +39,8 @@ export default async function QuestionBankPage({
             resolveBankSlug(container.slug) === (active as QbBankSlug),
         );
 
+  const subjects = await getSubjectList();
+  const subjectTotal = subjects.reduce((sum, s) => sum + s.questions, 0);
   const totalQuestions = tree.reduce((sum, c) => sum + c.questions, 0);
 
   return (
@@ -96,24 +98,25 @@ export default async function QuestionBankPage({
         </div>
       )}
 
-      {/* The other way in — the same questions, listed by subject. */}
-      <Link
-        href="/qb/subjects"
-        className="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-      >
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <TaskSquare className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-base font-bold">বিষয়ভিত্তিক প্রশ্নব্যাংক</span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            বিষয় ও অধ্যায় অনুযায়ী প্রশ্ন দেখুন
-          </span>
-        </span>
-        <span className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5">
-          ›
-        </span>
-      </Link>
+      {/* The other way in — the same questions, filed by subject instead of by
+          exam. Kept in the same card family so it does not read as a different
+          kind of thing from the banks above it. */}
+      {subjectTotal > 0 && (
+        <section className="space-y-2.5 pt-1">
+          <p className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+            অথবা বিষয় অনুযায়ী
+          </p>
+          <div className="max-w-xl">
+            <QbCard
+              href="/qb/subjects"
+              title="বিষয়ভিত্তিক প্রশ্নব্যাংক"
+              subtitle="বিষয় ও অধ্যায় অনুযায়ী প্রশ্ন"
+              questions={subjectTotal}
+              variant="row"
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

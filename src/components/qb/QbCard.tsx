@@ -41,8 +41,10 @@ export function QbCard({
       <a href={href} className={cn("group block", RING)}>
         <QbCardFrame blobs={QB_FLAT_BLOBS} flat>
           <div className="relative z-10 min-w-0 flex-1 pr-[4.5rem] sm:pr-24">
+            {/* Two lines, not one: chapter names run long, and a year or a
+                short bank name still sits on a single line as before. */}
             <h3
-              className="truncate text-base font-black leading-snug sm:text-lg"
+              className="line-clamp-2 text-base font-black leading-snug sm:text-lg"
               style={{ color: QB_CARD_COLORS.text }}
             >
               {title}

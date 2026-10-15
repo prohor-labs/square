@@ -1,79 +1,64 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { TaskSquare } from "@/components/icons";
+import { QbCard } from "@/components/qb/QbCard";
 import { getSubjectList } from "@/lib/actions/qb-subject";
-import { toBengaliDigits } from "@/lib/calendar-date";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Subject-wise entry point.
  *
- * Every card is a subject that already has questions — a subject with none is
- * never listed, so the page needs no maintenance as the bank grows.
+ * Only subjects that already have questions are listed, so the page needs no
+ * maintenance as the bank grows.
  */
 export default async function QbSubjectsPage(): Promise<ReactElement> {
   const subjects = await getSubjectList();
-  const total = subjects.reduce((sum, s) => sum + s.questions, 0);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pt-2 pb-12 md:py-8">
-      <Link
-        href="/qb"
-        className="w-fit text-xs font-bold text-primary hover:underline"
-      >
-        ← প্রশ্নব্যাংকে ফিরে যান
-      </Link>
+    <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8">
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="flex items-center gap-2 text-xs md:text-sm font-medium text-muted-foreground flex-wrap">
+          <Link href="/qb" className="hover:text-primary transition-colors">
+            প্রশ্নব্যাংক
+          </Link>
+          <span>/</span>
+          <span className="text-foreground">বিষয়ভিত্তিক</span>
+        </div>
 
-      <div className="space-y-1">
-        <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
-          বিষয়ভিত্তিক প্রশ্নব্যাংক
-        </h1>
-        <p className="text-xs text-muted-foreground sm:text-sm">
-          {toBengaliDigits(subjects.length)} টি বিষয় · মোট{" "}
-          {toBengaliDigits(total)} টি প্রশ্ন
-        </p>
+        <div>
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+            বিষয়ভিত্তিক প্রশ্নব্যাংক
+          </h1>
+          <p className="text-muted-foreground text-sm md:text-base mt-1">
+            {subjects.length === 0
+              ? "এখনো কোনো বিষয়ভিত্তিক প্রশ্ন যোগ হয়নি"
+              : "বিষয় ও অধ্যায় অনুযায়ী প্রশ্ন দেখুন"}
+          </p>
+        </div>
       </div>
 
       {subjects.length === 0 ? (
-        <div className="rounded-3xl border border-dashed bg-muted/10 px-6 py-16 text-center">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-            <TaskSquare className="size-7" />
-          </div>
-          <p className="font-bold">এখনো কোনো বিষয়ভিত্তিক প্রশ্ন যোগ হয়নি</p>
-          <p className="mt-1.5 text-xs text-muted-foreground">
+        <div className="py-16 sm:py-24 px-6 text-center border border-dashed rounded-3xl text-muted-foreground bg-muted/10">
+          <p className="font-bold text-base sm:text-lg text-foreground">
+            এখনো কোনো বিষয়ভিত্তিক প্রশ্ন যোগ হয়নি
+          </p>
+          <p className="text-xs sm:text-sm mt-1.5">
             অ্যাডমিন আপলোডের সময় বিষয় ও অধ্যায় দিলে সেগুলো এখানে দেখা যাবে।
           </p>
         </div>
       ) : (
-        <div className="grid gap-2.5 sm:grid-cols-2">
+        /* Three per row, capped so the square cards stay card-sized on a wide
+           screen instead of stretching. */
+        <div className="grid max-w-3xl grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3">
           {subjects.map((subject) => (
-            <Link
+            <QbCard
               key={subject.id}
               href={`/qb/subjects/${subject.slug}`}
-              className="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-xs transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-            >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <TaskSquare className="size-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-base font-bold">
-                  {subject.name}
-                  {subject.paper && (
-                    <span className="font-semibold text-primary">
-                      {" "}
-                      · {subject.paper}
-                    </span>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {toBengaliDigits(subject.questions)} টি প্রশ্ন
-                </span>
-              </span>
-              <span className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5">
-                ›
-              </span>
-            </Link>
+              title={subject.name}
+              subtitle={subject.paper || "সব পত্র"}
+              questions={subject.questions}
+              variant="wide"
+            />
           ))}
         </div>
       )}

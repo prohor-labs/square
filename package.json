@@ -9,7 +9,8 @@
     "lint": "biome check",
     "format": "biome format --write",
     "doctor": "react-doctor . --verbose --yes",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "backup:qb": "node scripts/export-qb-backup.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -30,6 +31,7 @@
     "dotenv": "^18.0.4",
     "drizzle-orm": "^0.45.2",
     "embla-carousel-react": "^8.6.0",
+    "fflate": "^0.8.3",
     "input-otp": "^1.5.0",
     "katex": "^0.18.5",
     "nanoid": "^6.0.1",
