@@ -206,14 +206,21 @@ export default async function CourseDetailPage({
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* One box for the whole list. Features are short lines of
+                    benefit, not separate cards — boxing each one gave every
+                    line its own border and shadow, which made four short
+                    sentences look like four different sections. */}
+                <div className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs md:rounded-3xl">
                   {course.features.map((feature) => (
                     <div
                       key={feature.label}
-                      className="flex items-center gap-3.5 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-colors hover:border-primary/40"
+                      className="flex items-center gap-3.5 p-4 transition-colors hover:bg-muted/40"
                     >
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <CourseFeatureIcon name={feature.icon} />
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <CourseFeatureIcon
+                          name={feature.icon}
+                          className="size-4"
+                        />
                       </span>
                       <p className="text-xs leading-relaxed font-bold text-foreground sm:text-sm">
                         {feature.label}
@@ -278,14 +285,14 @@ export default async function CourseDetailPage({
             )}
           </div>
 
-          {/* ================= RIGHT SIDEBAR (Col Span 4) ================= */}
-          <aside className="lg:col-span-4 sticky top-24 space-y-5">
+          {/* ================= RIGHT SIDEBAR (Col Span 4) =================
+              Every part of it has a twin in the fixed bottom bar on a phone —
+              the name, the price, the routine link and the enrolment button —
+              so on small screens it would be an empty bordered card at the
+              foot of the page. Only shown where the bottom bar is switched off. */}
+          <aside className="hidden lg:col-span-4 lg:block sticky top-24 space-y-5">
             <div className="bg-card rounded-2xl md:rounded-3xl p-5 sm:p-7 border-2 border-border shadow-md space-y-6">
-              {/* Name, price and the routine link are all still said elsewhere
-                  on a phone — the fixed bottom bar carries the price, the
-                  gallery carries the routine — so they only show from `lg` up,
-                  where the bottom bar is switched off. */}
-              <div className="hidden lg:block space-y-6">
+              <div className="space-y-6">
                 <div className="text-center space-y-1 pb-4 border-b border-border/60">
                   <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-primary bg-primary/10 px-3.5 py-1 rounded-full mb-1">
                     ভর্তি চলছে
@@ -326,20 +333,16 @@ export default async function CourseDetailPage({
 
               {/* Action Buttons — the same component the bottom bar uses, so
                   the two can never say different things. The Telegram link is
-                  part of it, so help and enrolment sit side by side instead of
-                  as two separate rows. Hidden on a phone, where the fixed bar
-                  already shows both. */}
-              <div className="hidden lg:block">
-                <EnrollAction
-                  courseId={course.id}
-                  courseName={course.name}
-                  slug={slug}
-                  price={course.price}
-                  userId={session?.user?.id}
-                  status={enrollmentStatus}
-                  telegramUrl={course.telegramGroupUrl}
-                />
-              </div>
+                  part of it, so help and enrolment sit side by side. */}
+              <EnrollAction
+                courseId={course.id}
+                courseName={course.name}
+                slug={slug}
+                price={course.price}
+                userId={session?.user?.id}
+                status={enrollmentStatus}
+                telegramUrl={course.telegramGroupUrl}
+              />
             </div>
           </aside>
         </div>
