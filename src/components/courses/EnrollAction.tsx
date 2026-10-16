@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CheckoutModal } from "@/components/checkout-modal";
+import { Send } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,10 @@ import { cn } from "@/lib/utils";
  * so the decision of what the button says and where it goes lives here once.
  * Without that, a new state would have to be added in two places and the bar
  * would quietly drift out of step with the sidebar.
+ *
+ * The Telegram button sits beside it in both places rather than standing on
+ * its own further down, so asking for help and enrolling are a single glance
+ * apart instead of two competing full-width rows.
  */
 export function EnrollAction({
   courseId,
@@ -20,6 +25,7 @@ export function EnrollAction({
   price,
   userId,
   status,
+  telegramUrl,
   size = "lg",
 }: {
   readonly courseId: string;
@@ -28,6 +34,7 @@ export function EnrollAction({
   readonly price: number;
   readonly userId?: string;
   readonly status: string;
+  readonly telegramUrl: string;
   /** "lg" for the sidebar, "sm" for the bottom bar. */
   readonly size?: "lg" | "sm";
 }) {
@@ -39,8 +46,28 @@ export function EnrollAction({
       : "h-11 text-xs shadow-xs hover:scale-[1.01]",
   );
 
+  /** Whatever the state, the Telegram link waits beside it. */
+  const row = (cta: React.ReactNode) => (
+    <div className="flex w-full items-stretch gap-2">
+      <div className="min-w-0 flex-1">{cta}</div>
+      <a
+        href={telegramUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="টেলিগ্রামে সহায়তা নিন"
+        aria-label="টেলিগ্রামে সহায়তা নিন"
+        className={cn(
+          "flex w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/10 transition-colors hover:bg-sky-500/20",
+          tall ? "h-auto" : "h-11",
+        )}
+      >
+        <Send className="size-5 text-sky-500" />
+      </a>
+    </div>
+  );
+
   if (status === "active") {
-    return (
+    return row(
       <Button
         render={<Link href={`/my-courses/${courseId}`} />}
         nativeButton={false}
@@ -50,12 +77,12 @@ export function EnrollAction({
         )}
       >
         ইতিমধ্যে যুক্ত আছো &rarr;
-      </Button>
+      </Button>,
     );
   }
 
   if (status === "pending") {
-    return (
+    return row(
       <div
         className={cn(
           "w-full rounded-xl border border-amber-500/30 bg-amber-500/10 text-center font-extrabold text-amber-600 shadow-xs",
@@ -63,19 +90,19 @@ export function EnrollAction({
         )}
       >
         পেমেন্ট ভেরিফিকেশন প্রক্রিয়াধীন
-      </div>
+      </div>,
     );
   }
 
   if (!userId) {
-    return (
+    return row(
       <Button
         render={<Link href={`/login?callbackUrl=/courses/${slug}`} />}
         nativeButton={false}
         className={buttonClass}
       >
         এখনই ভর্তি হোন
-      </Button>
+      </Button>,
     );
   }
 
@@ -86,16 +113,18 @@ export function EnrollAction({
           পূর্বের পেমেন্ট রিকোয়েস্ট বাতিল হয়েছে। সঠিক তথ্য দিয়ে পুনরায় চেষ্টা করুন।
         </div>
       )}
-      <CheckoutModal
-        batchId={courseId}
-        batchTitle={courseName}
-        price={price}
-        userId={userId}
-      >
-        <Button className={buttonClass}>
-          {status === "rejected" ? "পুনরায় ভর্তি হোন" : "এখনই ভর্তি হোন"}
-        </Button>
-      </CheckoutModal>
+      {row(
+        <CheckoutModal
+          batchId={courseId}
+          batchTitle={courseName}
+          price={price}
+          userId={userId}
+        >
+          <Button className={buttonClass}>
+            {status === "rejected" ? "পুনরায় ভর্তি হোন" : "এখনই ভর্তি হোন"}
+          </Button>
+        </CheckoutModal>,
+      )}
     </div>
   );
 }

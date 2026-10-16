@@ -10,19 +10,11 @@ import {
   ArrowLeft2,
   CalendarTick,
   Flame,
-  Send,
   Star,
   User,
 } from "@/components/icons";
 import { LandingHeader } from "@/components/landing-nav";
 import { RoutineGallery } from "@/components/student/RoutineGallery";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
 import {
   checkEnrollmentStatus,
   getCourseWithDetailsBySlug,
@@ -93,7 +85,6 @@ export default async function CourseDetailPage({
         : Array.isArray(courseWithDetails.details?.curriculum)
           ? courseWithDetails.details.curriculum
           : [],
-    faqs: courseWithDetails.faqs || courseWithDetails.details?.faqs || [],
   };
 
   let enrollmentStatus = "none";
@@ -285,37 +276,6 @@ export default async function CourseDetailPage({
                 />
               </section>
             )}
-
-            {/* FAQS SECTION */}
-            {course.faqs.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-1 bg-primary rounded-full" />
-                  <h2 className="text-lg sm:text-xl font-extrabold text-foreground">
-                    সচরাচর জিজ্ঞাসিত প্রশ্নাবলী (FAQ)
-                  </h2>
-                </div>
-
-                <div className="bg-card rounded-2xl md:rounded-3xl p-5 sm:p-7 border border-border/80 shadow-xs">
-                  <Accordion className="w-full">
-                    {course.faqs.map((faq: any, idx: number) => (
-                      <AccordionItem
-                        key={faq.question}
-                        value={`faq-${idx}`}
-                        className="border-border/60 py-1"
-                      >
-                        <AccordionTrigger className="text-left font-bold text-foreground text-xs sm:text-sm hover:no-underline py-3 cursor-pointer">
-                          {faq.question}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground text-xs sm:text-sm leading-relaxed pt-1 pb-3">
-                          {faq.answer}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
-              </section>
-            )}
           </div>
 
           {/* ================= RIGHT SIDEBAR (Col Span 4) ================= */}
@@ -365,40 +325,20 @@ export default async function CourseDetailPage({
               </div>
 
               {/* Action Buttons — the same component the bottom bar uses, so
-                  the two can never say different things. On a phone the fixed
-                  bottom bar already carries the button, and the sidebar sits at
-                  the very bottom of the page, so showing it again there would
-                  be a second copy of the same choice. */}
-              <div className="flex flex-col gap-3">
-                <div className="hidden lg:block">
-                  <EnrollAction
-                    courseId={course.id}
-                    courseName={course.name}
-                    slug={slug}
-                    price={course.price}
-                    userId={session?.user?.id}
-                    status={enrollmentStatus}
-                  />
-                </div>
-
-                <Button
-                  render={
-                    <a
-                      href={course.telegramGroupUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2"
-                    />
-                  }
-                  variant="outline"
-                  className="w-full font-bold py-3 h-auto rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted border-border text-xs"
-                >
-                  <Send
-                    data-icon="inline-start"
-                    className="size-3.5 text-sky-500"
-                  />
-                  <span>ভর্তি সংক্রান্ত সহায়তা (টেলিগ্রাম)</span>
-                </Button>
+                  the two can never say different things. The Telegram link is
+                  part of it, so help and enrolment sit side by side instead of
+                  as two separate rows. Hidden on a phone, where the fixed bar
+                  already shows both. */}
+              <div className="hidden lg:block">
+                <EnrollAction
+                  courseId={course.id}
+                  courseName={course.name}
+                  slug={slug}
+                  price={course.price}
+                  userId={session?.user?.id}
+                  status={enrollmentStatus}
+                  telegramUrl={course.telegramGroupUrl}
+                />
               </div>
             </div>
           </aside>
@@ -415,6 +355,7 @@ export default async function CourseDetailPage({
         originalPrice={course.originalPrice}
         userId={session?.user?.id}
         status={enrollmentStatus}
+        telegramUrl={course.telegramGroupUrl}
       />
     </div>
   );

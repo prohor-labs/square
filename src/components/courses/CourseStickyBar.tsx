@@ -19,6 +19,7 @@ export function CourseStickyBar({
   originalPrice,
   userId,
   status,
+  telegramUrl,
 }: {
   readonly courseId: string;
   readonly courseName: string;
@@ -27,6 +28,7 @@ export function CourseStickyBar({
   readonly originalPrice?: number | null;
   readonly userId?: string;
   readonly status: string;
+  readonly telegramUrl: string;
 }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.08)] lg:hidden">
@@ -51,6 +53,7 @@ export function CourseStickyBar({
             price={price}
             userId={userId}
             status={status}
+            telegramUrl={telegramUrl}
             size="sm"
           />
         </div>
