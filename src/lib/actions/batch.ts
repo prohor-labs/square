@@ -12,6 +12,8 @@ import {
   batchMembers,
 } from "@/db/schema";
 import type { CourseFeature } from "@/lib/course-features";
+import type { CourseMentor } from "@/lib/course-mentors";
+import { toCourseMentors } from "@/lib/course-mentors";
 import { normalizeHscBatch } from "@/lib/utils";
 
 export async function getBatchesAction() {
@@ -121,7 +123,7 @@ export async function updateBatchDetailsAction(
     isActive?: boolean;
     features?: CourseFeature[];
     curriculum?: any;
-    instructors?: Array<{ name: string; role: string; institution: string }>;
+    instructors?: CourseMentor[];
     faqs?: Array<{ question: string; answer: string }>;
     routineUrl?: string | null;
     routinePdfUrl?: string | null;
@@ -300,11 +302,11 @@ export async function getBatchDetailAction(id: string) {
         ? rawDetails.curriculum
         : {};
 
-    const instructors = Array.isArray(rawDetails.mentorIds)
-      ? rawDetails.mentorIds
-      : Array.isArray(rawDetails.instructors)
-        ? rawDetails.instructors
-        : [];
+    const instructors = toCourseMentors(
+      Array.isArray(rawDetails.mentorIds)
+        ? rawDetails.mentorIds
+        : rawDetails.instructors,
+    );
     const features = Array.isArray(rawDetails.features)
       ? rawDetails.features
       : [];

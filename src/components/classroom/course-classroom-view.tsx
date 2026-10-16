@@ -71,9 +71,6 @@ export function CourseClassroomView({
     : Array.isArray(batch?.curriculum)
       ? batch.curriculum
       : [];
-  const instructors = Array.isArray(batch?.instructors)
-    ? batch.instructors
-    : [];
   const faqs = Array.isArray(batch?.faqs) ? batch.faqs : [];
 
   // Active Video in Classroom

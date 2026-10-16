@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { toCourseFeatures } from "@/lib/course-features";
+import { toCourseMentors } from "@/lib/course-mentors";
 import { normalizeHscBatch } from "@/lib/utils";
 
 export async function getCourses(batch?: string) {
@@ -37,11 +38,11 @@ export async function getCourses(batch?: string) {
         !Array.isArray(details.curriculum)
           ? details.curriculum
           : {};
-      const instructors = Array.isArray(details?.mentorIds)
-        ? details.mentorIds
-        : Array.isArray(details?.instructors)
-          ? details.instructors
-          : [];
+      const instructors = toCourseMentors(
+        Array.isArray(details?.mentorIds)
+          ? details.mentorIds
+          : details?.instructors,
+      );
       const features = toCourseFeatures(details?.features);
       const faqs = Array.isArray(details?.faqs) ? details.faqs : [];
       const duration =
@@ -105,11 +106,11 @@ export async function getFeaturedCourses() {
       !Array.isArray(details.curriculum)
         ? details.curriculum
         : {};
-    const instructors = Array.isArray(details?.mentorIds)
-      ? details.mentorIds
-      : Array.isArray(details?.instructors)
-        ? details.instructors
-        : [];
+    const instructors = toCourseMentors(
+      Array.isArray(details?.mentorIds)
+        ? details.mentorIds
+        : details?.instructors,
+    );
     const features = toCourseFeatures(details?.features);
     const faqs = Array.isArray(details?.faqs) ? details.faqs : [];
     const duration =
@@ -327,11 +328,11 @@ export async function getCourseWithDetailsBySlug(slug: string) {
       ? details.curriculum
       : {};
 
-  const instructors = Array.isArray(details?.mentorIds)
-    ? details.mentorIds
-    : Array.isArray(details?.instructors)
-      ? details.instructors
-      : [];
+  const instructors = toCourseMentors(
+    Array.isArray(details?.mentorIds)
+      ? details.mentorIds
+      : details?.instructors,
+  );
   const features = toCourseFeatures(details?.features);
   const faqs = Array.isArray(details?.faqs) ? details.faqs : [];
   const duration =

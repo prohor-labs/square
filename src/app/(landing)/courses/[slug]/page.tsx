@@ -22,6 +22,7 @@ import {
 import { getBatchRoutineImages } from "@/lib/actions/routine-images";
 import { auth } from "@/lib/auth";
 import { toCourseFeatures } from "@/lib/course-features";
+import { mentorInitial, toCourseMentors } from "@/lib/course-mentors";
 
 export const dynamic = "force-dynamic";
 
@@ -73,11 +74,11 @@ export default async function CourseDetailPage({
     features: toCourseFeatures(
       courseWithDetails.features || courseWithDetails.details?.features,
     ),
-    instructors:
+    instructors: toCourseMentors(
       courseWithDetails.instructors ||
-      courseWithDetails.details?.instructors ||
-      courseWithDetails.details?.mentorIds ||
-      [],
+        courseWithDetails.details?.instructors ||
+        courseWithDetails.details?.mentorIds,
+    ),
     modules: Array.isArray(courseWithDetails.modules)
       ? courseWithDetails.modules
       : Array.isArray(courseWithDetails.details?.modules)
@@ -231,44 +232,49 @@ export default async function CourseDetailPage({
               </section>
             )}
 
-            {/* MENTORS SECTION */}
+            {/* MENTORS — centred, one card each, side by side when there is
+                more than one. A single fixed width keeps a lone mentor from
+                stretching across the page and a pair from drifting apart. */}
             {course.instructors.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-1 bg-primary rounded-full" />
-                  <h2 className="text-lg sm:text-xl font-extrabold text-foreground">
-                    কোর্স মেন্টর
-                  </h2>
-                </div>
+              <section className="space-y-5 text-center">
+                <h2 className="text-lg font-extrabold text-foreground sm:text-xl">
+                  কোর্স মেন্টর
+                </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {course.instructors.map(
-                    (instructor: {
-                      name: string;
-                      role: string;
-                      institution: string;
-                    }) => (
-                      <div
-                        key={instructor.name}
-                        className="flex items-center gap-4 bg-card p-4 rounded-2xl border border-border/80 shadow-2xs"
-                      >
-                        <div className="size-14 rounded-2xl bg-foreground text-background flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">
-                          <User className="size-7" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-extrabold text-foreground leading-tight">
-                            {instructor.name}
-                          </h3>
-                          <p className="text-xs font-semibold text-primary mt-0.5">
-                            {instructor.role}
+                <div className="flex flex-wrap items-stretch justify-center gap-4">
+                  {course.instructors.map((mentor) => (
+                    <div
+                      key={mentor.name}
+                      className="flex w-[240px] shrink-0 flex-col items-center gap-3 rounded-2xl border border-border/80 bg-card p-5 text-center shadow-2xs transition-colors hover:border-primary/40 md:rounded-3xl"
+                    >
+                      <span className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-3xl font-extrabold text-primary">
+                        {mentor.image ? (
+                          <Image
+                            src={mentor.image}
+                            alt={mentor.name}
+                            width={80}
+                            height={80}
+                            unoptimized
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          mentorInitial(mentor.name)
+                        )}
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-extrabold leading-tight text-foreground">
+                          {mentor.name}
+                        </h3>
+                        {(mentor.role || mentor.institution) && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {[mentor.role, mentor.institution]
+                              .filter(Boolean)
+                              .join(" \u00b7 ")}
                           </p>
-                          <span className="text-[11px] font-medium text-muted-foreground block mt-0.5">
-                            {instructor.institution}
-                          </span>
-                        </div>
+                        )}
                       </div>
-                    ),
-                  )}
+                    </div>
+                  ))}
                 </div>
               </section>
             )}

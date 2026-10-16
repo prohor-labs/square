@@ -15,6 +15,11 @@ import {
   DEFAULT_FEATURE_ICON,
   toCourseFeatures,
 } from "@/lib/course-features";
+import {
+  type CourseMentor,
+  mentorInitial,
+  toCourseMentors,
+} from "@/lib/course-mentors";
 import { HSC_BATCH_TAGS, normalizeHscBatch } from "@/lib/utils";
 import type { BatchDetail } from "@/types";
 
@@ -78,14 +83,12 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
   );
   const [newFeature, setNewFeature] = useState("");
 
-  const [instructors, setInstructors] = useState<
-    Array<{ name: string; role: string; institution: string }>
-  >(
-    Array.isArray(details.instructors)
-      ? details.instructors
-      : Array.isArray(details.mentorIds)
-        ? details.mentorIds
-        : [],
+  const [instructors, setInstructors] = useState<CourseMentor[]>(
+    toCourseMentors(
+      Array.isArray(details.instructors)
+        ? details.instructors
+        : details.mentorIds,
+    ),
   );
   const [newInstructorName, setNewInstructorName] = useState("");
   const [newInstructorRole, setNewInstructorRole] = useState("");
@@ -123,6 +126,7 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
           name: newInstructorName.trim(),
           role: newInstructorRole.trim() || "Instructor",
           institution: newInstructorInst.trim() || "BUET / Medical / DU",
+          image: "",
         },
       ]);
       setNewInstructorName("");
@@ -133,6 +137,13 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
 
   const removeInstructor = (idx: number) => {
     setInstructors(instructors.filter((_, i) => i !== idx));
+  };
+
+  /** Swaps one mentor's picture without touching anything else on the row. */
+  const setInstructorImage = (idx: number, image: string) => {
+    setInstructors(
+      instructors.map((ins, i) => (i === idx ? { ...ins, image } : ins)),
+    );
   };
 
   // Handlers for FAQs
@@ -513,30 +524,66 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
           {instructors.map((ins, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border/60"
+              className="space-y-2.5 rounded-xl border border-border/60 bg-muted/40 p-3"
             >
-              <div>
-                <div className="text-sm font-bold text-foreground">
-                  {ins.name}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {/* Exactly what the course page shows, so it is never a
+                      surprise which picture got saved. */}
+                  <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-sm font-extrabold text-primary">
+                    {ins.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- an
+                      // arbitrary remote link the admin just pasted, which Next
+                      // cannot optimise.
+                      <img
+                        src={ins.image}
+                        alt={ins.name}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      mentorInitial(ins.name)
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold text-foreground">
+                      {ins.name}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {ins.role} • {ins.institution}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {ins.role} • {ins.institution}
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeInstructor(idx)}
+                  className="size-8 shrink-0 p-0 text-destructive hover:bg-destructive/10 cursor-pointer"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeInstructor(idx)}
-                className="size-8 p-0 text-destructive hover:bg-destructive/10 cursor-pointer"
-              >
-                <Trash2 className="size-4" />
-              </Button>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor={`mentor-image-${idx}`}
+                  className="text-xs text-muted-foreground"
+                >
+                  ছবির লিঙ্ক (ঐচ্ছিক)
+                </Label>
+                <Input
+                  id={`mentor-image-${idx}`}
+                  value={ins.image}
+                  onChange={(e) => setInstructorImage(idx, e.target.value)}
+                  placeholder="https://.../mentor.jpg"
+                  className="h-9 text-xs"
+                />
+              </div>
             </div>
           ))}
           {instructors.length === 0 && (
-            <p className="text-xs text-muted-foreground italic py-2">
-              এখনও কোনো মেন্টর যুক্ত করা হয়নি।
+            <p className="py-2 text-xs italic text-muted-foreground">
+              এখনও কোনো মেন্টর যুক্ত করা হয়নি।
             </p>
           )}
         </div>
