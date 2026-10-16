@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { getCourses } from "@/lib/actions/course";
+import type { CourseFeature } from "@/lib/course-features";
 import { HSC_BATCH_TAGS, type HscBatchTag } from "@/lib/utils";
 
 type CourseItem = {
@@ -19,7 +20,7 @@ type CourseItem = {
   readonly image: string;
   readonly badge?: string | null;
   readonly originalPrice?: number | null;
-  readonly features: readonly string[];
+  readonly features: readonly CourseFeature[];
 };
 
 export function CoursesPricingSection() {
@@ -99,13 +100,13 @@ export function CoursesPricingSection() {
                       whichever way the cards are sized. */}
                   {course.features.length > 0 && (
                     <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
-                      {course.features.slice(0, 6).map((feature: string) => (
+                      {course.features.slice(0, 6).map((feature) => (
                         <li
-                          key={feature}
+                          key={feature.label}
                           className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground"
                         >
                           <TickCircle className="mt-px size-3.5 shrink-0 text-emerald-500" />
-                          <span className="line-clamp-2">{feature}</span>
+                          <span className="line-clamp-2">{feature.label}</span>
                         </li>
                       ))}
                     </ul>

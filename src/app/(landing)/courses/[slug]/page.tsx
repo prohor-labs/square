@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
+import { CourseFeatureIcon } from "@/components/course-feature-icon";
 import { CourseStickyBar } from "@/components/courses/CourseStickyBar";
 import { EnrollAction } from "@/components/courses/EnrollAction";
 import {
@@ -28,6 +29,7 @@ import {
 } from "@/lib/actions/course";
 import { getBatchRoutineImages } from "@/lib/actions/routine-images";
 import { auth } from "@/lib/auth";
+import { toCourseFeatures } from "@/lib/course-features";
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +78,9 @@ export default async function CourseDetailPage({
       courseWithDetails.telegramGroupUrl ||
       courseWithDetails.details?.telegramGroupUrl ||
       "https://t.me/shu_yaib",
-    features:
-      courseWithDetails.features || courseWithDetails.details?.features || [],
+    features: toCourseFeatures(
+      courseWithDetails.features || courseWithDetails.details?.features,
+    ),
     instructors:
       courseWithDetails.instructors ||
       courseWithDetails.details?.instructors ||
@@ -201,34 +204,29 @@ export default async function CourseDetailPage({
               )}
             </div>
 
-            {/* ROADMAP / COURSE FEATURES */}
+            {/* COURSE FEATURES — no numbers: these are parallel benefits, not
+                steps. Each icon is the one the admin chose for that feature. */}
             {course.features.length > 0 && (
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-1 bg-primary rounded-full" />
                   <h2 className="text-lg sm:text-xl font-extrabold text-foreground">
-                    কোর্স ফিচারসমূহ :
+                    কোর্স ফিচারসমূহ
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {course.features.map((feature: any, idx: number) => (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {course.features.map((feature) => (
                     <div
-                      key={feature}
-                      className="flex items-start gap-3.5 bg-card p-4 rounded-2xl border border-border/80 shadow-2xs hover:border-primary/50 transition-all group"
+                      key={feature.label}
+                      className="flex items-center gap-3.5 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs transition-colors hover:border-primary/40"
                     >
-                      <div className="size-8 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all flex items-center justify-center shrink-0 font-bold text-sm">
-                        {idx + 1}
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-xs sm:text-sm font-bold text-foreground leading-snug">
-                          {feature}
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          সম্পূর্ণ এডমিশন ও বোর্ড স্ট্যান্ডার্ড বাছাইকৃত প্রশ্ন ও প্র্যাকটিস
-                          গাইডলাইন।
-                        </p>
-                      </div>
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <CourseFeatureIcon name={feature.icon} />
+                      </span>
+                      <p className="text-xs leading-relaxed font-bold text-foreground sm:text-sm">
+                        {feature.label}
+                      </p>
                     </div>
                   ))}
                 </div>

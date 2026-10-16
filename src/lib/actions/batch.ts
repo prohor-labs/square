@@ -11,6 +11,7 @@ import {
   batches,
   batchMembers,
 } from "@/db/schema";
+import type { CourseFeature } from "@/lib/course-features";
 import { normalizeHscBatch } from "@/lib/utils";
 
 export async function getBatchesAction() {
@@ -118,7 +119,7 @@ export async function updateBatchDetailsAction(
     badge?: string | null;
     isPublished?: boolean;
     isActive?: boolean;
-    features?: string[];
+    features?: CourseFeature[];
     curriculum?: any;
     instructors?: Array<{ name: string; role: string; institution: string }>;
     faqs?: Array<{ question: string; answer: string }>;

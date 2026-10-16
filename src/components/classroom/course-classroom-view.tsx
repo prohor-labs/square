@@ -17,6 +17,7 @@ import {
   TaskSquare,
   TickCircle,
 } from "@/components/icons";
+import { PdfEmbedViewer } from "@/components/pdf/pdf-embed-viewer";
 import { ResponsiveDialog } from "@/components/responsive-dialog";
 import {
   Accordion,
@@ -27,12 +28,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toCourseFeatures } from "@/lib/course-features";
+import { formatBanglaDateTime } from "@/lib/date";
 import {
   formatGoogleDriveDownloadUrl,
   formatGoogleDriveUrl,
 } from "@/lib/drive";
-import { formatBanglaDateTime } from "@/lib/date";
-import { PdfEmbedViewer } from "@/components/pdf/pdf-embed-viewer";
 import type { CourseClass, CoursePdf } from "@/types";
 
 export function getYouTubeEmbedUrl(url: string): string {
@@ -64,6 +65,7 @@ export function CourseClassroomView({
   exams = [],
 }: CourseClassroomViewProps) {
   const details = batch?.details;
+  const courseFeatures = toCourseFeatures(batch?.features ?? details?.features);
   const modules = Array.isArray(batch?.modules)
     ? batch.modules
     : Array.isArray(batch?.curriculum)
@@ -624,20 +626,20 @@ export function CourseClassroomView({
           )}
 
           {/* Features */}
-          {batch.features && batch.features.length > 0 && (
+          {courseFeatures.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg sm:text-xl font-bold pb-1 border-b flex items-center gap-2">
                 <TickCircle className="size-5 text-emerald-500" />
                 কোর্সের অন্তর্ভুক্ত সুবিধাসমূহ
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {batch.features.map((feat: string) => (
+                {courseFeatures.map((feat) => (
                   <div
-                    key={feat}
+                    key={feat.label}
                     className="flex items-start gap-2.5 p-3.5 rounded-xl bg-card border border-border/60 text-xs sm:text-sm font-medium"
                   >
                     <TickCircle className="size-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>{feat}</span>
+                    <span>{feat.label}</span>
                   </div>
                 ))}
               </div>

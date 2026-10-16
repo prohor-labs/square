@@ -11,6 +11,7 @@ import {
   batches,
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { toCourseFeatures } from "@/lib/course-features";
 import { normalizeHscBatch } from "@/lib/utils";
 
 export async function getCourses(batch?: string) {
@@ -41,7 +42,7 @@ export async function getCourses(batch?: string) {
         : Array.isArray(details?.instructors)
           ? details.instructors
           : [];
-      const features = Array.isArray(details?.features) ? details.features : [];
+      const features = toCourseFeatures(details?.features);
       const faqs = Array.isArray(details?.faqs) ? details.faqs : [];
       const duration =
         curriculumObj.duration || details?.duration || "১ বছর কমপ্লিট এক্সেস";
@@ -109,7 +110,7 @@ export async function getFeaturedCourses() {
       : Array.isArray(details?.instructors)
         ? details.instructors
         : [];
-    const features = Array.isArray(details?.features) ? details.features : [];
+    const features = toCourseFeatures(details?.features);
     const faqs = Array.isArray(details?.faqs) ? details.faqs : [];
     const duration =
       curriculumObj.duration || details?.duration || "১ বছর কমপ্লিট এক্সেস";
@@ -331,7 +332,7 @@ export async function getCourseWithDetailsBySlug(slug: string) {
     : Array.isArray(details?.instructors)
       ? details.instructors
       : [];
-  const features = Array.isArray(details?.features) ? details.features : [];
+  const features = toCourseFeatures(details?.features);
   const faqs = Array.isArray(details?.faqs) ? details.faqs : [];
   const duration =
     curriculumObj.duration || details?.duration || "১ বছর কমপ্লিট এক্সেস";

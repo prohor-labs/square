@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { FeatureIconPicker } from "@/components/admin/feature-icon-picker";
+import { CourseFeatureIcon } from "@/components/course-feature-icon";
 import { Add, Edit, Trash2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { updateBatchDetailsAction } from "@/lib/actions/batch";
+import {
+  type CourseFeature,
+  DEFAULT_FEATURE_ICON,
+  toCourseFeatures,
+} from "@/lib/course-features";
 import { HSC_BATCH_TAGS, normalizeHscBatch } from "@/lib/utils";
 import type { BatchDetail } from "@/types";
 
@@ -66,8 +73,8 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
   );
 
   // Dynamic Lists
-  const [features, setFeatures] = useState<string[]>(
-    Array.isArray(details.features) ? details.features : [],
+  const [features, setFeatures] = useState<CourseFeature[]>(
+    toCourseFeatures(details.features),
   );
   const [newFeature, setNewFeature] = useState("");
 
@@ -92,14 +99,19 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
 
   // Handlers for Features
   const addFeature = () => {
-    if (newFeature.trim()) {
-      setFeatures([...features, newFeature.trim()]);
-      setNewFeature("");
-    }
+    const label = newFeature.trim();
+    if (!label) return;
+    setFeatures([...features, { label, icon: DEFAULT_FEATURE_ICON }]);
+    setNewFeature("");
   };
 
   const removeFeature = (idx: number) => {
     setFeatures(features.filter((_, i) => i !== idx));
+  };
+
+  /** Swaps one feature's picture without touching its text. */
+  const setFeatureIcon = (idx: number, icon: string) => {
+    setFeatures(features.map((f, i) => (i === idx ? { ...f, icon } : f)));
   };
 
   // Handlers for Instructors
@@ -435,21 +447,29 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
               key={idx}
               className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border/60 text-sm font-medium"
             >
-              <div className="flex items-center gap-2">
-                <span className="size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
-                  {idx + 1}
+              <div className="flex min-w-0 items-center gap-2">
+                {/* The same icon the course page will show. */}
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <CourseFeatureIcon name={feat.icon} className="size-4" />
                 </span>
-                <span>{feat}</span>
+                <span className="truncate">{feat.label}</span>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeFeature(idx)}
-                className="size-8 p-0 text-destructive hover:bg-destructive/10 cursor-pointer"
-              >
-                <Trash2 className="size-4" />
-              </Button>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <FeatureIconPicker
+                  value={feat.icon}
+                  onChange={(icon) => setFeatureIcon(idx, icon)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFeature(idx)}
+                  className="size-8 p-0 text-destructive hover:bg-destructive/10 cursor-pointer"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
           {features.length === 0 && (
