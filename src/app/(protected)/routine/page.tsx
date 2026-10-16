@@ -45,11 +45,18 @@ export default async function RoutinePage(): Promise<ReactElement> {
       ) : (
         <div className="flex flex-col gap-3">
           {routines.map((routine) => (
-            <a
+            <Link
               key={routine.batchId}
-              href={routine.routineUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              // Straight to the timetable itself: a course with pictures goes
+              // to the gallery, one without falls back to the old link.
+              href={
+                routine.hasImages
+                  ? `/courses/${routine.slug}#routine`
+                  : routine.routineUrl
+              }
+              {...(routine.hasImages
+                ? {}
+                : { target: "_blank", rel: "noopener noreferrer" })}
               className="flex min-h-16 items-center justify-between gap-3 rounded-full border border-border bg-card px-6 py-3 text-center transition-colors hover:bg-accent"
             >
               <span className="min-w-0 flex-1 text-base font-semibold md:text-lg">
@@ -58,7 +65,7 @@ export default async function RoutinePage(): Promise<ReactElement> {
               <span className="shrink-0 text-xs text-muted-foreground">
                 রুটিন দেখুন
               </span>
-            </a>
+            </Link>
           ))}
         </div>
       )}

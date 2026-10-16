@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   batchArchivedExams,
@@ -9,6 +9,7 @@ import {
   batchExams,
   batches,
   batchMembers,
+  batchRoutineImages,
   courseClasses,
   examQuestions,
   examResponses,
@@ -348,16 +349,29 @@ export async function getStudentCourseList(
   });
 }
 
-/** Routine PDF for every course the student is in. */
-export async function getStudentRoutines(
-  userId: string,
-): Promise<readonly { title: string; routineUrl: string; batchId: string }[]> {
+/**
+ * Every course the student is in that has a routine to show.
+ *
+ * A course qualifies either because the admin added routine pictures or because
+ * an older routine link is still on it, so nothing disappears mid-migration.
+ */
+export async function getStudentRoutines(userId: string): Promise<
+  readonly {
+    title: string;
+    slug: string;
+    /** Blank when the course has no legacy link. */
+    routineUrl: string;
+    batchId: string;
+    hasImages: boolean;
+  }[]
+> {
   const batchIds = await getEnrolledBatchIds(userId);
   if (batchIds.length === 0) return [];
 
   const rows = await db
     .select({
       title: batches.name,
+      slug: batches.slug,
       routineUrl: batchDetails.routineUrl,
       batchId: batches.id,
     })
@@ -365,7 +379,26 @@ export async function getStudentRoutines(
     .innerJoin(batchDetails, eq(batchDetails.batchId, batches.id))
     .where(inArray(batches.id, batchIds));
 
-  return rows.flatMap((r) =>
-    r.routineUrl ? [{ ...r, routineUrl: r.routineUrl }] : [],
+  const counts = await db
+    .select({
+      batchId: batchRoutineImages.batchId,
+      total: count(batchRoutineImages.id),
+    })
+    .from(batchRoutineImages)
+    .where(inArray(batchRoutineImages.batchId, batchIds))
+    .groupBy(batchRoutineImages.batchId);
+
+  const pagesByBatch = new Map(
+    counts.map((row) => [row.batchId, Number(row.total)]),
   );
+
+  return rows
+    .map((row) => ({
+      title: row.title,
+      slug: row.slug,
+      routineUrl: row.routineUrl ?? "",
+      batchId: row.batchId,
+      hasImages: (pagesByBatch.get(row.batchId) ?? 0) > 0,
+    }))
+    .filter((row) => row.hasImages || Boolean(row.routineUrl));
 }

@@ -6,13 +6,14 @@ import type { ReactElement } from "react";
 import { CheckoutModal } from "@/components/checkout-modal";
 import {
   ArrowLeft2,
-  FileDown,
+  CalendarTick,
   Flame,
   Send,
   Star,
   User,
 } from "@/components/icons";
 import { LandingHeader } from "@/components/landing-nav";
+import { RoutineGallery } from "@/components/student/RoutineGallery";
 import {
   Accordion,
   AccordionContent,
@@ -24,6 +25,7 @@ import {
   checkEnrollmentStatus,
   getCourseWithDetailsBySlug,
 } from "@/lib/actions/course";
+import { getBatchRoutineImages } from "@/lib/actions/routine-images";
 import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +100,8 @@ export default async function CourseDetailPage({
     );
     enrollmentStatus = statusResult?.status || "none";
   }
+
+  const routineImages = course.id ? await getBatchRoutineImages(course.id) : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary selection:text-white transition-colors duration-300">
@@ -272,6 +276,17 @@ export default async function CourseDetailPage({
               </section>
             )}
 
+            {/* ROUTINE — the weekly timetable as pictures, swiped one page at
+                a time. The id lets the student list deep-link straight here. */}
+            {routineImages.length > 0 && (
+              <section id="routine" className="scroll-mt-24 space-y-4">
+                <RoutineGallery
+                  images={routineImages}
+                  courseTitle={course.name || course.title}
+                />
+              </section>
+            )}
+
             {/* FAQS SECTION */}
             {course.faqs.length > 0 && (
               <section className="space-y-4">
@@ -333,18 +348,16 @@ export default async function CourseDetailPage({
                 </div>
               </div>
 
-              {/* Routine Download Button */}
-              {course.routinePdfUrl ? (
+              {/* Routine — jumps down to the gallery rather than opening a
+                  file, because the download button lives inside it. */}
+              {routineImages.length > 0 && (
                 <a
-                  href={course.routinePdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground font-bold py-2.5 px-4 rounded-xl transition-all text-xs border border-border"
+                  href="#routine"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted py-2.5 px-4 text-xs font-bold text-foreground transition-all hover:bg-muted/80"
                 >
-                  <FileDown className="size-4 text-primary" /> রুটিন ডাউনলোড করুন
-                  (PDF)
+                  <CalendarTick className="size-4 text-primary" /> রুটিন দেখুন
                 </a>
-              ) : null}
+              )}
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-3">

@@ -5,9 +5,11 @@ import { BatchClassesTab } from "@/components/admin/batch-classes-tab";
 import { BatchExamsTab } from "@/components/admin/batch-exams-tab";
 import { BatchMembersTab } from "@/components/admin/batch-members-tab";
 import { BatchPdfsTab } from "@/components/admin/batch-pdfs-tab";
+import { BatchRoutineImagesTab } from "@/components/admin/batch-routine-images-tab";
 import { BatchSettingsTab } from "@/components/admin/batch-settings-tab";
 import {
   ArchiveBox,
+  CalendarTick,
   Edit,
   FileText,
   Profile2user,
@@ -116,6 +118,14 @@ export function BatchDetailView({
             </TabsTrigger>
 
             <TabsTrigger
+              value="routine"
+              className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:bg-accent hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:font-bold transition-all shrink-0 whitespace-nowrap"
+            >
+              <CalendarTick className="size-4 shrink-0" />
+              <span>রুটিন ছবি</span>
+            </TabsTrigger>
+
+            <TabsTrigger
               value="archive"
               className="flex items-center gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-medium text-xs sm:text-sm text-muted-foreground hover:bg-accent hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=active]:font-bold transition-all shrink-0 whitespace-nowrap"
             >
@@ -146,6 +156,10 @@ export function BatchDetailView({
 
         <TabsContent value="pdfs">
           <BatchPdfsTab batchId={batch.id} />
+        </TabsContent>
+
+        <TabsContent value="routine">
+          <BatchRoutineImagesTab batchId={batch.id} />
         </TabsContent>
 
         <TabsContent value="exams">

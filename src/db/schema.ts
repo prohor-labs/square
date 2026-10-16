@@ -699,6 +699,33 @@ export const coursePdfs = pgTable("course_pdfs", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+/**
+ * The weekly routine as pictures — one row per page.
+ *
+ * A course can span several weeks or several groups, so a single PDF link was
+ * never enough. The admin adds as many images as the course has pages, and the
+ * student either swipes through them or takes them away as one PDF.
+ */
+export const batchRoutineImages = pgTable(
+  "batch_routine_images",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    batchId: text("batch_id")
+      .notNull()
+      .references(() => batches.id, { onDelete: "cascade" }),
+    /** Optional caption, e.g. "সপ্তাহ ১" or "সেকেন্ড গ্রুপ". */
+    title: text("title"),
+    imageUrl: text("image_url").notNull(),
+    /** Page order in the gallery and in the generated PDF. */
+    orderIndex: integer("order_index").default(0).notNull(),
+    isPublished: boolean("is_published").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("batch_routine_images_batch_idx").on(table.batchId)],
+);
+
 export const batchQbAccess = pgTable(
   "batch_qb_access",
   {
