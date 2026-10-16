@@ -323,54 +323,65 @@ export default async function CourseDetailPage({
           {/* ================= RIGHT SIDEBAR (Col Span 4) ================= */}
           <aside className="lg:col-span-4 sticky top-24 space-y-5">
             <div className="bg-card rounded-2xl md:rounded-3xl p-5 sm:p-7 border-2 border-border shadow-md space-y-6">
-              <div className="text-center space-y-1 pb-4 border-b border-border/60">
-                <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-primary bg-primary/10 px-3.5 py-1 rounded-full mb-1">
-                  ভর্তি চলছে
-                </span>
-                <h2 className="text-lg font-black text-foreground">
-                  {course.name}
-                </h2>
-              </div>
-
-              {/* Price Banner */}
-              <div className="bg-muted/40 p-4 rounded-2xl border border-border/70 text-center space-y-1">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                  এককালীন কোর্স ফি
-                </span>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-3xl sm:text-4xl font-black text-foreground">
-                    ৳{course.price}
+              {/* Name, price and the routine link are all still said elsewhere
+                  on a phone — the fixed bottom bar carries the price, the
+                  gallery carries the routine — so they only show from `lg` up,
+                  where the bottom bar is switched off. */}
+              <div className="hidden lg:block space-y-6">
+                <div className="text-center space-y-1 pb-4 border-b border-border/60">
+                  <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-primary bg-primary/10 px-3.5 py-1 rounded-full mb-1">
+                    ভর্তি চলছে
                   </span>
-                  {course.originalPrice && (
-                    <span className="text-sm text-muted-foreground line-through font-bold">
-                      ৳{course.originalPrice}
-                    </span>
-                  )}
+                  <h2 className="text-lg font-black text-foreground">
+                    {course.name}
+                  </h2>
                 </div>
-              </div>
 
-              {/* Routine — jumps down to the gallery rather than opening a
-                  file, because the download button lives inside it. */}
-              {routineImages.length > 0 && (
-                <a
-                  href="#routine"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted py-2.5 px-4 text-xs font-bold text-foreground transition-all hover:bg-muted/80"
-                >
-                  <CalendarTick className="size-4 text-primary" /> রুটিন দেখুন
-                </a>
-              )}
+                {/* Price Banner */}
+                <div className="bg-muted/40 p-4 rounded-2xl border border-border/70 text-center space-y-1">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    এককালীন কোর্স ফি
+                  </span>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-3xl sm:text-4xl font-black text-foreground">
+                      ৳{course.price}
+                    </span>
+                    {course.originalPrice && (
+                      <span className="text-sm text-muted-foreground line-through font-bold">
+                        ৳{course.originalPrice}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Routine — jumps down to the gallery rather than opening a
+                    file, because the download button lives inside it. */}
+                {routineImages.length > 0 && (
+                  <a
+                    href="#routine"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted py-2.5 px-4 text-xs font-bold text-foreground transition-all hover:bg-muted/80"
+                  >
+                    <CalendarTick className="size-4 text-primary" /> রুটিন দেখুন
+                  </a>
+                )}
+              </div>
 
               {/* Action Buttons — the same component the bottom bar uses, so
-                  the two can never say different things. */}
+                  the two can never say different things. On a phone the fixed
+                  bottom bar already carries the button, and the sidebar sits at
+                  the very bottom of the page, so showing it again there would
+                  be a second copy of the same choice. */}
               <div className="flex flex-col gap-3">
-                <EnrollAction
-                  courseId={course.id}
-                  courseName={course.name}
-                  slug={slug}
-                  price={course.price}
-                  userId={session?.user?.id}
-                  status={enrollmentStatus}
-                />
+                <div className="hidden lg:block">
+                  <EnrollAction
+                    courseId={course.id}
+                    courseName={course.name}
+                    slug={slug}
+                    price={course.price}
+                    userId={session?.user?.id}
+                    status={enrollmentStatus}
+                  />
+                </div>
 
                 <Button
                   render={

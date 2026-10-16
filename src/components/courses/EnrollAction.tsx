@@ -43,6 +43,7 @@ export function EnrollAction({
     return (
       <Button
         render={<Link href={`/my-courses/${courseId}`} />}
+        nativeButton={false}
         className={cn(
           buttonClass,
           "bg-emerald-600 text-white hover:bg-emerald-700 hover:scale-100",
@@ -70,6 +71,7 @@ export function EnrollAction({
     return (
       <Button
         render={<Link href={`/login?callbackUrl=/courses/${slug}`} />}
+        nativeButton={false}
         className={buttonClass}
       >
         এখনই ভর্তি হোন
