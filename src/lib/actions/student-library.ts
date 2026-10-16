@@ -348,89 +348,24 @@ export async function getStudentCourseList(
   });
 }
 
-/** A mentor as the batch details store them. */
-export interface RoutineMentor {
-  readonly name: string;
-  readonly role?: string;
-  readonly institution?: string;
-}
-
-/** Everything the routine page shows for one course. */
-export interface StudentRoutine {
-  readonly batchId: string;
-  readonly title: string;
-  readonly subtitle: string | null;
-  readonly image: string;
-  readonly badge: string | null;
-  readonly hscBatch: string;
-  readonly routineUrl: string;
-  readonly mentors: readonly RoutineMentor[];
-  readonly features: readonly string[];
-}
-
-/**
- * Routine PDF for every course the student is in.
- *
- * The mentors and feature bullets live in the batch details as JSON, so they
- * are parsed here rather than in the page — one shape for the view to render.
- * A course without a routine is left out entirely, since there is nothing to
- * open.
- */
+/** Routine PDF for every course the student is in. */
 export async function getStudentRoutines(
   userId: string,
-): Promise<readonly StudentRoutine[]> {
+): Promise<readonly { title: string; routineUrl: string; batchId: string }[]> {
   const batchIds = await getEnrolledBatchIds(userId);
   if (batchIds.length === 0) return [];
 
   const rows = await db
     .select({
-      batchId: batches.id,
       title: batches.name,
-      subtitle: batches.subtitle,
-      image: batches.image,
-      badge: batches.badge,
-      hscBatch: batches.hscBatch,
       routineUrl: batchDetails.routineUrl,
-      mentors: batchDetails.mentorIds,
-      features: batchDetails.features,
+      batchId: batches.id,
     })
     .from(batches)
     .innerJoin(batchDetails, eq(batchDetails.batchId, batches.id))
     .where(inArray(batches.id, batchIds));
 
-  return rows.flatMap((row) => {
-    if (!row.routineUrl) return [];
-
-    const mentors = Array.isArray(row.mentors)
-      ? (row.mentors as RoutineMentor[])
-      : [];
-    const features = Array.isArray(row.features)
-      ? row.features.filter((f): f is string => typeof f === "string")
-      : [];
-
-    /* The two lists are stored as free-form JSON, so the same mentor or the
-       same bullet can appear twice. Collapsing them here means the page can
-       key on the text itself. */
-    const seenMentor = new Set<string>();
-    const uniqueMentors = mentors.filter((mentor) => {
-      const key = `${mentor.name}|${mentor.institution ?? ""}`;
-      if (seenMentor.has(key)) return false;
-      seenMentor.add(key);
-      return true;
-    });
-
-    return [
-      {
-        batchId: row.batchId,
-        title: row.title,
-        subtitle: row.subtitle,
-        image: row.image,
-        badge: row.badge,
-        hscBatch: row.hscBatch,
-        routineUrl: row.routineUrl ?? "",
-        mentors: uniqueMentors,
-        features: [...new Set(features)],
-      },
-    ];
-  });
+  return rows.flatMap((r) =>
+    r.routineUrl ? [{ ...r, routineUrl: r.routineUrl }] : [],
+  );
 }

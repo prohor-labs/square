@@ -29,6 +29,12 @@ function parse(value: string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const BENGALI_DIGITS = "০১২৩৪৫৬৭৮৯";
+
+function toBengali(value: number | string): string {
+  return String(value).replace(/\d/g, (d) => BENGALI_DIGITS[Number(d)]);
+}
+
 /** "২৫:৩০" style mm:ss, used by the live countdown chip. */
 export function formatRemaining(ms: number): string {
   if (ms <= 0) return "০:০০";
@@ -37,14 +43,33 @@ export function formatRemaining(ms: number): string {
   const minutes = totalMinutes % 60;
   const seconds = Math.floor((ms % MS_PER_MINUTE) / 1000);
 
-  const pad = (value: number) =>
-    String(value)
-      .padStart(2, "0")
-      .replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[Number(d)]);
+  const pad = (value: number) => toBengali(value).padStart(2, "০");
 
   return hours > 0
     ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
     : `${pad(minutes)}:${pad(seconds)}`;
+}
+
+/**
+ * The countdown for a window that has not opened yet.
+ *
+ * `formatRemaining` rolls the hours straight past 24, so an exam a week away
+ * would read "১৬৮:০০:০০". This keeps the days as their own figure and leaves the
+ * clock as a readable HH:MM:SS.
+ */
+export function formatCountdownFull(ms: number): string {
+  if (ms <= 0) return "সময় শেষ";
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (value: number) => toBengali(value).padStart(2, "০");
+  const clock = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+  return days > 0 ? `${toBengali(days)} দিন ${clock}` : clock;
 }
 
 /** Locale helpers used by the exam cards so every card renders alike. */

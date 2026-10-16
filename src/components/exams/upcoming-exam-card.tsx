@@ -5,7 +5,7 @@ import { ExamBadges } from "@/components/exams/exam-badges";
 import { Clock, TaskSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { formatBanglaDateTime } from "@/lib/date";
-import { formatRemaining, getExamWindow } from "@/lib/exam-window";
+import { formatCountdownFull, getExamWindow } from "@/lib/exam-window";
 import { cn } from "@/lib/utils";
 import type { BatchExamDetail } from "@/types";
 
@@ -52,25 +52,37 @@ export function UpcomingExamCard({ batchExam }: UpcomingExamCardProps) {
         </span>
       </div>
 
-      <div className="text-xs bg-muted/30 p-3.5 rounded-xl space-y-1.5 border border-border/30">
-        <div className="flex items-center justify-between gap-3">
-          <span className="font-medium text-foreground/80">শুরু হতে বাকি</span>
-          <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-            {formatRemaining(startsInMs)}
+      <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-3.5">
+        {/* The countdown gets its own row: days first, then a ticking clock, so
+            a week away reads "৭ দিন ০৪:১২:৩০" instead of rolling the hours on. */}
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-amber-700 uppercase dark:text-amber-400">
+            <Clock className="size-3.5 shrink-0" />
+            শুরু হতে বাকি
+          </span>
+          <span className="text-base font-black tabular-nums text-amber-700 sm:text-lg dark:text-amber-400">
+            {formatCountdownFull(startsInMs)}
           </span>
         </div>
-        {window.startsAt && (
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-foreground/80">শুরু হবে</span>
-            <span>{formatBanglaDateTime(window.startsAt.toISOString())}</span>
-          </div>
-        )}
-        {window.endsAt && (
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-foreground/80">শেষ হবে</span>
-            <span>{formatBanglaDateTime(window.endsAt.toISOString())}</span>
-          </div>
-        )}
+
+        <div className="mt-3 space-y-1.5 border-t border-amber-500/20 pt-3 text-xs">
+          {window.startsAt && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium text-foreground/80">শুরু হবে</span>
+              <span className="text-right tabular-nums">
+                {formatBanglaDateTime(window.startsAt.toISOString())}
+              </span>
+            </div>
+          )}
+          {window.endsAt && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium text-foreground/80">শেষ হবে</span>
+              <span className="text-right tabular-nums">
+                {formatBanglaDateTime(window.endsAt.toISOString())}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <Button
