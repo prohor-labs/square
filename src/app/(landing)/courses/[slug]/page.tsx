@@ -3,7 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import { CheckoutModal } from "@/components/checkout-modal";
+import { CourseStickyBar } from "@/components/courses/CourseStickyBar";
+import { EnrollAction } from "@/components/courses/EnrollAction";
 import {
   ArrowLeft2,
   CalendarTick,
@@ -359,50 +360,17 @@ export default async function CourseDetailPage({
                 </a>
               )}
 
-              {/* Action Buttons */}
+              {/* Action Buttons — the same component the bottom bar uses, so
+                  the two can never say different things. */}
               <div className="flex flex-col gap-3">
-                {enrollmentStatus === "active" ? (
-                  <Button
-                    render={<Link href={`/my-courses/${course.id}`} />}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 h-auto rounded-xl text-sm shadow-md"
-                  >
-                    ইতিমধ্যে যুক্ত আছো &rarr;
-                  </Button>
-                ) : enrollmentStatus === "pending" ? (
-                  <div className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-600 text-center font-extrabold py-3.5 rounded-xl text-sm shadow-xs">
-                    পেমেন্ট ভেরিফিকেশন প্রক্রিয়াধীন
-                  </div>
-                ) : !session?.user?.id ? (
-                  <Button
-                    render={
-                      <Link href={`/login?callbackUrl=/courses/${slug}`} />
-                    }
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-extrabold py-4 h-auto rounded-xl text-sm shadow-md transition-all hover:scale-101 cursor-pointer"
-                  >
-                    এখনই ভর্তি হোন
-                  </Button>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {enrollmentStatus === "rejected" && (
-                      <div className="w-full bg-destructive/10 border border-destructive/30 text-destructive text-center font-bold py-2.5 px-3 rounded-xl text-xs shadow-xs leading-snug">
-                        পূর্বের পেমেন্ট রিকোয়েস্ট বাতিল হয়েছে। সঠিক তথ্য দিয়ে পুনরায়
-                        চেষ্টা করুন।
-                      </div>
-                    )}
-                    <CheckoutModal
-                      batchId={course.id}
-                      batchTitle={course.name}
-                      price={course.price}
-                      userId={session.user.id}
-                    >
-                      <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-extrabold py-4 h-auto rounded-xl text-sm shadow-md transition-all hover:scale-101 cursor-pointer">
-                        {enrollmentStatus === "rejected"
-                          ? "পুনরায় ভর্তি হোন"
-                          : "এখনই ভর্তি হোন"}
-                      </Button>
-                    </CheckoutModal>
-                  </div>
-                )}
+                <EnrollAction
+                  courseId={course.id}
+                  courseName={course.name}
+                  slug={slug}
+                  price={course.price}
+                  userId={session?.user?.id}
+                  status={enrollmentStatus}
+                />
 
                 <Button
                   render={
@@ -426,7 +394,19 @@ export default async function CourseDetailPage({
             </div>
           </aside>
         </div>
+        {/* The bar is fixed, so the page needs room left for it on phones. */}
+        <div className="h-20 lg:hidden" />
       </main>
+
+      <CourseStickyBar
+        courseId={course.id}
+        courseName={course.name}
+        slug={slug}
+        price={course.price}
+        originalPrice={course.originalPrice}
+        userId={session?.user?.id}
+        status={enrollmentStatus}
+      />
     </div>
   );
 }
