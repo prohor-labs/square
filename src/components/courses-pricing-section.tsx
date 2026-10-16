@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Calendar, Flame, Information, Star } from "@/components/icons";
+import { Flame, Star, TickCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,6 +18,8 @@ type CourseItem = {
   readonly price: number;
   readonly image: string;
   readonly badge?: string | null;
+  readonly originalPrice?: number | null;
+  readonly features: readonly string[];
 };
 
 export function CoursesPricingSection() {
@@ -88,54 +90,57 @@ export function CoursesPricingSection() {
                   />
                 </div>
 
-                <div className="p-6 md:p-8 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-lg md:text-xl font-extrabold text-foreground mb-3 line-clamp-2 leading-snug">
-                      {course.name || course.title}
-                    </h3>
-                    <div className="bg-muted/40 border-l-4 border-foreground p-3.5 rounded-r-2xl mb-6 flex items-baseline justify-between shadow-xs">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-foreground">
-                          ৳{course.price}
+                <div className="flex flex-1 flex-col gap-4 p-5 md:gap-5 md:p-6">
+                  <h3 className="line-clamp-2 text-base leading-snug font-extrabold text-foreground md:text-lg">
+                    {course.name || course.title}
+                  </h3>
+
+                  {/* What the course covers — two across so the box stays short
+                      whichever way the cards are sized. */}
+                  {course.features.length > 0 && (
+                    <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                      {course.features.slice(0, 6).map((feature: string) => (
+                        <li
+                          key={feature}
+                          className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground"
+                        >
+                          <TickCircle className="mt-px size-3.5 shrink-0 text-emerald-500" />
+                          <span className="line-clamp-2">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <div className="mt-auto flex flex-col gap-3 border-t border-border/50 pt-4">
+                    <div className="flex flex-col">
+                      {course.originalPrice ? (
+                        <span className="text-xs font-semibold text-muted-foreground line-through">
+                          ৳{course.originalPrice}
                         </span>
-                      </div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                        এককালীন ফি
+                      ) : (
+                        <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                          এককালীন ফি
+                        </span>
+                      )}
+                      <span className="text-2xl font-black text-emerald-600 tabular-nums md:text-3xl dark:text-emerald-500">
+                        ৳{course.price}
                       </span>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <Button
-                      render={<Link href={`/courses/${course.slug}`} />}
-                      className="w-full bg-primary text-primary-foreground py-3.5 h-auto rounded-xl font-bold text-md hover:bg-primary/90 transition-all text-center shadow-md cursor-pointer"
-                    >
-                      এনরোলমেন্ট দেখুন
-                    </Button>
 
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         render={<Link href={`/courses/${course.slug}`} />}
                         variant="outline"
-                        className="flex items-center justify-center gap-2 py-2.5 h-auto border-border/80 rounded-xl text-muted-foreground font-bold hover:border-foreground hover:text-foreground transition-all"
+                        className="h-11 rounded-full font-bold transition-all"
                       >
-                        <Calendar
-                          data-icon="inline-start"
-                          className="size-4 text-indigo-500"
-                        />
-                        <span className="text-xs">রুটিন</span>
+                        বিস্তারিত
                       </Button>
 
                       <Button
                         render={<Link href={`/courses/${course.slug}`} />}
-                        variant="outline"
-                        className="flex items-center justify-center gap-1.5 py-2.5 h-auto border-border/80 rounded-xl text-foreground font-bold hover:bg-muted transition-all"
+                        className="h-11 rounded-full border-0 bg-emerald-500 font-bold text-white shadow-xs transition-all hover:bg-emerald-600"
                       >
-                        <Information
-                          data-icon="inline-start"
-                          className="size-3.5 text-blue-500"
-                        />
-                        <span className="text-xs font-bold">বিস্তারিত</span>
+                        ভর্তি হোন
                       </Button>
                     </div>
                   </div>
