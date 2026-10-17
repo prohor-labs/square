@@ -199,12 +199,15 @@ export default async function CourseDetailPage({
             {/* COURSE FEATURES — no numbers: these are parallel benefits, not
                 steps. Each icon is the one the admin chose for that feature. */}
             {course.features.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-1 bg-primary rounded-full" />
-                  <h2 className="text-lg sm:text-xl font-extrabold text-foreground">
+              <section className="space-y-5 text-center">
+                {/* Centred, with a short rule beneath it, to sit level with
+                    the mentor heading below rather than left-hanging like the
+                    sections above. */}
+                <div className="space-y-2.5">
+                  <h2 className="text-lg font-extrabold text-foreground sm:text-xl">
                     কোর্স ফিচারসমূহ
                   </h2>
+                  <div className="mx-auto h-1 w-12 rounded-full bg-primary" />
                 </div>
 
                 {/* One box for the whole list. Features are short lines of
