@@ -1,275 +1,148 @@
-import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
-import { ChapterQuestionsViewer } from "@/components/qb/ChapterQuestionsViewer";
+import { QbBreadcrumb } from "@/components/qb/QbBreadcrumb";
+import { QbQuestionList } from "@/components/qb/QbQuestionList";
+import { QbSearchBar } from "@/components/qb/QbSearchBar";
+import { getBookmarkedQuestionIds } from "@/lib/actions/qb-bookmarks";
+import { getTopicsWithCounts, listQbQuestions } from "@/lib/actions/qb-library";
 import {
   getChapterBySlug,
   getChapterExamTypes,
   getChapterFacets,
   getChapterInstitutes,
-  getChapterQuestions,
 } from "@/lib/actions/qb-subject";
+import { auth } from "@/lib/auth";
 import { toBengaliDigits } from "@/lib/calendar-date";
-import { cn } from "@/lib/utils";
+import { BASE_FILTERS, facetFilter, parseQbQuery } from "@/lib/qb-page";
 
 export const dynamic = "force-dynamic";
 
-/** What each exam board or university is called on the chip row. */
-const SOURCE_LABELS: Readonly<Record<string, string>> = {
-  board: "বোর্ড",
-  university: "বিশ্ববিদ্যালয়",
-  engineering: "ইঞ্জিনিয়ারিং",
-  medical: "মেডিকেল",
-  other: "অন্যান্য",
-};
-
-/** …and which institutions belong under it. */
-const SOURCE_GROUPS: Readonly<Record<string, string>> = {
-  board: "বোর্ড",
-  university: "বিশ্ববিদ্যালয়",
-  engineering: "ইঞ্জিনিয়ারিং বিশ্ববিদ্যালয়",
-  medical: "মেডিকেল কলেজ",
-  other: "অন্য প্রতিষ্ঠান",
-};
-
 /**
- * One chapter of a subject, seen from every side at once.
+ * One chapter, seen from every exam at once.
  *
- * The chips narrow the set; the questions themselves are handed to the same
- * viewer the exam-wise pages use, so a question looks and behaves identically
- * whichever way a student arrived at it.
+ * This is the page the whole bank is arranged around: a chapter of a subject,
+ * with the board, medical, varsity and engineering questions that fall in it all
+ * on the same page. Each question is one record, so a question that sat in
+ * three papers appears once, with the three papers folded away under
+ * "পরীক্ষায় এসেছে".
  */
 export default async function QbChapterPage({
   params,
   searchParams,
 }: {
   params: Promise<{ subjectSlug: string; chapterSlug: string }>;
-  searchParams?: Promise<{
-    source?: string;
-    institute?: string;
-    unit?: string;
-    year?: string;
-  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<ReactElement> {
   const { subjectSlug, chapterSlug } = await params;
-  const filters = (await searchParams) ?? {};
 
   const found = await getChapterBySlug(subjectSlug, chapterSlug);
   if (!found) notFound();
   const { chapter, subject } = found;
 
-  const [examTypes, institutes, facets, questions] = await Promise.all([
-    getChapterExamTypes(chapter.id),
-    getChapterInstitutes(chapter.id, filters.source),
-    getChapterFacets(chapter.id, {
-      examType: filters.source,
-      instituteId: filters.institute,
-    }),
-    getChapterQuestions(chapter.id, {
-      examType: filters.source,
-      instituteId: filters.institute,
-      unitName: filters.unit,
-      year: filters.year,
-    }),
-  ]);
+  const query = new URLSearchParams(
+    Object.entries((await searchParams) ?? {}).flatMap(([k, v]) =>
+      typeof v === "string" ? [[k, v] as [string, string]] : [],
+    ),
+  );
 
-  // One link per facet that keeps the others, so a student narrows step by step
-  // instead of rebuilding the query. Changing a facet clears the others that
-  // only make sense within it.
-  const href = (next: Record<string, string | undefined>) => {
-    const merged: Record<string, string | undefined> = {
-      source: filters.source,
-      institute: filters.institute,
-      unit: filters.unit,
-      year: filters.year,
-      ...next,
-    };
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(merged)) {
-      if (value) query.set(key, value);
-    }
-    const search = query.toString();
-    return `/qb/subjects/${subjectSlug}/${chapterSlug}${search ? `?${search}` : ""}`;
-  };
+  const { filters, page } = parseQbQuery(query, {
+    chapterId: chapter.id,
+    subjectId: subject.id,
+  });
 
-  // A hand-edited or stale link can name a source this chapter has none of.
-  // Showing that chip, empty and selected, beats an empty row of choices with no
-  // way back except the "clear filters" link.
-  const sources = examTypes.some((row) => row.examType === filters.source)
-    ? examTypes
-    : filters.source
-      ? [{ examType: filters.source, questions: 0 }, ...examTypes]
-      : examTypes;
+  const [examTypes, institutes, facets, topics, result, session] =
+    await Promise.all([
+      getChapterExamTypes(chapter.id),
+      getChapterInstitutes(chapter.id, filters.examType),
+      getChapterFacets(chapter.id, {
+        examType: filters.examType,
+        instituteId: filters.instituteId,
+      }),
+      getTopicsWithCounts(chapter.id),
+      listQbQuestions(filters),
+      auth.api.getSession({ headers: await headers() }),
+    ]);
 
-  const anyFilter =
-    filters.source || filters.institute || filters.unit || filters.year;
+  const bookmarkedIds = await getBookmarkedQuestionIds(
+    result.rows.map((r) => r.id),
+  );
+
+  // The chapter helpers return plain strings for their units and years, and
+  // topics come back keyed by id; the rail wants value/label pairs.
+  const topicFacets = topics.map((t) => ({
+    value: t.id,
+    label: t.name,
+    questions: t.questions,
+  }));
+  const unitFacets = facets.units.map((u) => ({
+    value: u,
+    label: u,
+    questions: 0,
+  }));
+  const yearFacets = facets.years.map((y) => ({
+    value: y,
+    label: y,
+    questions: 0,
+  }));
+
+  // A topic appears as soon as the admin names one. Until then the filter would
+  // be an empty select, so it is left out rather than shown empty.
+  const filterList = [
+    ...BASE_FILTERS,
+    ...(topicFacets.length > 0
+      ? [facetFilter("topic", "টপিক", topicFacets)]
+      : []),
+    {
+      param: "institute",
+      label: "বোর্ড / বিশ্ববিদ্যালয়",
+      options: institutes.map((i) => ({
+        value: i.id,
+        label: i.name,
+        questions: i.questions,
+      })),
+    },
+    ...(unitFacets.length > 0
+      ? [facetFilter("unit", "পত্র / ইউনিট", unitFacets)]
+      : []),
+    ...(yearFacets.length > 0 ? [facetFilter("year", "সাল", yearFacets)] : []),
+  ];
 
   return (
-    <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8">
-      <div className="flex flex-col gap-2 mb-6">
-        <div className="flex items-center gap-2 text-xs md:text-sm font-medium text-muted-foreground flex-wrap">
-          <Link href="/qb" className="hover:text-primary transition-colors">
-            প্রশ্নব্যাংক
-          </Link>
-          <span>/</span>
-          <Link
-            href="/qb/subjects"
-            className="hover:text-primary transition-colors"
-          >
-            বিষয়ভিত্তিক
-          </Link>
-          <span>/</span>
-          <Link
-            href={`/qb/subjects/${subjectSlug}`}
-            className="hover:text-primary transition-colors"
-          >
-            {subject.name}
-          </Link>
-          <span>/</span>
-          <span className="text-foreground">{chapter.name}</span>
-        </div>
+    <div className="flex w-full max-w-6xl flex-col gap-5 pb-12 pt-2 md:py-8">
+      <QbBreadcrumb
+        items={[
+          { label: "প্রশ্নব্যাংক", href: "/qb" },
+          { label: "বিষয় অনুযায়ী", href: "/qb/subjects" },
+          { label: subject.name, href: `/qb/subjects/${subject.slug}` },
+          { label: chapter.name },
+        ]}
+      />
 
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-foreground">
-              {chapter.name}
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base mt-1">
-              {anyFilter
-                ? "নির্বাচিত উৎস থেকে প্রশ্নগুলো অনুশীলন করুন"
-                : "সব উৎস থেকে প্রশ্নগুলো অনুশীলন করুন"}
-            </p>
-          </div>
-          {anyFilter && (
-            <Link
-              href={`/qb/subjects/${subjectSlug}/${chapterSlug}`}
-              className="w-fit rounded-2xl border border-border/70 bg-card px-3.5 py-2 text-xs font-bold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-            >
-              ফিল্টার মুছুন
-            </Link>
-          )}
-        </div>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+          {chapter.name}
+        </h1>
+        <p className="text-xs text-muted-foreground sm:text-sm">
+          {subject.name} · মোট {toBengaliDigits(chapter.questions)} টি প্রশ্ন ·{" "}
+          {toBengaliDigits(result.total)} টি দেখানো হচ্ছে
+        </p>
       </div>
 
-      <FacetRow label="উৎস">
-        <FacetChip active={!filters.source} href={href({ source: undefined })}>
-          সব উৎস ({toBengaliDigits(chapter.questions)})
-        </FacetChip>
-        {sources.map((row) => (
-          <FacetChip
-            key={row.examType}
-            active={filters.source === row.examType}
-            href={href({ source: row.examType, institute: undefined })}
-          >
-            {SOURCE_LABELS[row.examType] ?? row.examType} (
-            {toBengaliDigits(row.questions)})
-          </FacetChip>
-        ))}
-      </FacetRow>
+      <QbSearchBar className="max-w-2xl" placeholder="এই অধ্যায়ের প্রশ্ন খুঁজুন..." />
 
-      {institutes.length > 0 && (
-        <FacetRow
-          label={
-            filters.source
-              ? (SOURCE_GROUPS[filters.source] ?? "প্রতিষ্ঠান")
-              : "প্রতিষ্ঠান"
-          }
-        >
-          {institutes.map((inst) => (
-            <FacetChip
-              key={inst.id}
-              active={filters.institute === inst.id}
-              href={href({
-                institute: inst.id,
-                unit: undefined,
-                year: undefined,
-              })}
-            >
-              {inst.name} ({toBengaliDigits(inst.questions)})
-            </FacetChip>
-          ))}
-        </FacetRow>
-      )}
-
-      {facets.units.length > 0 && (
-        <FacetRow label="পত্র">
-          <FacetChip active={!filters.unit} href={href({ unit: undefined })}>
-            সব পত্র
-          </FacetChip>
-          {facets.units.map((unit) => (
-            <FacetChip
-              key={unit}
-              active={filters.unit === unit}
-              href={href({ unit })}
-            >
-              {unit}
-            </FacetChip>
-          ))}
-        </FacetRow>
-      )}
-
-      {facets.years.length > 0 && (
-        <FacetRow label="সাল">
-          <FacetChip active={!filters.year} href={href({ year: undefined })}>
-            সব সাল
-          </FacetChip>
-          {facets.years.map((year) => (
-            <FacetChip
-              key={year}
-              active={filters.year === year}
-              href={href({ year })}
-            >
-              {year}
-            </FacetChip>
-          ))}
-        </FacetRow>
-      )}
-
-      <div className="mt-6">
-        <ChapterQuestionsViewer topics={[]} questions={questions} />
-      </div>
+      <QbQuestionList
+        questions={result.rows}
+        total={result.total}
+        page={page}
+        filters={filterList}
+        sourceTabs
+        examTypes={examTypes.map((e) => e.examType)}
+        bookmarkedIds={bookmarkedIds}
+        canBookmark={Boolean(session?.user)}
+        searchActive={Boolean(filters.search)}
+        emptyMessage="এই ফিল্টারে প্রশ্ন নেই। উৎস বা সাল বদলে দেখুন।"
+      />
     </div>
-  );
-}
-
-function FacetRow({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-      <span className="shrink-0 text-xs font-bold text-muted-foreground sm:w-24">
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-}
-
-function FacetChip({
-  active,
-  href,
-  children,
-}: {
-  readonly active: boolean;
-  readonly href: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      className={cn(
-        "rounded-2xl border px-3.5 py-1.5 text-xs font-bold transition-colors",
-        active
-          ? "border-primary bg-primary text-primary-foreground shadow-xs"
-          : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
-      )}
-    >
-      {children}
-    </Link>
   );
 }

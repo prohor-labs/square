@@ -5,6 +5,7 @@ import {
   integer,
   json,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -181,6 +182,30 @@ export const QB_EXAM_TYPES = [
 ] as const;
 export type QbExamType = (typeof QB_EXAM_TYPES)[number];
 
+/**
+ * A question a student marked to come back to.
+ *
+ * Keyed on the question, not on a copy of it, so a bookmark survives the
+ * question being re-filed and follows the student to any other page the
+ * question appears on.
+ */
+export const qbBookmarks = pgTable(
+  "qb_bookmarks",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    questionId: text("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.questionId] }),
+    index("qb_bookmarks_user_idx").on(table.userId),
+  ],
+);
+
 /** A board, a university or an engineering institute. */
 export const qbInstitutes = pgTable(
   "qb_institutes",
@@ -235,15 +260,20 @@ export const qbChapters = pgTable(
 );
 
 /**
- * One row per question — the primary key on questionId is what guarantees a
- * question is stored once and merely *listed* differently. Every dimension is
- * nullable so a question can be filed under whatever the uploader supplied.
+ * One exam occurrence — a question as it appeared in one particular paper.
+ *
+ * A question gets one row per exam it sat in, so the same Physics question found
+ * in a board paper and a medical paper is stored once and listed under both.
+ * `questionId` is therefore an ordinary indexed column, not a primary key.
  */
 export const qbQuestionMeta = pgTable(
   "qb_question_meta",
   {
-    questionId: text("question_id")
+    id: text("id")
       .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    questionId: text("question_id")
+      .notNull()
       .references(() => questions.id, { onDelete: "cascade" }),
     examType: text("exam_type", { enum: QB_EXAM_TYPES }),
     instituteId: text("institute_id").references(() => qbInstitutes.id, {
@@ -263,6 +293,7 @@ export const qbQuestionMeta = pgTable(
     }),
   },
   (table) => [
+    index("qb_meta_question_idx").on(table.questionId),
     index("qb_meta_exam_type_idx").on(table.examType),
     index("qb_meta_institute_idx").on(table.instituteId),
     index("qb_meta_subject_idx").on(table.subjectId),
@@ -270,6 +301,41 @@ export const qbQuestionMeta = pgTable(
     index("qb_meta_year_idx").on(table.year),
   ],
 );
+
+/** A named topic inside a chapter — বৈদ্যুতিক বিভব. */
+export const qbTopics = pgTable(
+  "qb_topics",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    chapterId: text("chapter_id")
+      .notNull()
+      .references(() => qbChapters.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+  },
+  (table) => [
+    uniqueIndex("qb_topics_slug_unique_idx").on(table.chapterId, table.slug),
+    index("qb_topics_chapter_idx").on(table.chapterId),
+  ],
+);
+
+/**
+ * A question may belong to more than one topic.
+ *
+ * A chemical-equilibrium question can be filed under both "ভারসাম্য" and
+ * "Le Chatelier" without being written twice, and a topic page can then find it
+ * through either name.
+ */
+export const qbQuestionTopics = pgTable("qb_question_topics", {
+  questionId: text("question_id")
+    .notNull()
+    .references(() => questions.id, { onDelete: "cascade" }),
+  topicId: text("topic_id")
+    .notNull()
+    .references(() => qbTopics.id, { onDelete: "cascade" }),
+});
 
 export const tags = pgTable("tags", {
   id: text("id")

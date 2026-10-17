@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Add from "reicon-react/icons/Add";
+import AngleLeft from "reicon-react/icons/AngleLeft";
+import AngleRight from "reicon-react/icons/AngleRight";
 import ArchiveBox from "reicon-react/icons/ArchiveBox";
 import ArrowLeft2 from "reicon-react/icons/ArrowLeft2";
 import ArrowRight2 from "reicon-react/icons/ArrowRight2";
@@ -34,6 +36,7 @@ import Flame from "reicon-react/icons/Flame";
 import Flash from "reicon-react/icons/Flash";
 import Gamepad from "reicon-react/icons/Gamepad";
 import GradCap from "reicon-react/icons/GradCap";
+import Grid from "reicon-react/icons/Grid";
 import Home from "reicon-react/icons/Home";
 import Information from "reicon-react/icons/Information";
 import Language from "reicon-react/icons/Language";
@@ -67,6 +70,8 @@ import Warning from "reicon-react/icons/Warning";
 
 export {
   Add,
+  AngleLeft,
+  AngleRight,
   ArchiveBox,
   ArrowLeft2,
   ArrowRight2,
@@ -99,6 +104,7 @@ export {
   Flash,
   Gamepad,
   GradCap,
+  Grid,
   Home,
   Information,
   Language,

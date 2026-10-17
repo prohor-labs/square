@@ -1,121 +1,166 @@
-import Link from "next/link";
 import type { ReactElement } from "react";
-import { QbCard } from "@/components/qb/QbCard";
-import { getQbTree } from "@/lib/actions/qb-nav";
-import { getSubjectList } from "@/lib/actions/qb-subject";
-import { toBengaliDigits } from "@/lib/calendar-date";
 import {
-  QB_BANKS,
-  type QbBankSlug,
-  resolveBankSlug,
-} from "@/lib/question-bank";
-import { cn } from "@/lib/utils";
+  BookOpen,
+  Building,
+  Calculator,
+  GradCap,
+  Grid,
+  User,
+} from "@/components/icons";
+import { QbBreadcrumb } from "@/components/qb/QbBreadcrumb";
+import { QbCard } from "@/components/qb/QbCard";
+import { QbCategoryCard } from "@/components/qb/QbCategoryCard";
+import { QbSearchBar } from "@/components/qb/QbSearchBar";
+import {
+  getQbHomeCards,
+  getSubjectsWithCounts,
+} from "@/lib/actions/qb-library";
+import { toBengaliDigits } from "@/lib/calendar-date";
 
 export const dynamic = "force-dynamic";
 
-/** "সকল" plus one tab per bank, in the order the banks are declared. */
-const TABS: readonly { slug: string; label: string }[] = [
-  { slug: "all", label: "সকল" },
-  ...QB_BANKS.map((bank) => ({
-    slug: bank.slug,
-    label: bank.label.replace(" প্রশ্ন ব্যাংক", ""),
-  })),
-];
+/**
+ * The front door.
+ *
+ * Five cards for the five kinds of exam, and a search box above them because
+ * more often than not a student already knows what they are looking for. The
+ * counts are real, read from the bank, and they overlap on purpose — the same
+ * question can be counted under a board paper and under its chapter.
+ */
+export default async function QuestionBankPage(): Promise<ReactElement> {
+  const [counts, subjects] = await Promise.all([
+    getQbHomeCards(),
+    getSubjectsWithCounts(),
+  ]);
 
-export default async function QuestionBankPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ bank?: string }>;
-}): Promise<ReactElement> {
-  const { bank } = (await searchParams) ?? {};
-  const active = TABS.some((tab) => tab.slug === bank) ? bank : "all";
-
-  const tree = await getQbTree();
-  const visible =
-    active === "all"
-      ? tree
-      : tree.filter(
-          (container) =>
-            resolveBankSlug(container.slug) === (active as QbBankSlug),
-        );
-
-  const subjects = await getSubjectList();
   const subjectTotal = subjects.reduce((sum, s) => sum + s.questions, 0);
-  const totalQuestions = tree.reduce((sum, c) => sum + c.questions, 0);
+  const empty = counts.total === 0;
 
   return (
-    <div className="flex flex-col w-full max-w-7xl mx-auto pb-12 pt-2 md:py-8 gap-5">
+    <div className="flex w-full max-w-6xl flex-col gap-6 pb-12 pt-2 md:py-8">
+      <QbBreadcrumb items={[{ label: "প্রশ্নব্যাংক" }]} />
+
       <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+        <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
           প্রশ্নব্যাংক
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          মোট {toBengaliDigits(totalQuestions)} টি প্রশ্ন · সব ছাত্রের জন্য উন্মুক্ত
+        <p className="text-xs text-muted-foreground sm:text-sm">
+          প্রয়োজনীয় প্রশ্ন খুঁজে নাও, অনুশীলন করো, প্রস্তুতি এগিয়ে নাও
         </p>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar border-b pb-2">
-        {TABS.map((tab) => (
-          <Link
-            key={tab.slug}
-            href={tab.slug === "all" ? "/qb" : `/qb?bank=${tab.slug}`}
-            scroll={false}
-            className={cn(
-              "shrink-0 whitespace-nowrap rounded-xl px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold transition-colors",
-              tab.slug === active
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-
-      {visible.length === 0 ? (
-        <div className="py-16 sm:py-24 px-6 text-center border border-dashed rounded-3xl text-muted-foreground bg-muted/10">
-          <p className="font-bold text-base sm:text-lg text-foreground">
-            এই ব্যাংকে এখনো কিছু যোগ করা হয়নি
+      {empty ? (
+        <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-14 text-center">
+          <p className="text-sm font-bold text-foreground sm:text-base">
+            এখনো কোনো প্রশ্ন যোগ করা হয়নি
           </p>
-          <p className="text-xs sm:text-sm mt-1.5">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             অ্যাডমিন প্যানেল থেকে প্রশ্ন আপলোড করলে সেগুলো এখানে দেখা যাবে।
           </p>
         </div>
       ) : (
-        /* Two per row, capped so the square cards stay card-sized on a wide screen
-           instead of stretching to 600px. */
-        <div className="grid max-w-xl grid-cols-2 gap-2.5 sm:gap-3">
-          {visible.map((container) => (
-            <QbCard
-              key={container.id}
-              href={`/qb/${container.slug}`}
-              title={container.title}
-              subtitle="প্রশ্নব্যাংক"
-              questions={container.questions}
-              variant="wide"
-            />
-          ))}
-        </div>
-      )}
+        <>
+          <QbSearchBar className="max-w-2xl" />
 
-      {/* The other way in — the same questions, filed by subject instead of by
-          exam. Kept in the same card family so it does not read as a different
-          kind of thing from the banks above it. */}
-      {subjectTotal > 0 && (
-        <section className="space-y-2.5 pt-1">
-          <p className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-            অথবা বিষয় অনুযায়ী
+          <section className="space-y-3">
+            <h2 className="text-sm font-bold text-foreground sm:text-base">
+              পরীক্ষা অনুযায়ী
+            </h2>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              <QbCategoryCard
+                href="/qb/board"
+                title="বোর্ড প্রশ্ন ব্যাংক"
+                description="গ্রুপ, বোর্ড ও বছর অনুযায়ী"
+                questions={counts.board}
+                icon={Building}
+              />
+              <QbCategoryCard
+                href="/qb/university"
+                title="ভার্সিটি প্রশ্ন ব্যাংক"
+                description="বিশ্ববিদ্যালয় ও ইউনিট অনুযায়ী"
+                questions={counts.university}
+                icon={GradCap}
+              />
+              <QbCategoryCard
+                href="/qb/engineering"
+                title="ইঞ্জিনিয়ারিং প্রশ্ন ব্যাংক"
+                description="প্রতিষ্ঠান ও গ্রুপ অনুযায়ী"
+                questions={counts.engineering}
+                icon={Calculator}
+              />
+              <QbCategoryCard
+                href="/qb/medical"
+                title="মেডিকেল প্রশ্ন ব্যাংক"
+                description="বছর ও বিষয় অনুযায়ী"
+                questions={counts.medical}
+                icon={User}
+              />
+              <QbCategoryCard
+                href="/qb/mixed"
+                title="বিভিন্ন পরীক্ষার প্রশ্ন"
+                description="যেগুলো কোনো একটি বোর্ডের নয়"
+                questions={counts.mixed}
+                icon={Grid}
+              />
+            </div>
+          </section>
+
+          {/* Subject-wise answers a different question — not "which exam was
+              this in" but "what does this chapter cover". It gets its own
+              section because that is genuinely the other way round. */}
+          {subjectTotal > 0 && (
+            <section className="space-y-3 pt-2">
+              <div className="space-y-1">
+                <h2 className="text-sm font-bold text-foreground sm:text-base">
+                  বিষয় ও টপিকভিত্তিক প্রশ্ন
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  একটি অধ্যায়ের বিভিন্ন পরীক্ষার প্রশ্ন একসঙ্গে অনুশীলন করো।
+                </p>
+              </div>
+
+              <div className="max-w-xl">
+                <QbCard
+                  href="/qb/subjects"
+                  title="বিষয় অনুযায়ী সব প্রশ্ন"
+                  subtitle={`${toBengaliDigits(subjects.length)} টি বিষয় · অধ্যায় ও টপিক অনুযায়ী`}
+                  questions={subjectTotal}
+                  variant="row"
+                />
+              </div>
+
+              {subjects.slice(0, 6).map((subject) => (
+                <div key={subject.id} className="max-w-xl">
+                  <QbCard
+                    href={`/qb/subjects/${subject.slug}`}
+                    title={subject.name}
+                    subtitle="অধ্যায় ও টপিক অনুযায়ী"
+                    questions={subject.questions}
+                    variant="row"
+                  />
+                </div>
+              ))}
+            </section>
+          )}
+
+          <section className="space-y-3 border-t border-border pt-5">
+            <div className="max-w-xl">
+              <QbCard
+                href="/qb/practice"
+                title="প্র্যাকটিস মোড"
+                subtitle="বিষয় বেছে নিয়ে একটির পর একটি প্রশ্নের উত্তর দাও"
+                questions={counts.total}
+                variant="row"
+              />
+            </div>
+          </section>
+
+          <p className="text-xs text-muted-foreground">
+            প্রতিটি প্রশ্ন একবারই সংরক্ষিত। যে পরীক্ষাগুলোতে সেটি এসেছে, সবগুলোই একই
+            প্রশ্নের নিচে দেখানো হয় — তাই একই প্রশ্ন কখনো দুবার দেখা যায় না।
           </p>
-          <div className="max-w-xl">
-            <QbCard
-              href="/qb/subjects"
-              title="বিষয়ভিত্তিক প্রশ্নব্যাংক"
-              subtitle="বিষয় ও অধ্যায় অনুযায়ী প্রশ্ন"
-              questions={subjectTotal}
-              variant="row"
-            />
-          </div>
-        </section>
+        </>
       )}
     </div>
   );

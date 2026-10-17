@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import type { QbExamType } from "@/db/schema";
 import {
@@ -154,18 +154,21 @@ export async function resolveQbMetaTargets(
 }
 
 /**
- * Files every imported question under the same metadata.
+ * Files every imported question under the same metadata, as one exam
+ * occurrence each.
  *
- * Runs inside the caller's transaction so a failed import leaves no half-linked
- * questions behind. The primary key on question_id makes a re-run update the
- * same row instead of creating a second copy.
+ * A question can sit in more than one exam, so this does not overwrite: a
+ * question that already carries *this* occurrence — same exam, same institute,
+ * same year, same unit — is left alone, and only the genuinely new ones get a
+ * row. Re-running an import therefore adds nothing, while importing the same
+ * question into a different year adds exactly one.
  */
 export async function writeQbMeta(
-  tx: Pick<typeof db, "insert">,
+  tx: Pick<typeof db, "insert" | "select">,
   questionIds: readonly string[],
   targets: QbMetaTargets,
-): Promise<void> {
-  if (questionIds.length === 0) return;
+): Promise<{ readonly written: number; readonly skipped: number }> {
+  if (questionIds.length === 0) return { written: 0, skipped: 0 };
 
   // Nothing meaningful to record — skip rather than write empty rows.
   if (
@@ -177,33 +180,48 @@ export async function writeQbMeta(
     !targets.unitName &&
     !targets.year
   ) {
-    return;
+    return { written: 0, skipped: 0 };
   }
 
-  await tx
-    .insert(qbQuestionMeta)
-    .values(
-      questionIds.map((questionId) => ({
-        questionId,
-        examType: targets.examType,
-        instituteId: targets.instituteId,
-        groupName: targets.groupName,
-        unitName: targets.unitName,
-        year: targets.year,
-        subjectId: targets.subjectId,
-        chapterId: targets.chapterId,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: qbQuestionMeta.questionId,
-      set: {
-        examType: targets.examType,
-        instituteId: targets.instituteId,
-        groupName: targets.groupName,
-        unitName: targets.unitName,
-        year: targets.year,
-        subjectId: targets.subjectId,
-        chapterId: targets.chapterId,
-      },
-    });
+  // The signature an occurrence is recognised by. Nullable columns need
+  // "IS NULL" rather than "= NULL", which would never match anything.
+  const signature = [
+    targets.examType
+      ? eq(qbQuestionMeta.examType, targets.examType)
+      : isNull(qbQuestionMeta.examType),
+    targets.instituteId
+      ? eq(qbQuestionMeta.instituteId, targets.instituteId)
+      : isNull(qbQuestionMeta.instituteId),
+    eq(qbQuestionMeta.year, targets.year),
+    eq(qbQuestionMeta.unitName, targets.unitName),
+  ];
+
+  const existing = await tx
+    .select({ questionId: qbQuestionMeta.questionId })
+    .from(qbQuestionMeta)
+    .where(
+      and(inArray(qbQuestionMeta.questionId, [...questionIds]), ...signature),
+    );
+
+  const alreadyFiled = new Set(existing.map((row) => row.questionId));
+  const fresh = questionIds.filter((id) => !alreadyFiled.has(id));
+
+  if (fresh.length === 0) {
+    return { written: 0, skipped: alreadyFiled.size };
+  }
+
+  await tx.insert(qbQuestionMeta).values(
+    fresh.map((questionId) => ({
+      questionId,
+      examType: targets.examType,
+      instituteId: targets.instituteId,
+      groupName: targets.groupName,
+      unitName: targets.unitName,
+      year: targets.year,
+      subjectId: targets.subjectId,
+      chapterId: targets.chapterId,
+    })),
+  );
+
+  return { written: fresh.length, skipped: alreadyFiled.size };
 }
