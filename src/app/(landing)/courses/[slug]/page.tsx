@@ -235,8 +235,8 @@ export default async function CourseDetailPage({
               </section>
             )}
 
-            {/* MENTORS — centred, one card each, side by side when there is
-                more than one. A single fixed width keeps a lone mentor from
+            {/* MENTORS — centred row of cards, picture on the left and the
+                details on the right. A fixed width keeps a lone mentor from
                 stretching across the page and a pair from drifting apart. */}
             {course.instructors.length > 0 && (
               <section className="space-y-5 text-center">
@@ -248,15 +248,15 @@ export default async function CourseDetailPage({
                   {course.instructors.map((mentor) => (
                     <div
                       key={mentor.name}
-                      className="flex w-[240px] shrink-0 flex-col items-center gap-3 rounded-2xl border border-border/80 bg-card p-5 text-center shadow-2xs transition-colors hover:border-primary/40 md:rounded-3xl"
+                      className="flex w-[300px] shrink-0 items-center gap-4 rounded-2xl border border-border/80 bg-card p-4 text-left shadow-2xs transition-colors hover:border-primary/40 md:rounded-3xl"
                     >
-                      <span className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-3xl font-extrabold text-primary">
+                      <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-2xl font-extrabold text-primary">
                         {mentor.image ? (
                           <Image
                             src={mentor.image}
                             alt={mentor.name}
-                            width={80}
-                            height={80}
+                            width={64}
+                            height={64}
                             unoptimized
                             className="size-full object-cover"
                           />
@@ -264,7 +264,7 @@ export default async function CourseDetailPage({
                           mentorInitial(mentor.name)
                         )}
                       </span>
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="text-sm font-extrabold leading-tight text-foreground">
                           {mentor.name}
                         </h3>
