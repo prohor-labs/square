@@ -28,7 +28,7 @@ const services: readonly ServiceItem[] = [
     textClass: "text-blue-600 dark:text-blue-400",
   },
   {
-    title: "আমাদের স্পেশাল কোর্স",
+    title: "স্পেশাল কোর্স",
     href: "#courses-section",
     icon: BookOpen,
     bgClass: "bg-emerald-500/10 dark:bg-emerald-500/20",
