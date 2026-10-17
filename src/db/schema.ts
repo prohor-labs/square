@@ -182,30 +182,6 @@ export const QB_EXAM_TYPES = [
 ] as const;
 export type QbExamType = (typeof QB_EXAM_TYPES)[number];
 
-/**
- * A question a student marked to come back to.
- *
- * Keyed on the question, not on a copy of it, so a bookmark survives the
- * question being re-filed and follows the student to any other page the
- * question appears on.
- */
-export const qbBookmarks = pgTable(
-  "qb_bookmarks",
-  {
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    questionId: text("question_id")
-      .notNull()
-      .references(() => questions.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.userId, table.questionId] }),
-    index("qb_bookmarks_user_idx").on(table.userId),
-  ],
-);
-
 /** A board, a university or an engineering institute. */
 export const qbInstitutes = pgTable(
   "qb_institutes",

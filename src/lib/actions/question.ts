@@ -656,9 +656,18 @@ export async function getQuestionsAdminAction(filters?: {
   type?: string;
   search?: string;
   limit?: number;
+  /**
+   * "free" narrows to questions marked open to everyone, "paid" to the rest,
+   * "all" leaves it alone. Building a free exam without this means wading
+   * through the whole bank to find the handful that are open.
+   */
+  isFree?: "all" | "free" | "paid";
 }) {
   try {
     const conditions = [];
+    if (filters?.isFree === "free") conditions.push(eq(questions.isFree, true));
+    if (filters?.isFree === "paid")
+      conditions.push(eq(questions.isFree, false));
     if (filters?.chapterId && filters.chapterId !== "all") {
       conditions.push(eq(questions.subitemId, filters.chapterId));
     } else if (filters?.chapterIds && filters.chapterIds.length > 0) {

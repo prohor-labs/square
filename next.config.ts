@@ -1,28 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /**
-   * The bank used to be browsed as a tree of containers — /qb/chem,
-   * /qb/du-ka/… — where a "container" was really a subject pool and the year
-   * came from the URL. Those questions are all still here; they are now reached
-   * through the metadata instead, so the old paths send people to the bank
-   * rather than 404. /qb/subjects is the closest thing to what those pages were.
-   */
   async redirects() {
     return [
-      { source: "/qb/du-ka", destination: "/qb/university", permanent: true },
-      { source: "/qb/ru", destination: "/qb/university", permanent: true },
-      { source: "/qb/medicalqb", destination: "/qb/medical", permanent: true },
-      { source: "/qb/chem", destination: "/qb/subjects", permanent: true },
-      { source: "/qb/onushiloniqb", destination: "/qb/subjects", permanent: true },
-      { source: "/qb/arc-qb", destination: "/qb/mixed", permanent: true },
       {
-        source: "/qb/:container/:item/:subitem",
-        destination: "/qb/mixed",
+        // The bank is closed; every old address lands on the notice page
+        // rather than a 404. `+` and not `*`, so the notice page itself — which
+        // is /qb — is not caught by its own rule and redirected to itself.
+        source: "/qb/:path+",
+        destination: "/qb",
         permanent: true,
       },
-      { source: "/qb/:container/:item", destination: "/qb/mixed", permanent: true },
-      { source: "/qb/:container", destination: "/qb", permanent: true },
     ];
   },
   async headers() {

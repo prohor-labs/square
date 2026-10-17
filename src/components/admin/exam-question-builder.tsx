@@ -66,6 +66,11 @@ export function ExamQuestionBuilder({
   const [selectedSubjectId, setSelectedSubjectId] = useState("all");
   const [selectedChapterId, setSelectedChapterId] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
+  // Building a free exam means picking only the questions marked open to
+  // everyone, which used to mean reading through the whole bank.
+  const [selectedAccess, setSelectedAccess] = useState<"all" | "free" | "paid">(
+    "all",
+  );
 
   // Selection for bulk adding
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
@@ -133,7 +138,7 @@ export function ExamQuestionBuilder({
     setIsFetchingQb(true);
 
     const timer = setTimeout(async () => {
-      let chapterIds: string[] | undefined = undefined;
+      let chapterIds: string[] | undefined;
 
       if (selectedChapterId !== "all") {
         chapterIds = [selectedChapterId];
@@ -145,6 +150,7 @@ export function ExamQuestionBuilder({
         chapterId: selectedChapterId !== "all" ? selectedChapterId : undefined,
         chapterIds,
         type: selectedType !== "all" ? selectedType : undefined,
+        isFree: selectedAccess,
         search: searchQuery || undefined,
         limit: 150,
       });
@@ -164,6 +170,7 @@ export function ExamQuestionBuilder({
     selectedSubjectId,
     selectedChapterId,
     selectedType,
+    selectedAccess,
     searchQuery,
     availableChapters,
   ]);
@@ -261,7 +268,11 @@ export function ExamQuestionBuilder({
     let list: any[] = [];
 
     // Check if input is CSV format
-    if (!trimmed.startsWith("[") && !trimmed.startsWith("{") && trimmed.includes(",")) {
+    if (
+      !trimmed.startsWith("[") &&
+      !trimmed.startsWith("{") &&
+      trimmed.includes(",")
+    ) {
       try {
         const { parseQuestionsCsv } = await import("@/lib/csv-parser");
         const parsedCsv = parseQuestionsCsv(trimmed);
@@ -288,7 +299,9 @@ export function ExamQuestionBuilder({
             throw new Error();
           }
         } catch {
-          setJsonError("ভুল JSON বা CSV ফরম্যাট! দয়া করে সঠিক ভ্যালিড JSON অথবা CSV পেস্ট করুন।");
+          setJsonError(
+            "ভুল JSON বা CSV ফরম্যাট! দয়া করে সঠিক ভ্যালিড JSON অথবা CSV পেস্ট করুন।",
+          );
           return;
         }
       }
@@ -330,7 +343,6 @@ export function ExamQuestionBuilder({
     }
   }
 
-
   const totalCalculatedMarks = exam.examQuestions.reduce(
     (acc, curr) => acc + (curr.marks || 1),
     0,
@@ -362,11 +374,18 @@ export function ExamQuestionBuilder({
             </span>
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-3 pt-0.5">
-            <span>মোট প্রশ্ন: <b>{exam.examQuestions.length} টি</b></span>
+            <span>
+              মোট প্রশ্ন: <b>{exam.examQuestions.length} টি</b>
+            </span>
             <span>•</span>
-            <span>নির্ধারিত মোট মার্কস: <b>{exam.totalMarks}</b> (যোগকৃত: {totalCalculatedMarks})</span>
+            <span>
+              নির্ধারিত মোট মার্কস: <b>{exam.totalMarks}</b> (যোগকৃত:{" "}
+              {totalCalculatedMarks})
+            </span>
             <span>•</span>
-            <span>সময়: <b>{exam.durationMinutes} মিনিট</b></span>
+            <span>
+              সময়: <b>{exam.durationMinutes} মিনিট</b>
+            </span>
           </p>
         </div>
 
@@ -426,8 +445,12 @@ export function ExamQuestionBuilder({
               <div className="flex items-center gap-2">
                 <Category className="size-4 text-primary" />
                 <h3 className="font-bold text-sm flex items-center gap-2">
-                  <span>প্রশ্ন ব্যাংক ({availableQuestions.length} টি প্রশ্ন পাওয়া গেছে)</span>
-                  {isFetchingQb && <Spinner className="size-3.5 text-primary" />}
+                  <span>
+                    প্রশ্ন ব্যাংক ({availableQuestions.length} টি প্রশ্ন পাওয়া গেছে)
+                  </span>
+                  {isFetchingQb && (
+                    <Spinner className="size-3.5 text-primary" />
+                  )}
                 </h3>
               </div>
 
@@ -462,7 +485,7 @@ export function ExamQuestionBuilder({
 
             {/* Filter Row 1: Search & Type */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-              <div className="sm:col-span-8 relative">
+              <div className="sm:col-span-4 relative">
                 <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="প্রশ্নের বিষয়বস্তু বা উৎস দিয়ে খুঁজুন..."
@@ -480,6 +503,19 @@ export function ExamQuestionBuilder({
                   <option value="all">সকল ধরন (All)</option>
                   <option value="mcq">MCQ</option>
                   <option value="cq">CQ / সৃজনশীল</option>
+                </select>
+              </div>
+              <div className="sm:col-span-4">
+                <select
+                  value={selectedAccess}
+                  onChange={(e) =>
+                    setSelectedAccess(e.target.value as typeof selectedAccess)
+                  }
+                  className="w-full h-9 px-3 rounded-xl border bg-background text-xs"
+                >
+                  <option value="all">উন্মুক্ত — সব</option>
+                  <option value="free">উন্মুক্ত — শুধু ফ্রি</option>
+                  <option value="paid">উন্মুক্ত — শুধু পেইড</option>
                 </select>
               </div>
             </div>
@@ -591,7 +627,8 @@ export function ExamQuestionBuilder({
                   কোনো প্রশ্ন অবশিষ্ট বা খুঁজে পাওয়া যায়নি
                 </p>
                 <p className="text-xs max-w-xs mx-auto">
-                  ফিল্টার পরিবর্তন করুন অথবা সরাসরি JSON ইনপুট বাটন ব্যবহার করে নতুন প্রশ্ন যুক্ত করুন।
+                  ফিল্টার পরিবর্তন করুন অথবা সরাসরি JSON ইনপুট বাটন ব্যবহার করে নতুন প্রশ্ন
+                  যুক্ত করুন।
                 </p>
               </div>
             )}
@@ -721,7 +758,9 @@ export function ExamQuestionBuilder({
 
           {/* File Upload Zone */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-bold">ফাইল আপলোড (.json / .csv)</Label>
+            <Label className="text-xs font-bold">
+              ফাইল আপলোড (.json / .csv)
+            </Label>
             <div className="border border-dashed border-border/80 hover:border-primary/50 rounded-2xl p-3 flex items-center justify-between gap-3 bg-muted/15 transition-colors">
               <div className="flex items-center gap-2.5">
                 <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -749,8 +788,13 @@ export function ExamQuestionBuilder({
                   reader.onload = async (event) => {
                     const content = event.target?.result as string;
                     if (!content) return;
-                    if (fileName.endsWith(".csv") || file.type.includes("csv")) {
-                      const { parseQuestionsCsv } = await import("@/lib/csv-parser");
+                    if (
+                      fileName.endsWith(".csv") ||
+                      file.type.includes("csv")
+                    ) {
+                      const { parseQuestionsCsv } = await import(
+                        "@/lib/csv-parser"
+                      );
                       const parsedCsv = parseQuestionsCsv(content);
                       if (parsedCsv && parsedCsv.length > 0) {
                         setJsonText(JSON.stringify(parsedCsv, null, 2));
@@ -770,7 +814,9 @@ export function ExamQuestionBuilder({
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => document.getElementById("exam-file-input")?.click()}
+                onClick={() =>
+                  document.getElementById("exam-file-input")?.click()
+                }
                 className="rounded-xl text-xs font-bold shrink-0 gap-1.5 h-8"
               >
                 <DocumentDownload className="size-3.5" />
@@ -790,12 +836,14 @@ export function ExamQuestionBuilder({
                       JSON.stringify(
                         [
                           {
-                            questionText: "ভেক্টর রাশির ডট গুণনের মান সর্বোচ্চ কখন হয়?",
+                            questionText:
+                              "ভেক্টর রাশির ডট গুণনের মান সর্বোচ্চ কখন হয়?",
                             type: "mcq",
                             standard: "HSC",
                             source: "Board Exam",
                             marks: 1,
-                            explanation: "যখন মধ্যবর্তী কোণ 0 ডিগ্রি হয় তখন cos(0) = 1।",
+                            explanation:
+                              "যখন মধ্যবর্তী কোণ 0 ডিগ্রি হয় তখন cos(0) = 1।",
                             mcqOptions: [
                               { optionText: "0° কোণে", isCorrect: true },
                               { optionText: "90° কোণে", isCorrect: false },
@@ -865,7 +913,6 @@ export function ExamQuestionBuilder({
           </div>
         </form>
       </ResponsiveDialog>
-
     </div>
   );
 }
