@@ -42,3 +42,25 @@ next-env.d.ts
 
 # question bank backups — data, not source
 /backups/
+
+# lock files
+*.lock
+*.lockb
+*-lock.json
+*lock.json
+*-lock.yaml
+*lock.yaml
+*-lock.*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+bun.lockb
+skills-lock.json
+
+# agent skills
+.agents/
+
+# temp & analysis output
+graphify-out/
+scratch/
