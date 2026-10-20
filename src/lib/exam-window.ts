@@ -124,6 +124,15 @@ export function getExamWindow(
   return { status: "practice", remainingMs: 0, startsAt, endsAt };
 }
 
+/**
+ * Epoch milliseconds for a scheduled start, used to line exams up in the
+ * order they happen. An exam with no start has no place on that timeline, so
+ * it sorts to the end rather than pretending to be first.
+ */
+export function startsAtMs(value: string | null | undefined): number {
+  return parse(value)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+}
+
 /** True when an attempt started right now must count as a live attempt. */
 export function isLiveAt(
   input: ExamWindowInput,

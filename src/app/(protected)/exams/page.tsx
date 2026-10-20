@@ -5,7 +5,7 @@ import { UpcomingExamCard } from "@/components/exams/upcoming-exam-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudentExams } from "@/lib/actions/exam";
 import { auth } from "@/lib/auth";
-import { getExamWindow } from "@/lib/exam-window";
+import { getExamWindow, startsAtMs } from "@/lib/exam-window";
 
 export default async function ExamsBrowserPage({
   searchParams,
@@ -42,9 +42,12 @@ export default async function ExamsBrowserPage({
         ? "upcoming"
         : "live";
 
-  const upcomingExams = batchExams.filter(
-    (be) => getExamWindow(be, now).status === "upcoming",
-  );
+  // Upcoming cards read in the order the exams actually happen: whoever sits
+  // first is at the top, whoever sits last is at the bottom. Sorting by when
+  // the row was assigned (the underlying default) says nothing about that.
+  const upcomingExams = batchExams
+    .filter((be) => getExamWindow(be, now).status === "upcoming")
+    .sort((a, b) => startsAtMs(a.startsAt) - startsAtMs(b.startsAt));
   const expiredExams = batchExams.filter(
     (be) => getExamWindow(be, now).status === "practice",
   );
