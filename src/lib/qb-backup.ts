@@ -34,8 +34,16 @@ export const QB_BACKUP_TABLES = [
   "qb_institutes",
   "qb_subjects",
   "qb_chapters",
+  "qb_topics",
+  "qb_question_topics",
   "qb_question_meta",
   "exam_questions",
+  "new_subjects",
+  "new_chapters",
+  "new_topics",
+  "new_questions",
+  "new_mcq_options",
+  "new_cq_parts",
 ] as const;
 
 export type QbBackupTable = (typeof QB_BACKUP_TABLES)[number];
@@ -54,8 +62,16 @@ export const QB_BACKUP_KEYS: Readonly<Record<string, string>> = {
   qb_institutes: "id",
   qb_subjects: "id",
   qb_chapters: "id",
+  qb_topics: "id",
+  qb_question_topics: "question_id",
   qb_question_meta: "question_id",
   exam_questions: "id",
+  new_subjects: "id",
+  new_chapters: "id",
+  new_topics: "id",
+  new_questions: "id",
+  new_mcq_options: "id",
+  new_cq_parts: "id",
 };
 
 /**
@@ -70,6 +86,9 @@ export const QB_BACKUP_SLUGGED = new Set([
   "qb_subjects",
   "qb_chapters",
   "qb_institutes",
+  "new_subjects",
+  "new_chapters",
+  "new_topics",
 ]);
 
 export interface ParsedBackup {

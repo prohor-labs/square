@@ -135,7 +135,11 @@ export const questions = pgTable("questions", {
     .default("HSC")
     .notNull(),
   questionText: text("question_text").notNull(),
+  /** Image shown under the stem — a URL, not a file. Text still holds the rest. */
+  questionImage: text("question_image"),
   explanation: text("explanation"),
+  /** Image shown under the explanation. */
+  explanationImage: text("explanation_image"),
   isFree: boolean("is_free").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -148,6 +152,8 @@ export const mcqOptions = pgTable("mcq_options", {
     .notNull()
     .references(() => questions.id, { onDelete: "cascade" }),
   optionText: text("option_text").notNull(),
+  /** Image for this option — a URL, not a file. */
+  image: text("image"),
   isCorrect: boolean("is_correct").default(false).notNull(),
   orderNo: integer("order_no").default(0).notNull(),
 });
@@ -304,14 +310,18 @@ export const qbTopics = pgTable(
  * "Le Chatelier" without being written twice, and a topic page can then find it
  * through either name.
  */
-export const qbQuestionTopics = pgTable("qb_question_topics", {
-  questionId: text("question_id")
-    .notNull()
-    .references(() => questions.id, { onDelete: "cascade" }),
-  topicId: text("topic_id")
-    .notNull()
-    .references(() => qbTopics.id, { onDelete: "cascade" }),
-});
+export const qbQuestionTopics = pgTable(
+  "qb_question_topics",
+  {
+    questionId: text("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => qbTopics.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.questionId, table.topicId] })],
+);
 
 export const tags = pgTable("tags", {
   id: text("id")
@@ -1024,3 +1034,148 @@ export const examResponsesRelations = relations(examResponses, ({ one }) => ({
     references: [mcqOptions.id],
   }),
 }));
+
+/* ---------------------------------------------------------------------------
+ * The new question bank — every table is prefixed `new_`.
+ *
+ * This is a clean, self-contained set for questions uploaded from /qb. It does
+ * not touch `containers`/`questions`/`mcq_options`: those still belong to the
+ * archived bank and the exams built from it. A question here always has a
+ * chapter; subject and topic are reached through it.
+ * ------------------------------------------------------------------------- */
+
+/** পদার্থবিজ্ঞান / বাংলা / ইংরেজি … */
+export const newSubjects = pgTable(
+  "new_subjects",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("new_subject_slug_unique_idx").on(table.slug)],
+);
+
+/** An অধ্যায় inside a subject. */
+export const newChapters = pgTable(
+  "new_chapters",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    subjectId: text("subject_id")
+      .notNull()
+      .references(() => newSubjects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("new_chapter_subject_slug_unique_idx").on(
+      table.subjectId,
+      table.slug,
+    ),
+    index("new_chapter_subject_idx").on(table.subjectId),
+  ],
+);
+
+/** An optional টপিক inside a chapter. */
+export const newTopics = pgTable(
+  "new_topics",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    chapterId: text("chapter_id")
+      .notNull()
+      .references(() => newChapters.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("new_topic_chapter_slug_unique_idx").on(
+      table.chapterId,
+      table.slug,
+    ),
+    index("new_topic_chapter_idx").on(table.chapterId),
+  ],
+);
+
+/** One question — MCQ or CQ. */
+export const newQuestions = pgTable(
+  "new_questions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    chapterId: text("chapter_id")
+      .notNull()
+      .references(() => newChapters.id, { onDelete: "cascade" }),
+    topicId: text("topic_id").references(() => newTopics.id, {
+      onDelete: "set null",
+    }),
+    type: text("type", { enum: ["mcq", "cq"] }).notNull(),
+    source: text("source").default("").notNull(),
+    standard: text("standard", {
+      enum: ["HSC", "Varsity", "Engineering", "Medical"],
+    })
+      .default("HSC")
+      .notNull(),
+    questionText: text("question_text").notNull(),
+    /** Image URL shown under the stem. */
+    questionImage: text("question_image"),
+    explanation: text("explanation"),
+    explanationImage: text("explanation_image"),
+    isFree: boolean("is_free").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("new_question_chapter_idx").on(table.chapterId),
+    index("new_question_topic_idx").on(table.topicId),
+    index("new_question_created_idx").on(table.createdAt),
+  ],
+);
+
+/** The options of one MCQ question. */
+export const newMcqOptions = pgTable(
+  "new_mcq_options",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    questionId: text("question_id")
+      .notNull()
+      .references(() => newQuestions.id, { onDelete: "cascade" }),
+    optionText: text("option_text").notNull(),
+    /** Image URL for this option. */
+    image: text("image"),
+    isCorrect: boolean("is_correct").default(false).notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+  },
+  (table) => [index("new_option_question_idx").on(table.questionId)],
+);
+
+/** (ক) / (খ) / (গ) / (ঘ) of a CQ question. */
+export const newCqParts = pgTable(
+  "new_cq_parts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    questionId: text("question_id")
+      .notNull()
+      .references(() => newQuestions.id, { onDelete: "cascade" }),
+    partKey: text("part_key").notNull(),
+    questionText: text("question_text").notNull(),
+    answerText: text("answer_text"),
+    marks: integer("marks").default(1).notNull(),
+    orderNo: integer("order_no").default(0).notNull(),
+  },
+  (table) => [index("new_cq_part_question_idx").on(table.questionId)],
+);

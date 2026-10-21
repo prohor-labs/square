@@ -197,13 +197,15 @@ export function UniversalQuestionCreator({
   const cleanSampleMcqJson = `[
   {
     "questionText": "নিচের কোনটি ভেক্টর রাশি?",
+    "questionImage": "https://example.com/q1.png",
     "mcqOptions": [
       { "optionText": "বেগ", "isCorrect": true },
       { "optionText": "দ্রুতি", "isCorrect": false },
       { "optionText": "কাজ", "isCorrect": false },
-      { "optionText": "ক্ষমতা", "isCorrect": false }
+      { "optionText": "ক্ষমতা", "isCorrect": false, "image": "https://example.com/opt4.png" }
     ],
-    "explanation": "বেগ একটি ভেক্টর রাশি কারণ এর নির্দিষ্ট মান ও দিক উভয়ই বিদ্যমান।"
+    "explanation": "বেগ একটি ভেক্টর রাশি কারণ এর নির্দিষ্ট মান ও দিক উভয়ই বিদ্যমান।",
+    "explanationImage": "https://example.com/exp1.png"
   },
   {
     "questionText": "$$\\\\vec{A} = 2\\\\hat{i} + 3\\\\hat{j}$$ এবং $$\\\\vec{B} = 4\\\\hat{i} - \\\\hat{j}$$ হলে ভেক্টরদ্বয়ের ডট গুণন কত?",
@@ -252,9 +254,9 @@ export function UniversalQuestionCreator({
 ]`;
 
   // Clean CSV Sample
-  const cleanSampleCsv = `questions,option1,option2,option3,option4,answer,explanation
-"নিচের কোনটি ভেক্টর রাশি?","বেগ","দ্রুতি","কাজ","ক্ষমতা",1,"বেগ একটি ভেক্টর রাশি কারণ এর নির্দিষ্ট মান ও দিক উভয়ই বিদ্যমান।"
-"$$\\vec{A} = 2\\hat{i} + 3\\hat{j}$$ এবং $$\\vec{B} = 4\\hat{i} - \\hat{j}$$ হলে ভেক্টরদ্বয়ের ডট গুণন কত?","5","8","11","14",1,"$$\\vec{A} \\cdot \\vec{B} = (2 \\times 4) + (3 \\times -1) = 8 - 3 = 5$$"`;
+  const cleanSampleCsv = `questions,question_image,option1,option1_image,option2,option2_image,option3,option3_image,option4,option4_image,answer,explanation,explanation_image,type,section,paper_name,chapter_name,topic_name
+"নিচের কোনটি ভেক্টর রাশি?",,"বেগ",,"দ্রুতি",,"কাজ",,"ক্ষমতা",,1,"বেগ একটি ভেক্টর রাশি কারণ এর নির্দিষ্ট মান ও দিক উভয়ই বিদ্যমান।",,mcq,1,১ম পত্র,ভেক্টর,ভেক্টরের প্রকারভেদ
+"চিত্রে ABCD একটি সামান্তরিক। লব্ধি কত?","https://example.com/q1.png","5",,"8","https://example.com/o2.png","11",,"14",,1,"লব্ধি = কর্ণের মান।","https://example.com/exp1.png",mcq,1,১ম পত্র,ভেক্টর,লব্ধি`;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -940,6 +942,11 @@ ${type === "mcq" ? cleanSampleMcqJson : cleanSampleCqJson}`;
                 </h3>
                 <p className="text-[11px] sm:text-xs text-muted-foreground">
                   নিচের টেক্সটবক্সে প্রশ্ন ও অপশনের CSV অথবা JSON পেস্ট করুন।
+                  ছবির জন্য <code>question_image</code>,{" "}
+                  <code>option1_image</code>…<code>option5_image</code>,{" "}
+                  <code>explanation_image</code> কলামে URL দিন। একাধিক সঠিক
+                  উত্তর থাকলে <code>answer</code> কলামে লিখুন{" "}
+                  <code>A,C</code> বা <code>1,3</code>।
                 </p>
               </div>
 

@@ -187,6 +187,8 @@ export async function getFreeExamQuestionsForTakingAction(slug: string) {
         question: {
           id: q.id,
           questionText: q.questionText,
+          questionImage: q.questionImage,
+          explanationImage: q.explanationImage,
           type: q.type,
           marks: eqItem.marks,
           standard: q.standard,
@@ -194,6 +196,7 @@ export async function getFreeExamQuestionsForTakingAction(slug: string) {
           mcqOptions: q.mcqOptions.map((opt) => ({
             id: opt.id,
             optionText: opt.optionText,
+            image: opt.image,
             orderNo: opt.orderNo,
           })),
           cqParts: q.cqParts.map((part) => ({

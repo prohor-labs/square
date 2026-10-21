@@ -38,22 +38,31 @@ export function EditQuestionForm({
   const [questionText, setQuestionText] = useState(
     question.questionText || question.question_text || "",
   );
+  const [questionImage, setQuestionImage] = useState(
+    question.questionImage || question.question_image || "",
+  );
   const [explanation, setExplanation] = useState(question.explanation || "");
+  const [explanationImage, setExplanationImage] = useState(
+    question.explanationImage || question.explanation_image || "",
+  );
 
   const initialOptions = (question.mcqOptions || question.mcq_options)?.map(
     (o, idx) => ({
       key: o.id || `opt-slot-${idx}`,
       optionText: o.optionText || o.option_text || "",
+      image: o.image || "",
       isCorrect: o.isCorrect ?? o.is_correct ?? false,
     }),
   ) || [
-    { key: "opt-slot-0", optionText: "", isCorrect: true },
-    { key: "opt-slot-1", optionText: "", isCorrect: false },
-    { key: "opt-slot-2", optionText: "", isCorrect: false },
-    { key: "opt-slot-3", optionText: "", isCorrect: false },
+    { key: "opt-slot-0", optionText: "", image: "", isCorrect: true },
+    { key: "opt-slot-1", optionText: "", image: "", isCorrect: false },
+    { key: "opt-slot-2", optionText: "", image: "", isCorrect: false },
+    { key: "opt-slot-3", optionText: "", image: "", isCorrect: false },
   ];
 
-  const [isFree, setIsFree] = useState(Boolean(question.isFree || question.is_free));
+  const [isFree, setIsFree] = useState(
+    Boolean(question.isFree || question.is_free),
+  );
 
   const [mcqOptions, setMcqOptions] = useState(initialOptions);
 
@@ -79,10 +88,17 @@ export function EditQuestionForm({
     setMcqOptions(next);
   };
 
-  const handleCorrectSelect = (correctIdx: number) => {
-    const next = mcqOptions.map((opt, idx) => ({
+  const handleOptionImageChange = (idx: number, image: string) => {
+    const next = [...mcqOptions];
+    next[idx] = { ...next[idx], image };
+    setMcqOptions(next);
+  };
+
+  /** Several options can be correct, so this toggles instead of replacing. */
+  const handleCorrectToggle = (idx: number) => {
+    const next = mcqOptions.map((opt, i) => ({
       ...opt,
-      isCorrect: idx === correctIdx,
+      isCorrect: i === idx ? !opt.isCorrect : opt.isCorrect,
     }));
     setMcqOptions(next);
   };
@@ -109,7 +125,9 @@ export function EditQuestionForm({
           source: source.trim() || "Custom",
           standard: standard.trim() || "HSC",
           questionText,
+          questionImage,
           explanation,
+          explanationImage,
           isFree,
           mcqOptions: type === "mcq" ? mcqOptions : undefined,
           cqParts: type === "cq" ? cqParts : undefined,
@@ -198,7 +216,8 @@ export function EditQuestionForm({
           htmlFor="edit-question-is-free"
           className="text-xs font-bold text-foreground cursor-pointer"
         >
-          🌐 সবার জন্য উন্মুক্ত / ফ্রি প্রশ্ন (লগইন থাকুক বা না থাকুক সবাই দেখতে ও অনুশীলন করতে পারবে)
+          🌐 সবার জন্য উন্মুক্ত / ফ্রি প্রশ্ন (লগইন থাকুক বা না থাকুক সবাই দেখতে ও অনুশীলন করতে
+          পারবে)
         </label>
       </div>
 
@@ -211,6 +230,11 @@ export function EditQuestionForm({
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
         />
+        <Input
+          placeholder="প্রশ্নের ছবির URL (অপশনাল)"
+          value={questionImage}
+          onChange={(e) => setQuestionImage(e.target.value)}
+        />
       </Field>
 
       {type === "mcq" && (
@@ -221,32 +245,41 @@ export function EditQuestionForm({
               <div
                 key={opt.key}
                 className={cn(
-                  "flex items-center gap-2 rounded-md border p-2 transition-colors",
+                  "flex items-start gap-2 rounded-md border p-2 transition-colors",
                   opt.isCorrect
                     ? "border-primary/40 bg-primary/5"
                     : "border-input",
                 )}
               >
                 <input
-                  type="radio"
+                  type="checkbox"
                   name="editCorrectOption"
                   checked={opt.isCorrect}
-                  onChange={() => handleCorrectSelect(idx)}
-                  className="size-4 shrink-0 accent-primary"
+                  onChange={() => handleCorrectToggle(idx)}
+                  className="mt-2 size-4 shrink-0 accent-primary"
                   aria-label={`অপশন ${idx + 1} সঠিক হিসেবে চিহ্নিত করুন`}
                 />
-                <Input
-                  required
-                  placeholder={`অপশন ${idx + 1}`}
-                  value={opt.optionText}
-                  onChange={(e) => handleOptionChange(idx, e.target.value)}
-                  className="flex-1"
-                />
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Input
+                    placeholder={`অপশন ${idx + 1}`}
+                    value={opt.optionText}
+                    onChange={(e) => handleOptionChange(idx, e.target.value)}
+                  />
+                  <Input
+                    placeholder="ছবির URL (অপশনাল)"
+                    value={opt.image}
+                    onChange={(e) =>
+                      handleOptionImageChange(idx, e.target.value)
+                    }
+                    className="text-xs"
+                  />
+                </div>
               </div>
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            সঠিক উত্তরের পাশের রেডিও বাটনটি নির্বাচন করুন।
+            সঠিক উত্তরের পাশের ঘরটিতে টিক দিন — একাধিক সঠিক থাকলে একাধিক টিক দেওয়া
+            যাবে।
           </p>
         </div>
       )}
@@ -315,6 +348,11 @@ export function EditQuestionForm({
           placeholder="প্রশ্নের বিস্তারিত ব্যাখ্যা..."
           value={explanation}
           onChange={(e) => setExplanation(e.target.value)}
+        />
+        <Input
+          placeholder="ব্যাখ্যার ছবির URL (অপশনাল)"
+          value={explanationImage}
+          onChange={(e) => setExplanationImage(e.target.value)}
         />
       </Field>
 

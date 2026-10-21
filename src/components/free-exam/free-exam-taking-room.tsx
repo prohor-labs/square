@@ -3,12 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
-import remarkBreaks from "remark-breaks";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import { markdownComponents, sanitizeQuestionContent } from "@/lib/question-content";
 import {
   Clock,
   Danger,
@@ -18,6 +12,8 @@ import {
   TickCircle,
   Warning,
 } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,11 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
 import { submitFreeGuestExamAction } from "@/lib/actions/free-exam";
+import {
+  markdownComponents,
+  markdownRehypePlugins,
+  markdownRemarkPlugins,
+  QuestionImage,
+  sanitizeQuestionContent,
+} from "@/lib/question-content";
+import { cn } from "@/lib/utils";
 
 const OPTION_KEYS = ["ক", "খ", "গ", "ঘ", "ঙ"];
 
@@ -52,6 +53,8 @@ interface FreeExamTakingRoomProps {
     question: {
       id: string;
       questionText: string;
+      questionImage?: string | null;
+      explanationImage?: string | null;
       type: string;
       marks: number;
       standard?: string | null;
@@ -59,6 +62,7 @@ interface FreeExamTakingRoomProps {
       mcqOptions: Array<{
         id: string;
         optionText: string;
+        image?: string | null;
         orderNo: number;
       }>;
       cqParts: Array<{
@@ -215,7 +219,10 @@ export function FreeExamTakingRoom({
               {exam.title}
             </h2>
             <span className="text-[11px] text-muted-foreground font-semibold">
-              পরীক্ষার্থী: <strong className="text-foreground">{guestInfo.studentName}</strong>
+              পরীক্ষার্থী:{" "}
+              <strong className="text-foreground">
+                {guestInfo.studentName}
+              </strong>
             </span>
           </div>
         </div>
@@ -224,7 +231,9 @@ export function FreeExamTakingRoom({
           {/* Answered Progress Pill */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/60 text-xs font-bold text-muted-foreground border border-border/60">
             <TaskSquare className="size-3.5 text-primary" />
-            <span>উত্তর: {answeredCount}/{totalCount}</span>
+            <span>
+              উত্তর: {answeredCount}/{totalCount}
+            </span>
           </div>
 
           {/* Live Countdown Timer */}
@@ -301,12 +310,16 @@ export function FreeExamTakingRoom({
                 {/* Question Text with KaTeX Math Rendering */}
                 <div className="text-sm sm:text-base font-semibold text-foreground leading-relaxed">
                   <ReactMarkdown
-                    remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                    rehypePlugins={[rehypeRaw, rehypeKatex]}
+                    remarkPlugins={markdownRemarkPlugins}
+                    rehypePlugins={markdownRehypePlugins}
                     components={markdownComponents}
                   >
                     {sanitizeQuestionContent(item.question.questionText)}
                   </ReactMarkdown>
+                  <QuestionImage
+                    src={item.question.questionImage}
+                    alt="প্রশ্নের চিত্র"
+                  />
                 </div>
 
                 {/* MCQ Options List */}
@@ -345,12 +358,18 @@ export function FreeExamTakingRoom({
 
                           <div className="flex-1 text-xs sm:text-sm font-medium pt-0.5 leading-snug">
                             <ReactMarkdown
-                              remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                              rehypePlugins={[rehypeRaw, rehypeKatex]}
+                              remarkPlugins={markdownRemarkPlugins}
+                              rehypePlugins={markdownRehypePlugins}
                               components={markdownComponents}
                             >
                               {sanitizeQuestionContent(opt.optionText)}
                             </ReactMarkdown>
+                            <QuestionImage
+                              src={opt.image}
+                              alt="অপশনের চিত্র"
+                              className="max-h-40"
+                              zoomable={false}
+                            />
                           </div>
                         </button>
                       );
@@ -383,7 +402,8 @@ export function FreeExamTakingRoom({
                 সকল প্রশ্নের উত্তর দেওয়া সম্পন্ন হয়েছে?
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                মোট {totalCount} টির মধ্যে {answeredCount} টি প্রশ্নের উত্তর চিহ্নিত করা হয়েছে।
+                মোট {totalCount} টির মধ্যে {answeredCount} টি প্রশ্নের উত্তর চিহ্নিত
+                করা হয়েছে।
               </p>
             </div>
             <Button
@@ -465,8 +485,9 @@ export function FreeExamTakingRoom({
               পরীক্ষা সাবমিট করতে চান?
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              আপনি মোট <strong className="text-foreground">{totalCount}</strong> টির মধ্যে{" "}
-              <strong className="text-primary">{answeredCount}</strong> টি প্রশ্নের উত্তর দিয়েছেন।{" "}
+              আপনি মোট <strong className="text-foreground">{totalCount}</strong>{" "}
+              টির মধ্যে <strong className="text-primary">{answeredCount}</strong>{" "}
+              টি প্রশ্নের উত্তর দিয়েছেন।{" "}
               {totalCount - answeredCount > 0 && (
                 <span className="text-destructive font-semibold">
                   ({totalCount - answeredCount} টি প্রশ্নের উত্তর দেওয়া বাকি আছে।)

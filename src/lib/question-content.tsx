@@ -1,11 +1,36 @@
-import React from "react";
+import type React from "react";
+import type { Options } from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { normalizeMath } from "@/lib/latex";
 import { cn } from "@/lib/utils";
+
+/**
+ * The one plugin list every question renderer uses.
+ *
+ * `throwOnError: false` matters for imported sheets: a single malformed
+ * expression then shows as red text instead of taking the whole question down.
+ */
+export const markdownRemarkPlugins: NonNullable<Options["remarkPlugins"]> = [
+  remarkMath,
+  remarkGfm,
+  remarkBreaks,
+];
+
+export const markdownRehypePlugins: NonNullable<Options["rehypePlugins"]> = [
+  rehypeRaw,
+  [rehypeKatex, { throwOnError: false, strict: false, output: "html" }],
+];
 
 /**
  * Sanitizes and normalizes question / explanation text so that:
  * 1. CSV-escaped quotes like <img class=""qimg"" src=""https://..."" > become <img class="qimg" src="https://..." >
  * 2. Variant markdown image syntax like [!img](url) or [!img}(url) becomes ![](url)
  * 3. Standalone image URLs on their own line become ![](url)
+ * 4. Plain-text maths (`A^-1`, `sqrt(x+1)`, `∠A`, `dy/dx`) becomes `$…$` LaTeX
  */
 export function sanitizeQuestionContent(content?: string | null): string {
   if (!content) return "";
@@ -27,8 +52,11 @@ export function sanitizeQuestionContent(content?: string | null): string {
   text = text.replace(/(<[^>]+>)/g, (match) => match.replace(/""/g, '"'));
 
   // 3. Fix variants like [!img](url), [!img}(url), ![img}(url), [!image](url)
-  text = text.replace(/\[!(?:img|image)[\]\}]\((https?:\/\/[^\s\)]+)\)/gi, "![]($1)");
-  text = text.replace(/!\[([^\]]*)\]\}\((https?:\/\/[^\s\)]+)\)/gi, "![$1]($2)");
+  text = text.replace(
+    /\[!(?:img|image)[\]}]\((https?:\/\/[^\s)]+)\)/gi,
+    "![]($1)",
+  );
+  text = text.replace(/!\[([^\]]*)\]\}\((https?:\/\/[^\s)]+)\)/gi, "![$1]($2)");
 
   // 4. Standalone image URL on its own line: convert to ![](url)
   text = text.replace(
@@ -36,7 +64,48 @@ export function sanitizeQuestionContent(content?: string | null): string {
     "![]($1)",
   );
 
-  return text;
+  // 5. Plain maths → `$…$` (already-delimited maths is left alone).
+  return normalizeMath(text);
+}
+
+/**
+ * A standalone image column (`question_image`, `mcq_options.image`, …).
+ *
+ * Same look and zoom behaviour as images written inline in the text, so a
+ * separate image column does not render differently from an embedded one.
+ */
+export function QuestionImage({
+  src,
+  alt,
+  className,
+  zoomable = true,
+}: {
+  readonly src?: string | null;
+  readonly alt?: string;
+  readonly className?: string;
+  /** Off for images inside an option button — clicking should pick the option. */
+  readonly zoomable?: boolean;
+}) {
+  if (!src) return null;
+
+  if (!zoomable) {
+    return (
+      <span className="my-1 inline-block max-w-full align-middle">
+        <img
+          src={src}
+          alt={alt || "Question Illustration"}
+          loading="lazy"
+          className={cn(
+            "inline-block h-auto max-h-40 max-w-full rounded-xl border border-border/60 bg-background object-contain",
+            className,
+          )}
+        />
+      </span>
+    );
+  }
+
+  const Image = markdownComponents.img;
+  return <Image src={src} alt={alt} className={className} />;
 }
 
 /**
@@ -84,7 +153,10 @@ export const markdownComponents = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn("text-primary underline font-semibold hover:opacity-80", className)}
+      className={cn(
+        "text-primary underline font-semibold hover:opacity-80",
+        className,
+      )}
       {...props}
     >
       {children}

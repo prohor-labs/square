@@ -1,0 +1,252 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import {
+  Danger,
+  DocumentDownload,
+  TickCircle,
+  Upload,
+} from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { importQbRowsAction } from "@/lib/actions/qb-uploads";
+import { type ParsedCsvQuestion, parseQuestionsCsv } from "@/lib/csv-parser";
+import { cn } from "@/lib/utils";
+
+/** The sheet only needs these columns; the rest are optional. */
+const SAMPLE_CSV = `\uFEFFquestion,type,option1,option2,option3,option4,answer,explanation,question_image,option1_image,option2_image,option3_image,option4_image,explanation_image,subject_name,paper_name,chapter_name,topic_name
+"নিচের কোনটি ভেক্টর রাশি?","mcq","বেগ","দ্রুতি","কাজ","ক্ষমতা","A","বেগের মান ও দিক দুটোই আছে।",,,,,"","","পদার্থবিজ্ঞান","১ম পত্র","ভেক্টর","ভেক্টরের প্রকারভেদ"
+"চিত্রে লব্ধি কত?","mcq","5","8","11","14","A","লব্ধি = কর্ণের মান।","https://example.com/q2.png",,,,"","https://example.com/exp2.png","পদার্থবিজ্ঞান","১ম পত্র","ভেক্টর","লব্ধি"
+"নিচের কোনগুলো মৌলিক রাশি?","mcq","দৈর্ঘ্য","বল","সময়","ভর","A,C,D","দৈর্ঘ্য, সময় ও ভর মৌলিক রাশি।",,,,,"","","পদার্থবিজ্ঞান","১ম পত্র","ভৌত রাশি","মৌলিক রাশি"`;
+
+const BATCH_SIZE = 100;
+
+interface UploadSummary {
+  readonly imported: number;
+  readonly skipped: number;
+  readonly errors: readonly string[];
+}
+
+export function QbUploader() {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [fileName, setFileName] = useState("");
+  const [rows, setRows] = useState<ParsedCsvQuestion[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [summary, setSummary] = useState<UploadSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const reset = () => {
+    setFileName("");
+    setRows([]);
+    setProgress({ done: 0, total: 0 });
+    setSummary(null);
+    setError(null);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const readFile = async (file: File) => {
+    reset();
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setError("শুধু .csv ফাইল দিন।");
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = parseQuestionsCsv(text);
+
+      if (parsed.length === 0) {
+        setError(
+          "CSV-তে কোনো প্রশ্ন পাওয়া যায়নি। প্রথম লাইনে কলামের নাম (question, option1 …) আছে কি না দেখুন।",
+        );
+        return;
+      }
+
+      setFileName(file.name);
+      setRows(parsed);
+    } catch {
+      setError("ফাইলটি পড়া যায়নি। UTF-8 CSV কিনা দেখুন।");
+    }
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) void readFile(file);
+  };
+
+  const upload = async () => {
+    if (rows.length === 0 || isUploading) return;
+
+    setIsUploading(true);
+    setSummary(null);
+    setError(null);
+    setProgress({ done: 0, total: rows.length });
+
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    try {
+      for (let index = 0; index < rows.length; index += BATCH_SIZE) {
+        const batch = rows.slice(index, index + BATCH_SIZE);
+        const result = await importQbRowsAction(batch);
+
+        imported += result.imported;
+        skipped += result.skipped;
+        errors.push(...result.errors);
+
+        setProgress({
+          done: Math.min(index + BATCH_SIZE, rows.length),
+          total: rows.length,
+        });
+      }
+
+      setSummary({ imported, skipped, errors });
+      setRows([]);
+      setFileName("");
+      if (inputRef.current) inputRef.current.value = "";
+      router.refresh();
+    } catch (cause: unknown) {
+      setError(
+        cause instanceof Error ? cause.message : "আপলোড করা যায়নি। আবার চেষ্টা করুন।",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadSample = () => {
+    const blob = new Blob([SAMPLE_CSV], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "question-upload-sample.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <section className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-sm font-extrabold sm:text-base">প্রশ্ন আপলোড</h2>
+          <p className="text-[11px] text-muted-foreground sm:text-xs">
+            CSV ফাইল বেছে নিন — প্রতিটি সারি একটি প্রশ্ন।
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={downloadSample}
+          className="h-8 gap-1.5 rounded-xl text-[11px] font-bold"
+        >
+          <DocumentDownload className="size-3.5" />
+          ডেমো CSV
+        </Button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void readFile(file);
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        className={cn(
+          "flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors",
+          dragging
+            ? "border-primary bg-primary/5"
+            : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
+        )}
+      >
+        <Upload className="size-6 text-primary" />
+        <span className="text-xs font-bold sm:text-sm">
+          CSV ফাইল টেনে ছাড়ুন বা ক্লিক করুন
+        </span>
+        <span className="text-[10px] text-muted-foreground sm:text-[11px]">
+          question, option1–5, answer, explanation, *_image, chapter_name,
+          topic_name
+        </span>
+      </button>
+
+      {fileName && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold">{fileName}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {rows.length} টি প্রশ্ন পড়া হয়েছে
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={upload}
+            disabled={isUploading || rows.length === 0}
+            className="h-8 gap-1.5 rounded-xl text-[11px] font-bold"
+          >
+            {isUploading ? (
+              <>
+                <Spinner className="size-3.5" />
+                {progress.done} / {progress.total}
+              </>
+            ) : (
+              <>
+                <Upload className="size-3.5" />
+                আপলোড করুন
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-[11px] font-semibold text-destructive sm:text-xs">
+          <Danger className="mt-0.5 size-3.5 shrink-0" />
+          {error}
+        </p>
+      )}
+
+      {summary && (
+        <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] sm:text-xs">
+          <p className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
+            <TickCircle className="size-4 shrink-0" />
+            {summary.imported} টি প্রশ্ন যোগ হয়েছে
+            {summary.skipped > 0 && `, ${summary.skipped} টি আগে থেকেই ছিল`}
+          </p>
+          {summary.errors.length > 0 && (
+            <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-destructive">
+              {summary.errors.slice(0, 5).map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+              {summary.errors.length > 5 && (
+                <li>আরও {summary.errors.length - 5} টি সমস্যা আছে।</li>
+              )}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

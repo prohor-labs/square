@@ -8,10 +8,18 @@ export interface ParsedCsvQuestion {
   standard: "HSC" | "Varsity" | "Engineering" | "Medical";
   source: string;
   marks: number;
+  questionImage?: string;
   explanation?: string;
+  explanationImage?: string;
+  /** Per-row classification typed in the sheet, e.g. paper / chapter / topic names. */
+  subjectName?: string;
+  paperName?: string;
+  chapterName?: string;
+  topicName?: string;
   mcqOptions?: Array<{
     optionText: string;
     isCorrect: boolean;
+    image?: string;
   }>;
   cqParts?: Array<{
     partKey: "a" | "b" | "c" | "d";
@@ -94,7 +102,75 @@ export function toEnglishDigits(str: string): string {
 }
 
 function normalizeHeader(h: string): string {
-  return h.toLowerCase().replace(/[\s_\-.:()]/g, "").trim();
+  return h
+    .toLowerCase()
+    .replace(/[\s_\-.:()]/g, "")
+    .trim();
+}
+
+const LETTER_TO_INDEX: Record<string, number> = {
+  a: 0,
+  b: 1,
+  c: 2,
+  d: 3,
+  e: 4,
+  ক: 0,
+  খ: 1,
+  গ: 2,
+  ঘ: 3,
+  ঙ: 4,
+};
+
+/**
+ * Reads the answer column into every correct option index.
+ *
+ * One answer is the common case ("2", "খ", "option3"), but a multi-answer
+ * sheet writes them together — "A,C", "1;3", "ক গ" — and all of those marks
+ * every listed option correct.
+ */
+function parseCorrectIndexes(
+  rawAnswer: string,
+  optionTexts: readonly string[],
+): number[] {
+  const cleaned = toEnglishDigits(rawAnswer.trim().toLowerCase());
+  if (!cleaned) return [];
+
+  const found = new Set<number>();
+  const tokens = cleaned.split(/[,;|/\\&+\s]+/).filter(Boolean);
+
+  for (const token of tokens) {
+    const optMatch = token.match(/^opt(?:ion)?\s*([1-9])$/);
+    if (optMatch) {
+      found.add(Number(optMatch[1]) - 1);
+      continue;
+    }
+    if (/^[1-9]$/.test(token)) {
+      found.add(Number(token) - 1);
+      continue;
+    }
+    if (token in LETTER_TO_INDEX) {
+      found.add(LETTER_TO_INDEX[token]);
+    }
+  }
+
+  const inRange = [...found].filter(
+    (idx) => idx >= 0 && idx < Math.max(optionTexts.length, 1),
+  );
+  if (inRange.length > 0) return inRange.sort((a, b) => a - b);
+
+  // Last resort: the answer is the option text itself, whole or per token.
+  const textMatch = optionTexts.findIndex(
+    (opt) => opt.trim().toLowerCase() === cleaned,
+  );
+  if (textMatch >= 0) return [textMatch];
+
+  for (const token of tokens) {
+    const idx = optionTexts.findIndex(
+      (opt) => opt.trim().toLowerCase() === token,
+    );
+    if (idx >= 0) found.add(idx);
+  }
+  return [...found].sort((a, b) => a - b);
 }
 
 /**
@@ -116,6 +192,62 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
     exactAliases: string[];
     prefixAliases?: string[];
   }> = [
+    {
+      key: "questionImage",
+      exactAliases: [
+        "questionimage",
+        "qimage",
+        "questionimg",
+        "প্রশ্নেরছবি",
+        "ছবি",
+      ],
+    },
+    {
+      key: "opt1Image",
+      exactAliases: ["option1image", "opt1image", "option1img", "image1"],
+    },
+    {
+      key: "opt2Image",
+      exactAliases: ["option2image", "opt2image", "option2img", "image2"],
+    },
+    {
+      key: "opt3Image",
+      exactAliases: ["option3image", "opt3image", "option3img", "image3"],
+    },
+    {
+      key: "opt4Image",
+      exactAliases: ["option4image", "opt4image", "option4img", "image4"],
+    },
+    {
+      key: "opt5Image",
+      exactAliases: ["option5image", "opt5image", "option5img", "image5"],
+    },
+    {
+      key: "explanationImage",
+      exactAliases: [
+        "explanationimage",
+        "expimage",
+        "explanationimg",
+        "solutionimage",
+        "ব্যাখ্যারছবি",
+      ],
+    },
+    {
+      key: "subjectName",
+      exactAliases: ["subjectname", "subject", "বিষয়", "বিষয়"],
+    },
+    {
+      key: "paperName",
+      exactAliases: ["papername", "paper"],
+    },
+    {
+      key: "chapterName",
+      exactAliases: ["chaptername", "chapter", "অধ্যায়", "অধ্যায়"],
+    },
+    {
+      key: "topicName",
+      exactAliases: ["topicname", "topic", "subtopic", "টপিক", "টপিকনাম"],
+    },
     {
       key: "question",
       exactAliases: [
@@ -213,8 +345,10 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
         "ans",
         "correct",
         "correctoption",
+        "correctoptions",
         "correctans",
         "correctanswer",
+        "correctanswers",
         "correctindex",
         "correctidx",
         "rightans",
@@ -241,7 +375,15 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
     },
     {
       key: "type",
-      exactAliases: ["type", "qtype", "questiontype", "ধরণ", "ধরন", "টাইপ"],
+      exactAliases: [
+        "type",
+        "qtype",
+        "questiontype",
+        "typename",
+        "ধরণ",
+        "ধরন",
+        "টাইপ",
+      ],
       prefixAliases: ["questiontype", "qtype"],
     },
     {
@@ -275,7 +417,7 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
   // Pass 1: Exact matches
   for (const def of colDefinitions) {
     const idx = normalizedHeaders.findIndex(
-      (nh, i) => !usedCols.has(i) && def.exactAliases.includes(nh)
+      (nh, i) => !usedCols.has(i) && def.exactAliases.includes(nh),
     );
     if (idx !== -1) {
       colMap[def.key] = idx;
@@ -291,7 +433,9 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
     const idx = normalizedHeaders.findIndex(
       (nh, i) =>
         !usedCols.has(i) &&
-        def.prefixAliases!.some((prefix) => prefix.length >= 3 && nh.includes(prefix))
+        def.prefixAliases!.some(
+          (prefix) => prefix.length >= 3 && nh.includes(prefix),
+        ),
     );
     if (idx !== -1) {
       colMap[def.key] = idx;
@@ -311,6 +455,21 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
   const secCol = colMap.source !== undefined ? colMap.source : -1;
   const stdCol = colMap.standard !== undefined ? colMap.standard : -1;
   const marksCol = colMap.marks !== undefined ? colMap.marks : -1;
+  const qImgCol =
+    colMap.questionImage !== undefined ? colMap.questionImage : -1;
+  const optImgCols = [
+    colMap.opt1Image,
+    colMap.opt2Image,
+    colMap.opt3Image,
+    colMap.opt4Image,
+    colMap.opt5Image,
+  ].map((c) => (c !== undefined ? c : -1));
+  const expImgCol =
+    colMap.explanationImage !== undefined ? colMap.explanationImage : -1;
+  const paperCol = colMap.paperName !== undefined ? colMap.paperName : -1;
+  const subjectCol = colMap.subjectName !== undefined ? colMap.subjectName : -1;
+  const chapterCol = colMap.chapterName !== undefined ? colMap.chapterName : -1;
+  const topicCol = colMap.topicName !== undefined ? colMap.topicName : -1;
 
   const results: ParsedCsvQuestion[] = [];
 
@@ -318,62 +477,11 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
     const row = rows[r];
     if (!row || row.length === 0) continue;
 
-    const questionText = (qCol >= 0 && qCol < row.length ? row[qCol] : row[0]) || "";
+    const questionText =
+      (qCol >= 0 && qCol < row.length ? row[qCol] : row[0]) || "";
     if (!questionText.trim()) continue;
 
     const rawAns = ansCol >= 0 && ansCol < row.length ? row[ansCol] || "" : "";
-    const cleanAns = toEnglishDigits(rawAns.trim().toLowerCase());
-
-    // Collect options accurately
-    const rawOptions: string[] = [];
-    if (opt1Col >= 0 && opt1Col < row.length && row[opt1Col] !== undefined && row[opt1Col].trim() !== "") {
-      rawOptions.push(row[opt1Col]);
-    }
-    if (opt2Col >= 0 && opt2Col < row.length && row[opt2Col] !== undefined && row[opt2Col].trim() !== "") {
-      rawOptions.push(row[opt2Col]);
-    }
-    if (opt3Col >= 0 && opt3Col < row.length && row[opt3Col] !== undefined && row[opt3Col].trim() !== "") {
-      rawOptions.push(row[opt3Col]);
-    }
-    if (opt4Col >= 0 && opt4Col < row.length && row[opt4Col] !== undefined && row[opt4Col].trim() !== "") {
-      rawOptions.push(row[opt4Col]);
-    }
-    if (opt5Col >= 0 && opt5Col < row.length && row[opt5Col] !== undefined && row[opt5Col].trim() !== "") {
-      rawOptions.push(row[opt5Col]);
-    }
-
-    // Fallback: If no option columns were found by header, read positional columns after question column
-    if (rawOptions.length === 0 && row.length >= 5) {
-      for (let i = 1; i <= 4; i++) {
-        if (row[i] !== undefined && row[i].trim() !== "") rawOptions.push(row[i]);
-      }
-      if (row.length >= 7 && row[5] !== undefined && row[5].trim() !== "") {
-        rawOptions.push(row[5]);
-      }
-    }
-
-    // Determine correct index (1-based, letter, or text match)
-    let correctIdx = -1;
-    if (cleanAns === "1" || cleanAns === "a" || cleanAns === "ক" || cleanAns === "opt1" || cleanAns === "option1") correctIdx = 0;
-    else if (cleanAns === "2" || cleanAns === "b" || cleanAns === "খ" || cleanAns === "opt2" || cleanAns === "option2") correctIdx = 1;
-    else if (cleanAns === "3" || cleanAns === "c" || cleanAns === "গ" || cleanAns === "opt3" || cleanAns === "option3") correctIdx = 2;
-    else if (cleanAns === "4" || cleanAns === "d" || cleanAns === "ঘ" || cleanAns === "opt4" || cleanAns === "option4") correctIdx = 3;
-    else if (cleanAns === "5" || cleanAns === "e" || cleanAns === "ঙ" || cleanAns === "opt5" || cleanAns === "option5") correctIdx = 4;
-    else {
-      const parsedNum = parseInt(cleanAns, 10);
-      if (!isNaN(parsedNum) && parsedNum >= 1 && parsedNum <= rawOptions.length) {
-        correctIdx = parsedNum - 1;
-      }
-    }
-
-    // Determine correct option by exact text match if not index
-    if (correctIdx === -1 && rawAns) {
-      const matchIdx = rawOptions.findIndex(
-        (o) => o.trim().toLowerCase() === rawAns.trim().toLowerCase()
-      );
-      if (matchIdx >= 0) correctIdx = matchIdx;
-    }
-    if (correctIdx === -1) correctIdx = 0; // Default to first option
 
     const cleanHtmlContent = (t: string) => {
       if (!t) return "";
@@ -385,36 +493,101 @@ export function parseQuestionsCsv(csvText: string): ParsedCsvQuestion[] {
       return s.replace(/(<[^>]+>)/g, (m) => m.replace(/""/g, '"'));
     };
 
+    // Collect options together with their images, keeping the letters in sync.
+    const rawOptions: Array<{ text: string; image: string }> = [];
+    const optionCols = [opt1Col, opt2Col, opt3Col, opt4Col, opt5Col];
+    for (let i = 0; i < 5; i++) {
+      const col = optionCols[i];
+      const imgCol = optImgCols[i];
+      const text = col >= 0 && col < row.length ? (row[col] || "").trim() : "";
+      const image =
+        imgCol >= 0 && imgCol < row.length ? (row[imgCol] || "").trim() : "";
+      // An option may be image-only, so either half is enough to keep it.
+      if (text || image) rawOptions.push({ text, image });
+    }
+
+    // Fallback: If no option columns were found by header, read positional columns after question column
+    if (rawOptions.length === 0 && row.length >= 5) {
+      for (let i = 1; i <= 4; i++) {
+        if (row[i] !== undefined && row[i].trim() !== "")
+          rawOptions.push({ text: row[i], image: "" });
+      }
+      if (row.length >= 7 && row[5] !== undefined && row[5].trim() !== "") {
+        rawOptions.push({ text: row[5], image: "" });
+      }
+    }
+
+    const optionTexts = rawOptions.map((o) => cleanHtmlContent(o.text.trim()));
+    const correctIndexes = parseCorrectIndexes(rawAns, optionTexts);
+    // A sheet that leaves the answer blank still needs one correct option.
+    if (correctIndexes.length === 0 && optionTexts.length > 0) {
+      correctIndexes.push(0);
+    }
+
     const mcqOptions = rawOptions.map((opt, idx) => ({
-      optionText: cleanHtmlContent(opt.trim()),
-      isCorrect: idx === correctIdx,
+      optionText: cleanHtmlContent(opt.text.trim()),
+      image: opt.image ? cleanHtmlContent(opt.image) : undefined,
+      isCorrect: correctIndexes.includes(idx),
     }));
 
-    const rawType = (typeCol >= 0 && typeCol < row.length ? row[typeCol] : "").trim().toLowerCase();
+    const rawType = (typeCol >= 0 && typeCol < row.length ? row[typeCol] : "")
+      .trim()
+      .toLowerCase();
     const resolvedType: "mcq" | "cq" = rawType === "cq" ? "cq" : "mcq";
 
-    const rawStd = (stdCol >= 0 && stdCol < row.length ? row[stdCol] : "").trim().toLowerCase();
+    const rawStd = (stdCol >= 0 && stdCol < row.length ? row[stdCol] : "")
+      .trim()
+      .toLowerCase();
     let resolvedStd: "HSC" | "Varsity" | "Engineering" | "Medical" = "HSC";
-    if (rawStd.includes("varsity") || rawStd.includes("ভার্সিটি")) resolvedStd = "Varsity";
-    else if (rawStd.includes("engineering") || rawStd.includes("ইঞ্জিনিয়ারিং") || rawStd.includes("ইঞ্জিনিয়ারিং")) resolvedStd = "Engineering";
-    else if (rawStd.includes("medical") || rawStd.includes("মেডিকেল")) resolvedStd = "Medical";
+    if (rawStd.includes("varsity") || rawStd.includes("ভার্সিটি"))
+      resolvedStd = "Varsity";
+    else if (
+      rawStd.includes("engineering") ||
+      rawStd.includes("ইঞ্জিনিয়ারিং") ||
+      rawStd.includes("ইঞ্জিনিয়ারিং")
+    )
+      resolvedStd = "Engineering";
+    else if (rawStd.includes("medical") || rawStd.includes("মেডিকেল"))
+      resolvedStd = "Medical";
 
     const explanation =
       expCol >= 0 && expCol < row.length && row[expCol]
         ? cleanHtmlContent(row[expCol])
         : undefined;
-    const source = (secCol >= 0 && secCol < row.length ? row[secCol] : "")?.trim() || "";
+    const source =
+      (secCol >= 0 && secCol < row.length ? row[secCol] : "")?.trim() || "";
     const rawMarks =
-      marksCol >= 0 && marksCol < row.length ? parseInt(toEnglishDigits(row[marksCol]), 10) : 1;
+      marksCol >= 0 && marksCol < row.length
+        ? parseInt(toEnglishDigits(row[marksCol]), 10)
+        : 1;
     const marks = isNaN(rawMarks) || rawMarks <= 0 ? 1 : rawMarks;
+
+    const cellText = (col: number) =>
+      col >= 0 && col < row.length ? (row[col] || "").trim() : "";
+    const questionImage = cellText(qImgCol);
+    const explanationImage = cellText(expImgCol);
+    const subjectName = cellText(subjectCol);
+    const paperName = cellText(paperCol);
+    const chapterName = cellText(chapterCol);
+    const topicName = cellText(topicCol);
 
     results.push({
       questionText: cleanHtmlContent(questionText.trim()),
+      questionImage: questionImage
+        ? cleanHtmlContent(questionImage)
+        : undefined,
       type: resolvedType,
       standard: resolvedStd,
       source,
       marks,
       explanation,
+      explanationImage: explanationImage
+        ? cleanHtmlContent(explanationImage)
+        : undefined,
+      subjectName: subjectName || undefined,
+      paperName: paperName || undefined,
+      chapterName: chapterName || undefined,
+      topicName: topicName || undefined,
       mcqOptions: resolvedType === "mcq" ? mcqOptions : undefined,
     });
   }

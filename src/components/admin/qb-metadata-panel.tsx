@@ -255,6 +255,22 @@ export function QbMetadataPanel({
                 className="h-11 rounded-xl"
               />
             </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="qb-topic">টপিক</Label>
+              <Input
+                id="qb-topic"
+                value={value.topicName ?? ""}
+                onChange={(e) => set({ topicName: e.target.value })}
+                placeholder={
+                  value.chapterName
+                    ? `${value.chapterName}-এর টপিক লিখুন (অপশনাল)`
+                    : "টপিক লিখতে হলে আগে অধ্যায় দিন"
+                }
+                disabled={!value.chapterName}
+                className="h-11 rounded-xl"
+              />
+            </div>
           </div>
         )}
 

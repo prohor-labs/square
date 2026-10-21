@@ -31,8 +31,16 @@ const TABLES = [
   "qb_institutes",
   "qb_subjects",
   "qb_chapters",
+  "qb_topics",
+  "qb_question_topics",
   "qb_question_meta",
   "exam_questions",
+  "new_subjects",
+  "new_chapters",
+  "new_topics",
+  "new_questions",
+  "new_mcq_options",
+  "new_cq_parts",
 ];
 
 /** Excel-friendly dump of the questions, for reading rather than restoring. */
@@ -49,6 +57,8 @@ function toCsv(rows) {
     "subitem",
     "topic",
     "explanation",
+    "question_image",
+    "explanation_image",
   ];
   const cell = (value) => {
     const text = value === null || value === undefined ? "" : String(value);
@@ -69,6 +79,8 @@ function toCsv(rows) {
         r.topic_name,
         r.subitem_name,
         r.explanation,
+        r.question_image,
+        r.explanation_image,
       ]
         .map(cell)
         .join(","),
@@ -101,21 +113,36 @@ function toCsv(rows) {
     );
 
     files[`${table}.json`] = Buffer.from(JSON.stringify(plain, null, 0));
-    process.stdout.write(`  ${table.padEnd(18)} ${String(rows.length).padStart(6)}\n`);
+    process.stdout.write(
+      `  ${table.padEnd(18)} ${String(rows.length).padStart(6)}\n`,
+    );
   }
 
   /* The CSV joins the question to where it lives, which the JSON dumps keep in
-     separate tables and would otherwise need four lookups to reconstruct. */
+     separate tables and would otherwise need four lookups to reconstruct.
+     The new bank (`new_*`) is appended so both banks stay readable. */
   const readable = await sql`
-    SELECT q.id, q.question_text, q.type, q.source, q.standard, q.is_free,
-           c.title AS container, s.name AS subitem_name, t.name AS topic_name,
-           q.explanation
-    FROM questions q
-    JOIN subitems s ON s.id = q.subitem_id
-    JOIN items i ON i.id = s.item_id
-    JOIN containers c ON c.id = i.container_id
-    LEFT JOIN topics t ON t.id = q.topic_id
-    ORDER BY c.title, s.order_no, q.id`;
+    SELECT * FROM (
+      SELECT q.id, q.question_text, q.type, q.source, q.standard, q.is_free,
+             c.title AS container, s.name AS subitem_name, t.name AS topic_name,
+             q.explanation, q.question_image, q.explanation_image
+      FROM questions q
+      JOIN subitems s ON s.id = q.subitem_id
+      JOIN items i ON i.id = s.item_id
+      JOIN containers c ON c.id = i.container_id
+      LEFT JOIN topics t ON t.id = q.topic_id
+
+      UNION ALL
+
+      SELECT nq.id, nq.question_text, nq.type, nq.source, nq.standard, nq.is_free,
+             'নতুন প্রশ্নব্যাংক' AS container, nc.name AS subitem_name,
+             nt.name AS topic_name,
+             nq.explanation, nq.question_image, nq.explanation_image
+      FROM new_questions nq
+      JOIN new_chapters nc ON nc.id = nq.chapter_id
+      LEFT JOIN new_topics nt ON nt.id = nq.topic_id
+    ) rows
+    ORDER BY container, subitem_name, id`;
   files["questions.csv"] = Buffer.from(`﻿${toCsv(readable)}`, "utf8");
 
   const manifest = {

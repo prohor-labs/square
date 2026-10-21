@@ -211,11 +211,17 @@ const COMMENTED_SAMPLE_JSON_STRING = `/**
  * 
  * 5. "explanation" (String, OPTIONAL):
  *    - Detailed step-by-step solution, mathematical working, or theory explanation.
+ *
+ * 5b. "questionImage" / "explanationImage" (String URL, OPTIONAL):
+ *    - Image shown under the question stem / under the explanation.
+ *    - Either a URL or "" — the file is not embedded in the text.
  * 
  * 6. "mcqOptions" (Array of Objects, REQUIRED if type == "mcq"):
  *    - Exactly 4 options for standard MCQ.
  *    - "optionText": Text of option (supports LaTeX: "$\\\\vec{A} \\\\times \\\\vec{B}$").
+ *    - "image": (Optional) URL of the option image; the text may be left empty.
  *    - "isCorrect": true for the 1 correct option, false for the other 3 distractors.
+ *    - More than one option may be correct if the question allows it.
  * 
  * 7. "cqParts" (Array of 4 Objects, REQUIRED if type == "cq"):
  *    - "partKey": "a" (ক), "b" (খ), "c" (গ), "d" (ঘ)
@@ -432,7 +438,11 @@ export function ImportQuestionsForm({
     let parsed: unknown;
 
     // Check if input is CSV format (e.g. starts with questions, or contains comma separated header)
-    if (!trimmed.startsWith("[") && !trimmed.startsWith("{") && trimmed.includes(",")) {
+    if (
+      !trimmed.startsWith("[") &&
+      !trimmed.startsWith("{") &&
+      trimmed.includes(",")
+    ) {
       try {
         const parsedCsv = parseQuestionsCsv(trimmed);
         if (parsedCsv && parsedCsv.length > 0) {
@@ -461,7 +471,8 @@ export function ImportQuestionsForm({
             throw err;
           }
         } catch {
-          const msg = err instanceof Error ? err.message : "অবৈধ JSON বা CSV বিন্যাস";
+          const msg =
+            err instanceof Error ? err.message : "অবৈধ JSON বা CSV বিন্যাস";
           return {
             isValid: false,
             errors: [`ইনভ্যালিড ফরম্যাট (JSON/CSV): ${msg}`],
@@ -475,14 +486,11 @@ export function ImportQuestionsForm({
     if (!Array.isArray(parsed)) {
       return {
         isValid: false,
-        errors: [
-          "ডেটা একটি অ্যারে (Array) বা ভ্যালিড CSV ফাইল হতে হবে।",
-        ],
+        errors: ["ডেটা একটি অ্যারে (Array) বা ভ্যালিড CSV ফাইল হতে হবে।"],
         questions: [],
         summary: null,
       };
     }
-
 
     if (parsed.length === 0) {
       return {
@@ -538,6 +546,12 @@ export function ImportQuestionsForm({
 
       const source = String(item.source || "").trim() || "Custom";
       const explanation = String(item.explanation || "").trim();
+      const questionImage =
+        String(item.questionImage || item.question_image || "").trim() ||
+        undefined;
+      const explanationImage =
+        String(item.explanationImage || item.explanation_image || "").trim() ||
+        undefined;
 
       if (type === "mcq") {
         const rawOptions = (item.mcqOptions ||
@@ -554,10 +568,13 @@ export function ImportQuestionsForm({
           optionText: String(
             opt.optionText || opt.option_text || opt.text || "",
           ).trim(),
+          image: String(opt.image || opt.image_url || "").trim() || undefined,
           isCorrect: Boolean(opt.isCorrect ?? opt.is_correct ?? optIdx === 0),
         }));
 
-        const emptyOpt = formattedOptions.some((o) => !o.optionText);
+        const emptyOpt = formattedOptions.some(
+          (o) => !o.optionText && !o.image,
+        );
         if (emptyOpt) {
           errors.push(`প্রশ্ন #${qNum} (MCQ): কোনো অপশন খালি রাখা যাবে না।`);
           return;
@@ -574,7 +591,9 @@ export function ImportQuestionsForm({
           source,
           standard,
           questionText: qText,
+          questionImage,
           explanation: explanation || undefined,
+          explanationImage,
           mcqOptions: formattedOptions,
         });
         mcqCount++;
@@ -615,7 +634,9 @@ export function ImportQuestionsForm({
           source,
           standard,
           questionText: qText,
+          questionImage,
           explanation: explanation || undefined,
+          explanationImage,
           cqParts: formattedParts,
         });
         cqCount++;

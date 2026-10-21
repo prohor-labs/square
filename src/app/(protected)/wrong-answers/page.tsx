@@ -53,12 +53,15 @@ export default async function WrongAnswersPage(): Promise<ReactElement> {
               source: row.question.source,
               standard: row.question.standard,
               questionText: row.question.questionText,
+              questionImage: row.question.questionImage,
               explanation: row.question.explanation,
+              explanationImage: row.question.explanationImage,
               isFree: row.question.isFree,
             },
             options: row.options.map((o) => ({
               id: o.id,
               optionText: o.optionText,
+              image: o.image,
               isCorrect: o.isCorrect,
             })),
           }))}

@@ -20,12 +20,15 @@ export interface WrongAnswerRow {
     readonly source: string;
     readonly standard: string;
     readonly questionText: string;
+    readonly questionImage?: string | null;
     readonly explanation: string | null;
+    readonly explanationImage?: string | null;
     readonly isFree: boolean;
   };
   readonly options: readonly {
     readonly id: string;
     readonly optionText: string;
+    readonly image?: string | null;
     readonly isCorrect: boolean;
   }[];
 }

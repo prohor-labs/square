@@ -4,8 +4,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { anekBangla } from "@/lib/fonts";
+// Local KaTeX 0.19 stylesheet. Its font URLs point at /katex/fonts (public/),
+// copied from src/fonts/katex by `npm run sync:katex`.
+import "@/fonts/katex/katex.min.css";
 import "@/app/globals.css";
-import "katex/dist/katex.min.css";
 
 import { dictionary } from "@/lib/dictionary";
 import { siteJsonLd, siteMetadata } from "@/lib/seo";

@@ -2,11 +2,6 @@
 
 import { type ReactElement, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
-import remarkBreaks from "remark-breaks";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
 import { Lightbulb } from "@/components/icons";
 import {
   Accordion,
@@ -17,6 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   markdownComponents,
+  markdownRehypePlugins,
+  markdownRemarkPlugins,
+  QuestionImage,
   sanitizeQuestionContent,
 } from "@/lib/question-content";
 import { cn } from "@/lib/utils";
@@ -99,6 +97,9 @@ export function UniversalQuestionCard({
 
   const isAnswered = Boolean(selectedOptionId);
   const questionText = question.question_text || question.questionText || "";
+  const questionImage = question.question_image || question.questionImage || "";
+  const explanationImage =
+    question.explanation_image || question.explanationImage || "";
   const type = question.type;
 
   return (
@@ -161,12 +162,16 @@ export function UniversalQuestionCard({
       {/* Question Text / Stem */}
       <div className="text-[13.5px] sm:text-base font-medium text-foreground leading-relaxed mb-3.5 sm:mb-5 [&_p]:m-0">
         <ReactMarkdown
-          remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-          rehypePlugins={[rehypeRaw, rehypeKatex]}
+          remarkPlugins={markdownRemarkPlugins}
+          rehypePlugins={markdownRehypePlugins}
           components={markdownComponents}
         >
           {sanitizeQuestionContent(questionText)}
         </ReactMarkdown>
+        <QuestionImage
+          src={questionImage}
+          alt="প্রশ্নের চিত্র"
+        />
       </div>
 
       {/* MCQ Options */}
@@ -181,6 +186,7 @@ export function UniversalQuestionCard({
               const isSelected = selectedOptionId === opt.id;
               const isCorrect = opt.is_correct ?? opt.isCorrect ?? false;
               const optText = opt.option_text || opt.optionText || "";
+              const optImage = opt.image || "";
 
               // Live Exam Mode (no answer evaluation, lock after single selection)
               if (!shouldEvaluate) {
@@ -213,12 +219,18 @@ export function UniversalQuestionCard({
                     </span>
                     <div className="flex-1 [&_p]:m-0 font-medium">
                       <ReactMarkdown
-                        remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                        rehypePlugins={[rehypeRaw, rehypeKatex]}
+                        remarkPlugins={markdownRemarkPlugins}
+                        rehypePlugins={markdownRehypePlugins}
                         components={markdownComponents}
                       >
                         {sanitizeQuestionContent(optText)}
                       </ReactMarkdown>
+                      <QuestionImage
+                        src={optImage}
+                        alt="অপশনের চিত্র"
+                        className="max-h-40"
+                        zoomable={false}
+                      />
                     </div>
                   </button>
                 );
@@ -270,12 +282,18 @@ export function UniversalQuestionCard({
                   </span>
                   <div className="flex-1 [&_p]:m-0 font-medium">
                     <ReactMarkdown
-                      remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                      rehypePlugins={[rehypeRaw, rehypeKatex]}
+                      remarkPlugins={markdownRemarkPlugins}
+                      rehypePlugins={markdownRehypePlugins}
                       components={markdownComponents}
                     >
                       {sanitizeQuestionContent(optText)}
                     </ReactMarkdown>
+                    <QuestionImage
+                      src={optImage}
+                      alt="অপশনের চিত্র"
+                      className="max-h-40"
+                      zoomable={false}
+                    />
                   </div>
                 </button>
               );
@@ -321,8 +339,8 @@ export function UniversalQuestionCard({
                     </span>
                     <div className="text-[13px] sm:text-sm md:text-base flex-1 [&_p]:m-0 font-normal">
                       <ReactMarkdown
-                        remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                        rehypePlugins={[rehypeRaw, rehypeKatex]}
+                        remarkPlugins={markdownRemarkPlugins}
+                        rehypePlugins={markdownRehypePlugins}
                         components={markdownComponents}
                       >
                         {sanitizeQuestionContent(pText)}
@@ -334,8 +352,8 @@ export function UniversalQuestionCard({
                     <AccordionContent className="pt-1 pb-3 text-xs sm:text-sm text-foreground/90 [&_p]:m-0">
                       <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
                         <ReactMarkdown
-                          remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                          rehypePlugins={[rehypeRaw, rehypeKatex]}
+                          remarkPlugins={markdownRemarkPlugins}
+                          rehypePlugins={markdownRehypePlugins}
                           components={markdownComponents}
                         >
                           {sanitizeQuestionContent(aText)}
@@ -350,44 +368,53 @@ export function UniversalQuestionCard({
       )}
 
       {/* Explanation / Solution / Footer */}
-      {!hideControls && (question.explanation || footerActions) && (
-        <div className="mt-3 pt-2.5 border-t border-dashed border-border/40 flex flex-wrap items-center justify-between gap-2">
-          {!hideExplanation && question.explanation ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggle}
-              className="text-[11px] sm:text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg gap-1.5 h-7 sm:h-8 px-2 sm:px-2.5"
-            >
-              <Lightbulb className="size-3 sm:size-3.5" />
-              {resolvedSolutionOpen ? "ব্যাখ্যা লুকান" : "ব্যাখ্যা / সমাধান দেখুন"}
-            </Button>
-          ) : (
-            <div />
-          )}
+      {!hideControls &&
+        (question.explanation || explanationImage || footerActions) && (
+          <div className="mt-3 pt-2.5 border-t border-dashed border-border/40 flex flex-wrap items-center justify-between gap-2">
+            {!hideExplanation && (question.explanation || explanationImage) ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggle}
+                className="text-[11px] sm:text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg gap-1.5 h-7 sm:h-8 px-2 sm:px-2.5"
+              >
+                <Lightbulb className="size-3 sm:size-3.5" />
+                {resolvedSolutionOpen
+                  ? "ব্যাখ্যা লুকান"
+                  : "ব্যাখ্যা / সমাধান দেখুন"}
+              </Button>
+            ) : (
+              <div />
+            )}
 
-          {footerActions && (
-            <div className="flex items-center gap-2">{footerActions}</div>
-          )}
-        </div>
-      )}
-
-      {!hideExplanation && question.explanation && resolvedSolutionOpen && (
-        <div className="mt-2.5 p-3 sm:p-4 bg-primary/5 rounded-xl sm:rounded-2xl border border-primary/10 animate-in fade-in slide-in-from-top-2">
-          <p className="text-[10px] sm:text-xs font-bold text-primary uppercase mb-1">
-            ব্যাখ্যা / সমাধান
-          </p>
-          <div className="text-xs sm:text-sm text-foreground/90 leading-relaxed [&_p]:m-0">
-            <ReactMarkdown
-              remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-              rehypePlugins={[rehypeRaw, rehypeKatex]}
-              components={markdownComponents}
-            >
-              {sanitizeQuestionContent(question.explanation)}
-            </ReactMarkdown>
+            {footerActions && (
+              <div className="flex items-center gap-2">{footerActions}</div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+      {!hideExplanation &&
+        (question.explanation || explanationImage) &&
+        resolvedSolutionOpen && (
+          <div className="mt-2.5 p-3 sm:p-4 bg-primary/5 rounded-xl sm:rounded-2xl border border-primary/10 animate-in fade-in slide-in-from-top-2">
+            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase mb-1">
+              ব্যাখ্যা / সমাধান
+            </p>
+            <div className="text-xs sm:text-sm text-foreground/90 leading-relaxed [&_p]:m-0">
+              <ReactMarkdown
+                remarkPlugins={markdownRemarkPlugins}
+                rehypePlugins={markdownRehypePlugins}
+                components={markdownComponents}
+              >
+                {sanitizeQuestionContent(question.explanation)}
+              </ReactMarkdown>
+              <QuestionImage
+                src={explanationImage}
+                alt="ব্যাখ্যার চিত্র"
+              />
+            </div>
+          </div>
+        )}
     </div>
   );
 }

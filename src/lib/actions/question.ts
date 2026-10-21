@@ -16,7 +16,8 @@ import {
 import { auth } from "@/lib/auth";
 import {
   type QbMetaInput,
-  resolveQbMetaTargets,
+  qbMetaRowKey,
+  resolveQbMetaRowTargets,
   writeQbMeta,
 } from "@/lib/qb-meta-write";
 import type { CreateQuestionPayload } from "@/types";
@@ -346,7 +347,9 @@ export async function createQuestionAction(payload: CreateQuestionPayload) {
               | "Engineering"
               | "Medical") || "HSC",
           questionText: payload.questionText,
+          questionImage: payload.questionImage?.trim() || null,
           explanation: payload.explanation || null,
+          explanationImage: payload.explanationImage?.trim() || null,
           isFree: Boolean(payload.isFree),
         })
         .returning();
@@ -359,6 +362,7 @@ export async function createQuestionAction(payload: CreateQuestionPayload) {
         const optionsToInsert = payload.mcqOptions.map((opt, idx: number) => ({
           questionId: question.id,
           optionText: opt.optionText,
+          image: opt.image?.trim() || null,
           isCorrect: opt.isCorrect,
           orderNo: idx + 1,
         }));
@@ -405,8 +409,12 @@ export async function updateQuestionAction(
         updateData.standard = payload.standard;
       if (payload.questionText !== undefined)
         updateData.questionText = payload.questionText;
+      if (payload.questionImage !== undefined)
+        updateData.questionImage = payload.questionImage?.trim() || null;
       if (payload.explanation !== undefined)
         updateData.explanation = payload.explanation || null;
+      if (payload.explanationImage !== undefined)
+        updateData.explanationImage = payload.explanationImage?.trim() || null;
       if (payload.isFree !== undefined) updateData.isFree = payload.isFree;
 
       if (Object.keys(updateData).length > 0) {
@@ -420,6 +428,7 @@ export async function updateQuestionAction(
             (opt, idx: number) => ({
               questionId: id,
               optionText: opt.optionText,
+              image: opt.image?.trim() || null,
               isCorrect: opt.isCorrect,
               orderNo: idx + 1,
             }),
@@ -490,12 +499,22 @@ export async function importQuestionsAction(
         : topicIdOrDefaults || {};
 
     // Resolved before the transaction so the upserts are not part of it; a
-    // failed import must not leave an orphaned subject behind.
-    const metaTargets = meta ? await resolveQbMetaTargets(meta) : null;
+    // failed import must not leave an orphaned subject behind. Rows may carry
+    // their own paper / chapter / topic names, so each distinct combination is
+    // resolved once and reused.
+    const rowTargets = meta
+      ? await resolveQbMetaRowTargets(
+          meta,
+          questionsList.map((item) => ({
+            paperName: item.paperName || item.paper_name,
+            chapterName: item.chapterName || item.chapter_name,
+            topicName: item.topicName || item.topic_name,
+          })),
+        )
+      : null;
 
     const insertedCount = await db.transaction(async (tx) => {
       let count = 0;
-      const questionIds: string[] = [];
 
       for (const item of questionsList) {
         const qText = (
@@ -526,6 +545,11 @@ export async function importQuestionsAction(
           defaults.topicId || item.topicId || item.topic_id || null;
         const resolvedExplanation =
           (item.explanation || item.solution || "").trim() || null;
+        const resolvedQuestionImage =
+          (item.questionImage || item.question_image || "").trim() || null;
+        const resolvedExplanationImage =
+          (item.explanationImage || item.explanation_image || "").trim() ||
+          null;
 
         const [question] = await tx
           .insert(questions)
@@ -536,14 +560,26 @@ export async function importQuestionsAction(
             source: resolvedSource,
             standard: resolvedStandard,
             questionText: qText,
+            questionImage: resolvedQuestionImage,
             explanation: resolvedExplanation,
+            explanationImage: resolvedExplanationImage,
             isFree: resolvedIsFree,
           })
           .returning();
 
         if (!question) continue;
         count++;
-        questionIds.push(question.id);
+
+        if (rowTargets) {
+          const targets = rowTargets.get(
+            qbMetaRowKey({
+              paperName: item.paperName || item.paper_name,
+              chapterName: item.chapterName || item.chapter_name,
+              topicName: item.topicName || item.topic_name,
+            }),
+          );
+          if (targets) await writeQbMeta(tx, [question.id], targets);
+        }
 
         // Handle MCQ Options
         if (resolvedType === "mcq") {
@@ -578,6 +614,11 @@ export async function importQuestionsAction(
               return {
                 questionId: question.id,
                 optionText: optText,
+                image:
+                  (typeof opt === "object" && opt !== null
+                    ? opt.image || opt.image_url || ""
+                    : ""
+                  ).trim() || null,
                 isCorrect: isOptCorrect,
                 orderNo: idx + 1,
               };
@@ -625,12 +666,6 @@ export async function importQuestionsAction(
             await tx.insert(cqParts).values(partsToInsert);
           }
         }
-      }
-
-      // One meta row per question, inside the same transaction as the insert, so
-      // the exam views and the subject views can never see half a set.
-      if (metaTargets) {
-        await writeQbMeta(tx, questionIds, metaTargets);
       }
 
       return count;
@@ -702,7 +737,9 @@ export async function getQuestionsAdminAction(filters?: {
         source: questions.source,
         standard: questions.standard,
         questionText: questions.questionText,
+        questionImage: questions.questionImage,
         explanation: questions.explanation,
+        explanationImage: questions.explanationImage,
         isFree: questions.isFree,
         createdAt: questions.createdAt,
       })
@@ -727,6 +764,7 @@ export async function getQuestionsAdminAction(filters?: {
           id: mcqOptions.id,
           questionId: mcqOptions.questionId,
           optionText: mcqOptions.optionText,
+          image: mcqOptions.image,
           isCorrect: mcqOptions.isCorrect,
           orderNo: mcqOptions.orderNo,
         })

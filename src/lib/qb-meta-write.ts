@@ -5,7 +5,9 @@ import {
   qbChapters,
   qbInstitutes,
   qbQuestionMeta,
+  qbQuestionTopics,
   qbSubjects,
+  qbTopics,
 } from "@/db/schema";
 
 /**
@@ -25,6 +27,7 @@ export interface QbMetaInput {
   readonly subjectName?: string;
   readonly subjectPaper?: string;
   readonly chapterName?: string;
+  readonly topicName?: string;
 }
 
 /** The same list, resolved to ids — ready to write. */
@@ -33,6 +36,7 @@ export interface QbMetaTargets {
   readonly instituteId: string | null;
   readonly subjectId: string | null;
   readonly chapterId: string | null;
+  readonly topicId: string | null;
   readonly groupName: string;
   readonly unitName: string;
   readonly year: string;
@@ -92,6 +96,27 @@ async function resolveChapter(
   return created.id;
 }
 
+async function resolveTopic(
+  chapterId: string,
+  name: string,
+): Promise<string | null> {
+  const slug = qbSlug(name);
+  if (!slug) return null;
+
+  const [existing] = await db
+    .select({ id: qbTopics.id })
+    .from(qbTopics)
+    .where(and(eq(qbTopics.chapterId, chapterId), eq(qbTopics.slug, slug)))
+    .limit(1);
+  if (existing) return existing.id;
+
+  const [created] = await db
+    .insert(qbTopics)
+    .values({ chapterId, name, slug })
+    .returning({ id: qbTopics.id });
+  return created.id;
+}
+
 async function resolveInstitute(
   type: QbExamType,
   name: string,
@@ -136,6 +161,10 @@ export async function resolveQbMetaTargets(
       ? await resolveChapter(subjectId, chapterName)
       : null;
 
+  const topicName = (input.topicName ?? "").trim();
+  const topicId =
+    chapterId && topicName ? await resolveTopic(chapterId, topicName) : null;
+
   const instituteName = (input.instituteName ?? "").trim();
   const instituteId =
     examType && instituteName
@@ -147,10 +176,58 @@ export async function resolveQbMetaTargets(
     instituteId,
     subjectId,
     chapterId,
+    topicId,
     groupName: (input.groupName ?? "").trim(),
     unitName: (input.unitName ?? "").trim(),
     year: (input.year ?? "").trim(),
   };
+}
+
+/** One row's own names, layered on top of the form-wide defaults. */
+export interface QbMetaRowOverrides {
+  readonly paperName?: string;
+  readonly chapterName?: string;
+  readonly topicName?: string;
+}
+
+/** Identifies rows that share metadata, so each combination resolves once. */
+export function qbMetaRowKey(row: QbMetaRowOverrides): string {
+  return [
+    row.paperName?.trim() ?? "",
+    row.chapterName?.trim() ?? "",
+    row.topicName?.trim() ?? "",
+  ].join("\u0000");
+}
+
+/**
+ * Resolves the per-row names a sheet carries.
+ *
+ * A paper / chapter / topic written in the CSV wins over the form's own value;
+ * everything left blank falls back to the form. Each distinct combination is
+ * resolved once, however many rows use it.
+ */
+export async function resolveQbMetaRowTargets(
+  base: QbMetaInput,
+  rows: readonly QbMetaRowOverrides[],
+): Promise<Map<string, QbMetaTargets>> {
+  const resolved = new Map<string, QbMetaTargets>();
+
+  for (const row of rows) {
+    const key = qbMetaRowKey(row);
+    if (resolved.has(key)) continue;
+
+    resolved.set(
+      key,
+      await resolveQbMetaTargets({
+        ...base,
+        subjectPaper: row.paperName?.trim() || base.subjectPaper,
+        chapterName: row.chapterName?.trim() || base.chapterName,
+        topicName: row.topicName?.trim() || base.topicName,
+      }),
+    );
+  }
+
+  return resolved;
 }
 
 /**
@@ -222,6 +299,20 @@ export async function writeQbMeta(
       chapterId: targets.chapterId,
     })),
   );
+
+  // A named topic is a separate many-to-many row, so the same question can sit
+  // under several topics without the occurrence being written twice.
+  if (targets.topicId) {
+    await tx
+      .insert(qbQuestionTopics)
+      .values(
+        fresh.map((questionId) => ({
+          questionId,
+          topicId: targets.topicId as string,
+        })),
+      )
+      .onConflictDoNothing();
+  }
 
   return { written: fresh.length, skipped: alreadyFiled.size };
 }

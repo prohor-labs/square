@@ -3,12 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
-import remarkBreaks from "remark-breaks";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import { markdownComponents, sanitizeQuestionContent } from "@/lib/question-content";
 import {
   ArrowLeft2,
   Award,
@@ -23,6 +17,13 @@ import {
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  markdownComponents,
+  markdownRehypePlugins,
+  markdownRemarkPlugins,
+  QuestionImage,
+  sanitizeQuestionContent,
+} from "@/lib/question-content";
 import { cn } from "@/lib/utils";
 
 const OPTION_KEYS = ["ক", "খ", "গ", "ঘ", "ঙ"];
@@ -42,18 +43,25 @@ interface FreeExamResultViewProps {
   };
 }
 
-export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps) {
+export function FreeExamResultView({
+  slug,
+  resultData,
+}: FreeExamResultViewProps) {
   const { submission, metrics } = resultData;
   const exam = submission.exam;
   const user = submission.user;
-  const [filterType, setFilterType] = useState<"all" | "correct" | "wrong" | "unattempted">("all");
+  const [filterType, setFilterType] = useState<
+    "all" | "correct" | "wrong" | "unattempted"
+  >("all");
 
   const responses = submission.responses || [];
 
   const filteredResponses = responses.filter((r: any) => {
     if (filterType === "correct") return r.isCorrect;
-    if (filterType === "wrong") return !r.isCorrect && (r.selectedOptionId || r.cqAnswerText);
-    if (filterType === "unattempted") return !r.selectedOptionId && !r.cqAnswerText;
+    if (filterType === "wrong")
+      return !r.isCorrect && (r.selectedOptionId || r.cqAnswerText);
+    if (filterType === "unattempted")
+      return !r.selectedOptionId && !r.cqAnswerText;
     return true;
   });
 
@@ -64,7 +72,7 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
   };
 
   const scoreNum = parseFloat(submission.score || "0");
-  const isGoodScore = scoreNum >= (submission.totalMarks * 0.6);
+  const isGoodScore = scoreNum >= submission.totalMarks * 0.6;
 
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col gap-8 pb-16">
@@ -101,7 +109,10 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
           </h1>
 
           <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            পরীক্ষার্থী: <strong className="text-foreground">{user?.name || "Guest Student"}</strong>{" "}
+            পরীক্ষার্থী:{" "}
+            <strong className="text-foreground">
+              {user?.name || "Guest Student"}
+            </strong>{" "}
             {user?.college && user.college !== "N/A" ? `(${user.college})` : ""}
           </p>
 
@@ -183,7 +194,9 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
               onClick={() => setFilterType("all")}
               className={cn(
                 "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                filterType === "all" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+                filterType === "all"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               সকল ({responses.length})
@@ -193,7 +206,9 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
               onClick={() => setFilterType("correct")}
               className={cn(
                 "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-emerald-600 dark:text-emerald-400",
-                filterType === "correct" ? "bg-emerald-500/15 font-black shadow-xs" : "opacity-80 hover:opacity-100",
+                filterType === "correct"
+                  ? "bg-emerald-500/15 font-black shadow-xs"
+                  : "opacity-80 hover:opacity-100",
               )}
             >
               সঠিক ({metrics.correctCount})
@@ -203,7 +218,9 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
               onClick={() => setFilterType("wrong")}
               className={cn(
                 "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-destructive",
-                filterType === "wrong" ? "bg-destructive/15 font-black shadow-xs" : "opacity-80 hover:opacity-100",
+                filterType === "wrong"
+                  ? "bg-destructive/15 font-black shadow-xs"
+                  : "opacity-80 hover:opacity-100",
               )}
             >
               ভুল ({metrics.wrongCount})
@@ -213,7 +230,9 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
               onClick={() => setFilterType("unattempted")}
               className={cn(
                 "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                filterType === "unattempted" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+                filterType === "unattempted"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               বাদ ({metrics.unattemptedCount})
@@ -257,7 +276,8 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
                   <div>
                     {isCorrect ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <TickCircle className="size-3.5" /> সঠিক (+{r.marksObtained})
+                        <TickCircle className="size-3.5" /> সঠিক (+
+                        {r.marksObtained})
                       </span>
                     ) : isWrong ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
@@ -274,12 +294,13 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
                 {/* Question Content */}
                 <div className="text-sm font-semibold text-foreground leading-relaxed">
                   <ReactMarkdown
-                    remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                    rehypePlugins={[rehypeRaw, rehypeKatex]}
+                    remarkPlugins={markdownRemarkPlugins}
+                    rehypePlugins={markdownRehypePlugins}
                     components={markdownComponents}
                   >
                     {sanitizeQuestionContent(q.questionText)}
                   </ReactMarkdown>
+                  <QuestionImage src={q.questionImage} alt="প্রশ্নের চিত্র" />
                 </div>
 
                 {/* MCQ Options with Highlights */}
@@ -288,7 +309,8 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
                     {q.mcqOptions?.map((opt: any, optIdx: number) => {
                       const isStudentSelected = r.selectedOptionId === opt.id;
                       const isCorrectOption = opt.isCorrect;
-                      const label = OPTION_KEYS[optIdx] || String.fromCharCode(65 + optIdx);
+                      const label =
+                        OPTION_KEYS[optIdx] || String.fromCharCode(65 + optIdx);
 
                       return (
                         <div
@@ -317,12 +339,18 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
 
                           <div className="flex-1 pt-0.5">
                             <ReactMarkdown
-                              remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                              rehypePlugins={[rehypeRaw, rehypeKatex]}
+                              remarkPlugins={markdownRemarkPlugins}
+                              rehypePlugins={markdownRehypePlugins}
                               components={markdownComponents}
                             >
                               {sanitizeQuestionContent(opt.optionText)}
                             </ReactMarkdown>
+                            <QuestionImage
+                              src={opt.image}
+                              alt="অপশনের চিত্র"
+                              className="max-h-40"
+                              zoomable={false}
+                            />
                           </div>
 
                           {isCorrectOption && (
@@ -350,8 +378,8 @@ export function FreeExamResultView({ slug, resultData }: FreeExamResultViewProps
                     </div>
                     <div className="text-xs text-foreground/90 leading-relaxed pl-5 border-l-2 border-primary/40">
                       <ReactMarkdown
-                        remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
-                        rehypePlugins={[rehypeRaw, rehypeKatex]}
+                        remarkPlugins={markdownRemarkPlugins}
+                        rehypePlugins={markdownRehypePlugins}
                         components={markdownComponents}
                       >
                         {sanitizeQuestionContent(q.explanation)}

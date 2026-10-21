@@ -10,7 +10,8 @@
     "format": "biome format --write",
     "doctor": "react-doctor . --verbose --yes",
     "typecheck": "tsc --noEmit",
-    "backup:qb": "node scripts/export-qb-backup.cjs"
+    "backup:qb": "node scripts/export-qb-backup.cjs",
+    "sync:katex": "node scripts/sync-katex-fonts.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

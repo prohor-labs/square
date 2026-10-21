@@ -228,6 +228,11 @@ export async function importQuestionsDirectlyToExamAction(
         const resolvedSource = (item.source || "Exam Import").trim();
         const resolvedExplanation =
           (item.explanation || item.solution || "").trim() || null;
+        const resolvedQuestionImage =
+          (item.questionImage || item.question_image || "").trim() || null;
+        const resolvedExplanationImage =
+          (item.explanationImage || item.explanation_image || "").trim() ||
+          null;
         const marks = Number(item.marks) || 1;
 
         const [newQuestion] = await tx
@@ -238,7 +243,9 @@ export async function importQuestionsDirectlyToExamAction(
             source: resolvedSource,
             standard: resolvedStandard,
             questionText: qText,
+            questionImage: resolvedQuestionImage,
             explanation: resolvedExplanation,
+            explanationImage: resolvedExplanationImage,
             isFree: false,
           })
           .returning();
@@ -278,6 +285,11 @@ export async function importQuestionsDirectlyToExamAction(
               return {
                 questionId: newQuestion.id,
                 optionText: optText,
+                image:
+                  (typeof opt === "object" && opt !== null
+                    ? opt.image || opt.image_url || ""
+                    : ""
+                  ).trim() || null,
                 isCorrect: isOptCorrect,
                 orderNo: idx + 1,
               };

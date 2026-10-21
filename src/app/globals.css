@@ -200,3 +200,33 @@
   width: 100%;
   height: 100%;
 }
+
+/* ---------------------------------------------------------------------------
+ * KaTeX — local 0.19 stylesheet + fonts from src/fonts/katex
+ *
+ * Imported maths is often a long matrix; on a phone it should scroll inside
+ * the question card rather than stretch the whole page sideways. Sizing is
+ * nudged here (not in the vendored file) so a future KaTeX update stays clean.
+ * ------------------------------------------------------------------------- */
+
+.katex {
+  font-size: 1.08em;
+  line-height: 1.2;
+}
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+  margin: 0.5rem 0;
+  scrollbar-width: thin;
+}
+
+/* A red box is better than a blank question when a sheet carries one bad
+   expression; rehype-katex already falls back, this keeps it readable. */
+.katex-error {
+  color: var(--destructive);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.92em;
+  white-space: pre-wrap;
+}

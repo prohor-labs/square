@@ -261,6 +261,7 @@ export interface MCQOption {
   readonly questionId?: string;
   readonly option_text?: string;
   readonly optionText?: string;
+  readonly image?: string | null;
   readonly is_correct?: boolean;
   readonly isCorrect?: boolean;
   readonly order_no?: number;
@@ -289,7 +290,11 @@ export interface Question {
   readonly standard: string;
   readonly question_text?: string;
   readonly questionText?: string;
+  readonly question_image?: string | null;
+  readonly questionImage?: string | null;
   readonly explanation?: string | null;
+  readonly explanation_image?: string | null;
+  readonly explanationImage?: string | null;
   readonly topic_id?: string | null;
   readonly topicId?: string | null;
   readonly subitemId?: string;
@@ -321,9 +326,15 @@ export interface CreateQuestionPayload {
   readonly source?: QuestionSource | string;
   readonly standard?: QuestionStandard | string;
   readonly questionText: string;
+  readonly questionImage?: string | null;
   readonly explanation?: string;
+  readonly explanationImage?: string | null;
   readonly isFree?: boolean;
-  readonly mcqOptions?: readonly { optionText: string; isCorrect: boolean }[];
+  readonly mcqOptions?: readonly {
+    optionText: string;
+    isCorrect: boolean;
+    image?: string | null;
+  }[];
   readonly cqParts?: readonly {
     partKey: string;
     questionText: string;
@@ -340,10 +351,19 @@ export interface ImportQuestionItem {
   readonly is_free?: boolean;
   readonly topicId?: string;
   readonly questionText: string;
+  readonly question_image?: string | null;
+  readonly questionImage?: string | null;
   readonly explanation?: string;
+  readonly explanation_image?: string | null;
+  readonly explanationImage?: string | null;
+  /** Per-row classification carried by a sheet; blank falls back to the form. */
+  readonly paperName?: string;
+  readonly chapterName?: string;
+  readonly topicName?: string;
   readonly mcqOptions?: readonly {
     readonly optionText: string;
     readonly isCorrect: boolean;
+    readonly image?: string | null;
   }[];
   readonly cqParts?: readonly {
     readonly partKey: "a" | "b" | "c" | "d" | string;

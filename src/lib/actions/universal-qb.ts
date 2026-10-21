@@ -16,7 +16,8 @@ import {
 import { auth } from "@/lib/auth";
 import {
   type QbMetaInput,
-  resolveQbMetaTargets,
+  qbMetaRowKey,
+  resolveQbMetaRowTargets,
   writeQbMeta,
 } from "@/lib/qb-meta-write";
 import type { CreateQuestionPayload } from "@/types";
@@ -166,7 +167,9 @@ export async function createQuickQuestionAction(
               | "Engineering"
               | "Medical") || "HSC",
           questionText: payload.questionText.trim(),
+          questionImage: payload.questionImage?.trim() || null,
           explanation: payload.explanation?.trim() || null,
+          explanationImage: payload.explanationImage?.trim() || null,
           isFree: Boolean(payload.isFree),
         })
         .returning();
@@ -179,6 +182,7 @@ export async function createQuickQuestionAction(
         const optionsToInsert = payload.mcqOptions.map((opt, idx: number) => ({
           questionId: question.id,
           optionText: opt.optionText.trim(),
+          image: opt.image?.trim() || null,
           isCorrect: opt.isCorrect,
           orderNo: idx + 1,
         }));
@@ -230,7 +234,9 @@ export async function getRecentUploadedQuestions(limit = 10) {
         source: questions.source,
         standard: questions.standard,
         questionText: questions.questionText,
+        questionImage: questions.questionImage,
         explanation: questions.explanation,
+        explanationImage: questions.explanationImage,
         isFree: questions.isFree,
         createdAt: questions.createdAt,
         chapterName: subitems.name,
@@ -256,6 +262,7 @@ export async function getRecentUploadedQuestions(limit = 10) {
           id: mcqOptions.id,
           questionId: mcqOptions.questionId,
           optionText: mcqOptions.optionText,
+          image: mcqOptions.image,
           isCorrect: mcqOptions.isCorrect,
           orderNo: mcqOptions.orderNo,
         })
@@ -302,7 +309,9 @@ export async function getRecentUploadedQuestions(limit = 10) {
         source: q.source,
         standard: q.standard,
         questionText: q.questionText,
+        questionImage: q.questionImage,
         explanation: q.explanation,
+        explanationImage: q.explanationImage,
         isFree: q.isFree,
         createdAt: q.createdAt,
         chapterName: q.chapterName || "অজ্ঞাত অধ্যায়",
@@ -311,6 +320,7 @@ export async function getRecentUploadedQuestions(limit = 10) {
         mcqOptions: qOpts.map((o) => ({
           id: o.id,
           optionText: o.optionText,
+          image: o.image,
           isCorrect: o.isCorrect,
         })),
         cqParts: qParts.map((p) => ({
@@ -461,19 +471,27 @@ export async function importYearBasedQuestionsAction(
           : "Varsity");
 
     // Resolved before the transaction so a failed import leaves no orphan
-    // subject or institute behind.
-    const metaTargets = payload.meta
+    // subject or institute behind. A row's own paper / chapter / topic wins
+    // over the panel, so one sheet can span several chapters.
+    const baseMeta = payload.meta
       ? // The year typed on the form is the fallback when the metadata panel
         // was skipped, so the year view can always filter on it.
-        await resolveQbMetaTargets({
-          ...payload.meta,
-          year: payload.meta.year || yearName,
-        })
+        { ...payload.meta, year: payload.meta.year || yearName }
+      : null;
+
+    const rowTargets = baseMeta
+      ? await resolveQbMetaRowTargets(
+          baseMeta,
+          payload.questionsList.map((itemData) => ({
+            paperName: itemData.paperName || itemData.paper_name,
+            chapterName: itemData.chapterName || itemData.chapter_name,
+            topicName: itemData.topicName || itemData.topic_name,
+          })),
+        )
       : null;
 
     const insertedCount = await db.transaction(async (tx) => {
       let count = 0;
-      const questionIds: string[] = [];
 
       for (const itemData of payload.questionsList) {
         const qText = (
@@ -504,6 +522,15 @@ export async function importYearBasedQuestionsAction(
         );
         const resolvedExplanation =
           (itemData.explanation || itemData.solution || "").trim() || null;
+        const resolvedQuestionImage =
+          (itemData.questionImage || itemData.question_image || "").trim() ||
+          null;
+        const resolvedExplanationImage =
+          (
+            itemData.explanationImage ||
+            itemData.explanation_image ||
+            ""
+          ).trim() || null;
 
         const [question] = await tx
           .insert(questions)
@@ -514,14 +541,26 @@ export async function importYearBasedQuestionsAction(
             source: resolvedSource,
             standard: resolvedStandard,
             questionText: qText,
+            questionImage: resolvedQuestionImage,
             explanation: resolvedExplanation,
+            explanationImage: resolvedExplanationImage,
             isFree: resolvedIsFree,
           })
           .returning();
 
         if (!question) continue;
         count++;
-        questionIds.push(question.id);
+
+        if (rowTargets) {
+          const targets = rowTargets.get(
+            qbMetaRowKey({
+              paperName: itemData.paperName || itemData.paper_name,
+              chapterName: itemData.chapterName || itemData.chapter_name,
+              topicName: itemData.topicName || itemData.topic_name,
+            }),
+          );
+          if (targets) await writeQbMeta(tx, [question.id], targets);
+        }
 
         if (resolvedType === "mcq") {
           const rawOptions =
@@ -558,6 +597,11 @@ export async function importYearBasedQuestionsAction(
               return {
                 questionId: question.id,
                 optionText: optText,
+                image:
+                  (typeof opt === "object" && opt !== null
+                    ? opt.image || opt.image_url || ""
+                    : ""
+                  ).trim() || null,
                 isCorrect: isOptCorrect,
                 orderNo: idx + 1,
               };
@@ -604,11 +648,6 @@ export async function importYearBasedQuestionsAction(
             await tx.insert(cqParts).values(partsToInsert);
           }
         }
-      }
-
-      // One meta row per question, written in the same transaction as the insert.
-      if (metaTargets) {
-        await writeQbMeta(tx, questionIds, metaTargets);
       }
 
       return count;
