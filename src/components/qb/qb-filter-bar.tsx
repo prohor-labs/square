@@ -31,9 +31,16 @@ function optionLabel(name: string, count: number): string {
 export function QbFilterBar({
   tree,
   selected,
+  onSelectionChange,
 }: {
   readonly tree: QbFilterTree;
   readonly selected: QbFilterSelection;
+  /**
+   * When provided, filtering happens in the browser and no server request is
+   * made. The URL is still updated with `history.replaceState` so a refresh
+   * keeps the current view.
+   */
+  readonly onSelectionChange?: (selection: QbFilterSelection) => void;
 }): ReactElement {
   const router = useRouter();
   const pathname = usePathname();
@@ -54,6 +61,33 @@ export function QbFilterBar({
   );
 
   function apply(next: Readonly<Record<string, string>>): void {
+    const nextSelection: QbFilterSelection = {
+      subjectId:
+        next.subject === undefined
+          ? selected.subjectId
+          : next.subject === ALL
+            ? null
+            : next.subject,
+      chapterId:
+        next.chapter === undefined
+          ? selected.chapterId
+          : next.chapter === ALL
+            ? null
+            : next.chapter,
+      topicId:
+        next.topic === undefined
+          ? selected.topicId
+          : next.topic === ALL
+            ? null
+            : next.topic,
+    };
+
+    if (onSelectionChange) {
+      onSelectionChange(nextSelection);
+      syncUrl(nextSelection);
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
 
     for (const [key, value] of Object.entries(next)) {
@@ -70,6 +104,30 @@ export function QbFilterBar({
         scroll: false,
       });
     });
+  }
+
+  function syncUrl(selection: QbFilterSelection): void {
+    const params = new URLSearchParams(window.location.search);
+    const entries: readonly [string, string | null][] = [
+      ["subject", selection.subjectId],
+      ["chapter", selection.chapterId],
+      ["topic", selection.topicId],
+    ];
+
+    for (const [key, value] of entries) {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    }
+
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
   }
 
   return (

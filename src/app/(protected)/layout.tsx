@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactElement, ReactNode } from "react";
 import Shell from "@/components/shell";
-import { auth } from "@/lib/auth";
+import { getCachedSession } from "@/lib/auth-session";
 import { dictionary } from "@/lib/dictionary";
 
 export default async function ProtectedLayout({
@@ -10,9 +9,7 @@ export default async function ProtectedLayout({
 }: {
   readonly children: ReactNode;
 }): Promise<ReactElement> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getCachedSession();
 
   if (!session?.user) {
     redirect("/login");

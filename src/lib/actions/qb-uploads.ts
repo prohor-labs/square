@@ -1,18 +1,21 @@
 "use server";
 
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import {
   newChapters,
   newCqParts,
   newMcqOptions,
+  newQuestionSetItems,
+  newQuestionSets,
   newQuestions,
   newSubjects,
   newTopics,
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { ParsedCsvQuestion } from "@/lib/csv-parser";
+import { getQbUploadsData, invalidateQbBankCache } from "@/lib/qb-bank";
 import { qbSlug } from "@/lib/qb-meta-write";
 
 /**
@@ -30,6 +33,38 @@ export interface QbUploadResult {
   readonly imported: number;
   readonly skipped: number;
   readonly errors: readonly string[];
+  /** The uploaded file this batch belongs to, once it has been created. */
+  readonly setId?: string | null;
+}
+
+/** Display metadata an admin can edit for one uploaded file. */
+export interface QbFileInput {
+  readonly setId?: string;
+  readonly fileName: string;
+  readonly originalFileName?: string;
+  readonly university?: string;
+  readonly year?: string;
+  readonly unit?: string;
+}
+
+/** One uploaded file, as shown in the admin list and the student library. */
+export interface QbFileSummary {
+  readonly id: string;
+  readonly fileName: string;
+  readonly originalFileName: string;
+  readonly university: string;
+  readonly year: string;
+  readonly unit: string;
+  readonly questionCount: number;
+  readonly createdAt: string;
+}
+
+export interface QbFileUpdateInput {
+  readonly id: string;
+  readonly fileName: string;
+  readonly university: string;
+  readonly year: string;
+  readonly unit: string;
 }
 
 export interface QbUploadedOption {
@@ -216,15 +251,22 @@ function chunk<T>(list: readonly T[], size: number): T[][] {
  *
  * The screen parses the file in the browser and posts it in batches, so a big
  * sheet never has to fit in one request. Re-sending the same rows is safe:
- * a question already present in the same chapter is skipped.
+ * a question already present in the same chapter is reused and linked to the
+ * uploaded file instead of being written twice.
+ *
+ * The first batch creates the file row and returns its id; later batches pass
+ * that id back so one upload stays one file even when it spans many requests.
  */
 export async function importQbRowsAction(
   rows: readonly ParsedCsvQuestion[],
+  file?: QbFileInput,
+  orderOffset = 0,
 ): Promise<QbUploadResult> {
   await requireAdmin();
 
   const errors: string[] = [];
   const valid: ParsedCsvQuestion[] = [];
+  const validOrder: number[] = [];
 
   rows.forEach((row, index) => {
     const questionText = (row.questionText ?? "").trim();
@@ -240,10 +282,11 @@ export async function importQbRowsAction(
       return;
     }
     valid.push({ ...row, questionText });
+    validOrder.push(orderOffset + index);
   });
 
   if (valid.length === 0) {
-    return { imported: 0, skipped: 0, errors };
+    return { imported: 0, skipped: 0, errors, setId: file?.setId ?? null };
   }
 
   // One chapter per subject / chapter / topic combination, resolved once.
@@ -274,73 +317,106 @@ export async function importQbRowsAction(
   ];
   const existing = await db
     .select({
+      id: newQuestions.id,
       chapterId: newQuestions.chapterId,
       questionText: newQuestions.questionText,
     })
     .from(newQuestions)
     .where(inArray(newQuestions.chapterId, chapterIds));
 
-  const seen = new Set(
-    existing.map((row) => `${row.chapterId}\u0000${row.questionText}`),
+  const questionIdByKey = new Map(
+    existing.map((row) => [
+      `${row.chapterId}\u0000${row.questionText}`,
+      row.id,
+    ]),
   );
 
   const questionRows: (typeof newQuestions.$inferInsert)[] = [];
   const optionRows: (typeof newMcqOptions.$inferInsert)[] = [];
   const partRows: (typeof newCqParts.$inferInsert)[] = [];
+  const linkRows: { questionId: string; orderNo: number }[] = [];
+  const linkedIds = new Set<string>();
   let skipped = 0;
 
-  for (const row of valid) {
+  for (let index = 0; index < valid.length; index++) {
+    const row = valid[index];
     const folder = folders.get(rowKey(row));
     if (!folder) continue;
 
     const dedupeKey = `${folder.chapterId}\u0000${row.questionText}`;
-    if (seen.has(dedupeKey)) {
+    let questionId = questionIdByKey.get(dedupeKey);
+
+    if (questionId) {
       skipped++;
-      continue;
-    }
-    seen.add(dedupeKey);
-
-    const questionId = crypto.randomUUID();
-
-    questionRows.push({
-      id: questionId,
-      chapterId: folder.chapterId,
-      topicId: folder.topicId,
-      type: row.type,
-      source: (row.source || "CSV আপলোড").trim(),
-      standard: row.standard,
-      questionText: row.questionText,
-      questionImage: row.questionImage ?? null,
-      explanation: row.explanation ?? null,
-      explanationImage: row.explanationImage ?? null,
-      isFree: false,
-    });
-
-    if (row.type === "mcq") {
-      row.mcqOptions?.forEach((opt, index) => {
-        optionRows.push({
-          questionId,
-          optionText: opt.optionText ?? "",
-          image: opt.image ?? null,
-          isCorrect: opt.isCorrect,
-          orderNo: index + 1,
-        });
-      });
     } else {
-      row.cqParts?.forEach((part, index) => {
-        partRows.push({
-          questionId,
-          partKey: part.partKey,
-          questionText: part.questionText,
-          answerText: part.answerText ?? null,
-          marks: part.marks,
-          orderNo: index + 1,
-        });
+      const createdQuestionId = crypto.randomUUID();
+      questionId = createdQuestionId;
+      questionIdByKey.set(dedupeKey, createdQuestionId);
+
+      questionRows.push({
+        id: questionId,
+        chapterId: folder.chapterId,
+        topicId: folder.topicId,
+        type: row.type,
+        source: (row.source || "CSV আপলোড").trim(),
+        standard: row.standard,
+        questionText: row.questionText,
+        questionImage: row.questionImage ?? null,
+        explanation: row.explanation ?? null,
+        explanationImage: row.explanationImage ?? null,
+        isFree: false,
       });
+
+      if (row.type === "mcq") {
+        row.mcqOptions?.forEach((opt, optionIndex) => {
+          optionRows.push({
+            questionId: createdQuestionId,
+            optionText: opt.optionText ?? "",
+            image: opt.image ?? null,
+            isCorrect: opt.isCorrect,
+            orderNo: optionIndex + 1,
+          });
+        });
+      } else {
+        row.cqParts?.forEach((part, partIndex) => {
+          partRows.push({
+            questionId: createdQuestionId,
+            partKey: part.partKey,
+            questionText: part.questionText,
+            answerText: part.answerText ?? null,
+            marks: part.marks,
+            orderNo: partIndex + 1,
+          });
+        });
+      }
+    }
+
+    if (!linkedIds.has(questionId)) {
+      linkedIds.add(questionId);
+      linkRows.push({ questionId, orderNo: validOrder[index] });
     }
   }
 
+  let setId = file?.setId ?? null;
+
   await db.transaction(async (tx) => {
+    if (file && !setId) {
+      const [created] = await tx
+        .insert(newQuestionSets)
+        .values({
+          fileName:
+            file.fileName.trim() ||
+            file.originalFileName?.trim() ||
+            "আপলোড করা প্রশ্ন",
+          originalFileName: (file.originalFileName ?? "").trim(),
+          university: (file.university ?? "").trim(),
+          year: (file.year ?? "").trim(),
+          unit: (file.unit ?? "").trim(),
+        })
+        .returning({ id: newQuestionSets.id });
+      setId = created.id;
+    }
+
     for (const batch of chunk(questionRows, 100)) {
       await tx.insert(newQuestions).values(batch);
     }
@@ -350,138 +426,18 @@ export async function importQbRowsAction(
     for (const batch of chunk(partRows, 300)) {
       await tx.insert(newCqParts).values(batch);
     }
+
+    const targetSetId = setId;
+    if (targetSetId && linkRows.length > 0) {
+      await tx
+        .insert(newQuestionSetItems)
+        .values(linkRows.map((link) => ({ setId: targetSetId, ...link })))
+        .onConflictDoNothing();
+    }
   });
 
-  return { imported: questionRows.length, skipped, errors };
-}
-
-interface QbFolderRow {
-  readonly subjectId: string;
-  readonly subjectName: string;
-  readonly subjectOrder: number;
-  readonly chapterId: string;
-  readonly chapterName: string;
-  readonly chapterOrder: number;
-  readonly topicId: string | null;
-  readonly topicName: string | null;
-  readonly topicOrder: number | null;
-  readonly count: number;
-}
-
-interface SubjectBucket {
-  id: string;
-  name: string;
-  count: number;
-  chapters: Map<string, ChapterBucket>;
-}
-
-interface ChapterBucket {
-  id: string;
-  name: string;
-  subjectId: string;
-  count: number;
-  topics: Map<string, QbFilterOption>;
-}
-
-/**
- * Turns the grouped question counts into the three cascading lists.
- *
- * Only folders that actually hold questions are included, so a subject that
- * lost its questions never shows up as an empty choice.
- */
-function buildFilterTree(rows: readonly QbFolderRow[]): QbFilterTree {
-  const subjects = new Map<string, SubjectBucket>();
-
-  for (const row of rows) {
-    let subject = subjects.get(row.subjectId);
-    if (!subject) {
-      subject = {
-        id: row.subjectId,
-        name: row.subjectName,
-        count: 0,
-        chapters: new Map(),
-      };
-      subjects.set(row.subjectId, subject);
-    }
-    subject.count += row.count;
-
-    let chapter = subject.chapters.get(row.chapterId);
-    if (!chapter) {
-      chapter = {
-        id: row.chapterId,
-        name: row.chapterName,
-        subjectId: subject.id,
-        count: 0,
-        topics: new Map(),
-      };
-      subject.chapters.set(row.chapterId, chapter);
-    }
-    chapter.count += row.count;
-
-    if (row.topicId) {
-      const topic = chapter.topics.get(row.topicId) ?? {
-        id: row.topicId,
-        name: row.topicName ?? "",
-        count: 0,
-      };
-      chapter.topics.set(row.topicId, {
-        ...topic,
-        count: topic.count + row.count,
-      });
-    }
-  }
-
-  return {
-    subjects: [...subjects.values()].map((subject) => ({
-      id: subject.id,
-      name: subject.name,
-      count: subject.count,
-      chapters: [...subject.chapters.values()].map((chapter) => ({
-        id: chapter.id,
-        name: chapter.name,
-        subjectId: chapter.subjectId,
-        count: chapter.count,
-        topics: [...chapter.topics.values()],
-      })),
-    })),
-  };
-}
-
-/**
- * Keeps only ids that still exist and still belong to their parent, so an old
- * bookmarked URL cannot filter by a deleted chapter.
- */
-function resolveSelection(
-  tree: QbFilterTree,
-  filters: QbFilters,
-): QbFilterSelection {
-  const subject = filters.subjectId
-    ? (tree.subjects.find((item) => item.id === filters.subjectId) ?? null)
-    : null;
-
-  const chapterPool = subject
-    ? subject.chapters
-    : tree.subjects.flatMap((item) => item.chapters);
-  const chapter = filters.chapterId
-    ? (chapterPool.find((item) => item.id === filters.chapterId) ?? null)
-    : null;
-
-  const topic =
-    filters.topicId && chapter
-      ? (chapter.topics.find((item) => item.id === filters.topicId) ?? null)
-      : null;
-
-  const resolvedSubject =
-    subject ??
-    (chapter
-      ? (tree.subjects.find((item) => item.id === chapter.subjectId) ?? null)
-      : null);
-
-  return {
-    subjectId: resolvedSubject?.id ?? null,
-    chapterId: chapter?.id ?? null,
-    topicId: topic?.id ?? null,
-  };
+  invalidateQbBankCache();
+  return { imported: questionRows.length, skipped, errors, setId };
 }
 
 /** Everything uploaded from /qb, newest first, optionally filtered. */
@@ -490,183 +446,7 @@ export async function getQbUploads(
   limit = 200,
 ): Promise<QbUploadsPage> {
   await requireAdmin();
-
-  const folderRows = await db
-    .select({
-      subjectId: newSubjects.id,
-      subjectName: newSubjects.name,
-      subjectOrder: newSubjects.orderNo,
-      chapterId: newChapters.id,
-      chapterName: newChapters.name,
-      chapterOrder: newChapters.orderNo,
-      topicId: newTopics.id,
-      topicName: newTopics.name,
-      topicOrder: newTopics.orderNo,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(newQuestions)
-    .innerJoin(newChapters, eq(newQuestions.chapterId, newChapters.id))
-    .innerJoin(newSubjects, eq(newChapters.subjectId, newSubjects.id))
-    .leftJoin(newTopics, eq(newQuestions.topicId, newTopics.id))
-    .groupBy(
-      newSubjects.id,
-      newSubjects.name,
-      newSubjects.orderNo,
-      newChapters.id,
-      newChapters.name,
-      newChapters.orderNo,
-      newTopics.id,
-      newTopics.name,
-      newTopics.orderNo,
-    )
-    .orderBy(
-      newSubjects.orderNo,
-      newSubjects.name,
-      newChapters.orderNo,
-      newChapters.name,
-      newTopics.orderNo,
-      newTopics.name,
-    );
-
-  const filterTree = buildFilterTree(folderRows);
-  const selected = resolveSelection(filterTree, filters);
-  const allTotal = filterTree.subjects.reduce(
-    (sum, subject) => sum + subject.count,
-    0,
-  );
-
-  const conditions = [
-    selected.subjectId
-      ? eq(newChapters.subjectId, selected.subjectId)
-      : undefined,
-    selected.chapterId
-      ? eq(newQuestions.chapterId, selected.chapterId)
-      : undefined,
-    selected.topicId ? eq(newQuestions.topicId, selected.topicId) : undefined,
-  ].filter((condition) => condition !== undefined);
-
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(newQuestions)
-    .innerJoin(newChapters, eq(newQuestions.chapterId, newChapters.id))
-    .where(where);
-
-  const rows = await db
-    .select({
-      id: newQuestions.id,
-      type: newQuestions.type,
-      source: newQuestions.source,
-      standard: newQuestions.standard,
-      questionText: newQuestions.questionText,
-      questionImage: newQuestions.questionImage,
-      explanation: newQuestions.explanation,
-      explanationImage: newQuestions.explanationImage,
-      createdAt: newQuestions.createdAt,
-      subjectId: newSubjects.id,
-      subjectName: newSubjects.name,
-      chapterId: newChapters.id,
-      chapterName: newChapters.name,
-      topicId: newTopics.id,
-      topicName: newTopics.name,
-    })
-    .from(newQuestions)
-    .innerJoin(newChapters, eq(newQuestions.chapterId, newChapters.id))
-    .innerJoin(newSubjects, eq(newChapters.subjectId, newSubjects.id))
-    .leftJoin(newTopics, eq(newQuestions.topicId, newTopics.id))
-    .where(where)
-    .orderBy(desc(newQuestions.createdAt))
-    .limit(limit);
-
-  const total = countRow?.count ?? rows.length;
-
-  if (rows.length === 0) {
-    return { total, allTotal, questions: [], filterTree, selected };
-  }
-
-  const questionIds = rows.map((row) => row.id);
-
-  const [allOptions, allParts] = await Promise.all([
-    db
-      .select({
-        id: newMcqOptions.id,
-        questionId: newMcqOptions.questionId,
-        optionText: newMcqOptions.optionText,
-        image: newMcqOptions.image,
-        isCorrect: newMcqOptions.isCorrect,
-        orderNo: newMcqOptions.orderNo,
-      })
-      .from(newMcqOptions)
-      .where(inArray(newMcqOptions.questionId, questionIds))
-      .orderBy(newMcqOptions.orderNo),
-    db
-      .select({
-        id: newCqParts.id,
-        questionId: newCqParts.questionId,
-        partKey: newCqParts.partKey,
-        questionText: newCqParts.questionText,
-        answerText: newCqParts.answerText,
-        marks: newCqParts.marks,
-        orderNo: newCqParts.orderNo,
-      })
-      .from(newCqParts)
-      .where(inArray(newCqParts.questionId, questionIds))
-      .orderBy(newCqParts.orderNo),
-  ]);
-
-  const optionsByQuestion = new Map<string, QbUploadedOption[]>();
-  for (const option of allOptions) {
-    const list = optionsByQuestion.get(option.questionId) ?? [];
-    list.push({
-      id: option.id,
-      optionText: option.optionText,
-      image: option.image,
-      isCorrect: option.isCorrect,
-      orderNo: option.orderNo,
-    });
-    optionsByQuestion.set(option.questionId, list);
-  }
-
-  const partsByQuestion = new Map<string, QbUploadedPart[]>();
-  for (const part of allParts) {
-    const list = partsByQuestion.get(part.questionId) ?? [];
-    list.push({
-      id: part.id,
-      partKey: part.partKey,
-      questionText: part.questionText,
-      answerText: part.answerText,
-      marks: part.marks,
-      orderNo: part.orderNo,
-    });
-    partsByQuestion.set(part.questionId, list);
-  }
-
-  return {
-    total,
-    allTotal,
-    filterTree,
-    selected,
-    questions: rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      source: row.source,
-      standard: row.standard,
-      questionText: row.questionText,
-      questionImage: row.questionImage,
-      explanation: row.explanation,
-      explanationImage: row.explanationImage,
-      subjectId: row.subjectId,
-      subjectName: row.subjectName,
-      chapterId: row.chapterId,
-      chapterName: row.chapterName,
-      topicId: row.topicId,
-      topicName: row.topicName,
-      createdAt: row.createdAt.toISOString(),
-      mcqOptions: optionsByQuestion.get(row.id) ?? [],
-      cqParts: partsByQuestion.get(row.id) ?? [],
-    })),
-  };
+  return getQbUploadsData(filters, limit);
 }
 
 const STANDARDS = ["HSC", "Varsity", "Engineering", "Medical"] as const;
@@ -920,6 +700,49 @@ export async function updateQbQuestionAction(
     }
   });
 
+  invalidateQbBankCache();
+  return { ok: true };
+}
+
+/**
+ * Renames one uploaded file and moves it to a different student shelf.
+ *
+ * The original CSV name is never overwritten, so the admin can always tell
+ * which sheet a row came from.
+ */
+export async function updateQbFileAction(
+  input: QbFileUpdateInput,
+): Promise<QbQuestionActionResult> {
+  await requireAdmin();
+
+  const id = input.id.trim();
+  const fileName = input.fileName.trim().slice(0, 200);
+  if (!id || !fileName) {
+    return { ok: false, error: "ফাইলের নাম লিখুন।" };
+  }
+
+  const [existing] = await db
+    .select({ id: newQuestionSets.id })
+    .from(newQuestionSets)
+    .where(eq(newQuestionSets.id, id))
+    .limit(1);
+
+  if (!existing) {
+    return { ok: false, error: "ফাইলটি খুঁজে পাওয়া যায়নি।" };
+  }
+
+  await db
+    .update(newQuestionSets)
+    .set({
+      fileName,
+      university: input.university.trim().slice(0, 120),
+      year: input.year.trim().slice(0, 20),
+      unit: input.unit.trim().slice(0, 80),
+      updatedAt: new Date(),
+    })
+    .where(eq(newQuestionSets.id, id));
+
+  invalidateQbBankCache();
   return { ok: true };
 }
 
@@ -940,5 +763,6 @@ export async function deleteQbQuestionAction(
   }
 
   await db.delete(newQuestions).where(eq(newQuestions.id, id));
+  invalidateQbBankCache();
   return { ok: true };
 }

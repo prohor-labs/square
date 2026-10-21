@@ -1107,6 +1107,36 @@ export const newTopics = pgTable(
   ],
 );
 
+/**
+ * One uploaded CSV file.
+ *
+ * `fileName` is the name shown to students and can be edited. The original
+ * upload name is kept separately so the admin can still recognise the source
+ * sheet, while `university`, `year` and `unit` are the student-facing shelves.
+ */
+export const newQuestionSets = pgTable(
+  "new_question_sets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    fileName: text("file_name").notNull(),
+    originalFileName: text("original_file_name").default("").notNull(),
+    university: text("university").default("").notNull(),
+    year: text("year").default("").notNull(),
+    unit: text("unit").default("").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("new_question_set_shelf_idx").on(
+      table.university,
+      table.year,
+      table.unit,
+    ),
+  ],
+);
+
 /** One question — MCQ or CQ. */
 export const newQuestions = pgTable(
   "new_questions",
@@ -1179,3 +1209,55 @@ export const newCqParts = pgTable(
   },
   (table) => [index("new_cq_part_question_idx").on(table.questionId)],
 );
+
+/**
+ * Which questions belong to an uploaded file.
+ *
+ * A many-to-many table rather than a `set_id` column on `new_questions`: the
+ * same question can appear in two university papers or two years without being
+ * duplicated, while each file still gets a complete list.
+ */
+export const newQuestionSetItems = pgTable(
+  "new_question_set_items",
+  {
+    setId: text("set_id")
+      .notNull()
+      .references(() => newQuestionSets.id, { onDelete: "cascade" }),
+    questionId: text("question_id")
+      .notNull()
+      .references(() => newQuestions.id, { onDelete: "cascade" }),
+    /** Keeps the CSV row order inside the file. */
+    orderNo: integer("order_no").default(0).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.setId, table.questionId] }),
+    index("new_question_set_item_question_idx").on(table.questionId),
+  ],
+);
+
+export const newQuestionSetsRelations = relations(
+  newQuestionSets,
+  ({ many }) => ({
+    items: many(newQuestionSetItems),
+  }),
+);
+
+export const newQuestionSetItemsRelations = relations(
+  newQuestionSetItems,
+  ({ one }) => ({
+    set: one(newQuestionSets, {
+      fields: [newQuestionSetItems.setId],
+      references: [newQuestionSets.id],
+    }),
+    question: one(newQuestions, {
+      fields: [newQuestionSetItems.questionId],
+      references: [newQuestions.id],
+    }),
+  }),
+);
+
+export const newQuestionsRelations = relations(newQuestions, ({ many }) => ({
+  setItems: many(newQuestionSetItems),
+  mcqOptions: many(newMcqOptions),
+  cqParts: many(newCqParts),
+}));
