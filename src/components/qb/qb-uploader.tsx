@@ -379,7 +379,7 @@ export function QbUploader({
             </p>
             {summary.setId ? (
               <Link
-                href={`/qb/${summary.setId}`}
+                href={`/qb/file/${summary.setId}`}
                 className="mt-1 inline-flex text-[11px] font-bold text-emerald-700 underline underline-offset-2 dark:text-emerald-400"
               >
                 আপলোড করা ফাইলটি দেখুন

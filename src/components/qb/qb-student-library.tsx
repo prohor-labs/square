@@ -90,7 +90,7 @@ function FileRow({
 }): React.ReactElement {
   return (
     <Link
-      href={`/qb/${file.id}`}
+      href={`/qb/file/${file.id}`}
       className="group flex items-center gap-3 rounded-2xl border bg-card p-3.5 transition-colors hover:border-primary/50 hover:bg-primary/[0.03]"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">

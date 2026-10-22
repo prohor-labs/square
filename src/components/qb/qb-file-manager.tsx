@@ -122,7 +122,7 @@ export function QbFileManager({
 
                 <div className="flex shrink-0 items-center gap-1.5">
                   <Link
-                    href={`/qb/${file.id}`}
+                    href={`/qb/file/${file.id}`}
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "gap-1.5",

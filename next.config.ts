@@ -1,19 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        // Old hierarchy addresses (two or more segments) still land on the
-        // bank rather than a 404. A single segment is a live file page —
-        // /qb/<setId> — so it must fall through, and `/qb` itself must not be
-        // caught by its own rule.
-        source: "/qb/:first/:rest+",
-        destination: "/qb",
-        permanent: true,
-      },
-    ];
-  },
+  // NOTE: there is deliberately no `/qb/*` redirect here. A permanent (308)
+  // rule used to send `/qb/<setId>` back to `/qb`, which browsers cache
+  // forever — once cached, clicking a file did nothing even after the rule was
+  // removed. Old hierarchy URLs are now handled by
+  // `src/app/(protected)/qb/[...legacy]/page.tsx` with a 307, which is safe to
+  // change later.
   async headers() {
     return [
       {

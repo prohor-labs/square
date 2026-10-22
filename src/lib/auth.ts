@@ -51,6 +51,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  session: {
+    // The auth database lives far away and a single session lookup can take
+    // several seconds, which made every protected page look frozen after a
+    // click. Caching the signed session payload in a cookie removes that round
+    // trip on ordinary page loads. Trade-off: a role change (or a sign-out on
+    // another device) can take up to `maxAge` to be observed.
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
