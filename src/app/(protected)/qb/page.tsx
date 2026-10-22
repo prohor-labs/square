@@ -1,82 +1,9 @@
 import type { ReactElement } from "react";
-import { QbPageTabs } from "@/components/qb/qb-page-tabs";
-import { QbStudentLibrary } from "@/components/qb/qb-student-library";
-import { getCachedSession } from "@/lib/auth-session";
-import {
-  getQbBrowserData,
-  getQbFileSummaries,
-  getQbUploadsData,
-} from "@/lib/qb-bank";
+import { QbBankPage } from "@/components/qb/qb-bank-page";
 
 export const dynamic = "force-dynamic";
 
-/** Below this size every card is kept mounted for instant client filtering. */
-const CLIENT_FILTER_LIMIT = 120;
-
-/** The "all questions" tab shows every matching row, even for a large bank. */
-const ALL_QUESTIONS_LIMIT = Number.MAX_SAFE_INTEGER;
-
-/** A query param can arrive twice (`?subject=a&subject=b`); take the first. */
-function readParam(value: string | string[] | undefined): string | undefined {
-  const first = Array.isArray(value) ? value[0] : value;
-  const trimmed = first?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-/**
- * The question bank screen.
- *
- * Admins get the upload/manage tabs. Students get the read-only library, split
- * by the university, year and unit set on each uploaded file. The admin check
- * happens before any bank snapshot is read or sent to the client.
- */
-export default async function QbPage({
-  searchParams,
-}: {
-  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
-}): Promise<ReactElement> {
-  const session = await getCachedSession();
-  if (session?.user?.role !== "admin") {
-    const files = await getQbFileSummaries();
-    return <QbStudentLibrary files={files} />;
-  }
-
-  const params = await searchParams;
-  const filters = {
-    subjectId: readParam(params.subject),
-    chapterId: readParam(params.chapter),
-    topicId: readParam(params.topic),
-  };
-
-  const [browser, files] = await Promise.all([
-    getQbBrowserData(filters),
-    getQbFileSummaries(),
-  ]);
-  const clientFilter = browser.allTotal <= CLIENT_FILTER_LIMIT;
-  const page = clientFilter
-    ? null
-    : await getQbUploadsData(filters, ALL_QUESTIONS_LIMIT);
-
-  return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 pb-16 pt-2 md:py-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
-          প্রশ্নব্যাংক
-        </h1>
-        <p className="text-xs text-muted-foreground sm:text-sm">
-          নিচের ট্যাব থেকে প্রশ্ন আপলোড করুন অথবা সব প্রশ্ন দেখুন।
-        </p>
-      </header>
-
-      <QbPageTabs
-        questions={clientFilter ? browser.questions : (page?.questions ?? [])}
-        filterTree={browser.filterTree}
-        selected={browser.selected}
-        allTotal={browser.allTotal}
-        total={clientFilter ? browser.allTotal : (page?.total ?? 0)}
-        clientFilter={clientFilter}
-        files={files}
-      />
-    </div>
-  );
+/** The question bank screen — see `QbBankPage` for the shared behaviour. */
+export default async function QbPage(): Promise<ReactElement> {
+  return <QbBankPage />;
 }
