@@ -4,10 +4,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        // The bank is closed; every old address lands on the notice page
-        // rather than a 404. `+` and not `*`, so the notice page itself — which
-        // is /qb — is not caught by its own rule and redirected to itself.
-        source: "/qb/:path+",
+        // Old hierarchy addresses (two or more segments) still land on the
+        // bank rather than a 404. A single segment is a live file page —
+        // /qb/<setId> — so it must fall through, and `/qb` itself must not be
+        // caught by its own rule.
+        source: "/qb/:first/:rest+",
         destination: "/qb",
         permanent: true,
       },
