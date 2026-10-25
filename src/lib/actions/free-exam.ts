@@ -44,7 +44,6 @@ export async function getPublicFreeExamsListAction(): Promise<{
     const list = await db.query.exams.findMany({
       where: and(
         eq(exams.isPublished, true),
-        eq(exams.type, "practice"),
         notExists(
           db
             .select({ one: sql`1` })
@@ -97,7 +96,6 @@ export async function getPublicFreeExamDetailsAction(slug: string) {
       where: and(
         eq(exams.slug, slug),
         eq(exams.isPublished, true),
-        eq(exams.type, "practice"),
         // Same rule as the list: an exam linked to a course is never a free exam.
         notExists(
           db
@@ -144,7 +142,6 @@ export async function getFreeExamQuestionsForTakingAction(slug: string) {
       where: and(
         eq(exams.slug, slug),
         eq(exams.isPublished, true),
-        eq(exams.type, "practice"),
         // Same rule as the list: an exam linked to a course is never a free exam.
         notExists(
           db

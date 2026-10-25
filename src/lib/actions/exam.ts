@@ -206,6 +206,13 @@ export async function checkExamAccess(userId: string, examId: string) {
     });
 
     if (bExams.length === 0) {
+      // Once no course schedules an exam any more, a published one is a free
+      // exam — the same rule the public free-exam portal applies — so let the
+      // student in before falling back to the archive lookup.
+      if (exam.isPublished) {
+        return { allowed: true, batchExamId: null };
+      }
+
       // A past exam can sit in a course's archive without being scheduled, so
       // check the archive before turning the student away.
       const myBatches = await enrolledBatchIds(userId);
