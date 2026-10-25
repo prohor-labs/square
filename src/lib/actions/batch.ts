@@ -74,6 +74,8 @@ export async function deleteBatchAction(batchId: string) {
   try {
     await db.delete(batches).where(eq(batches.id, batchId));
     revalidatePath("/admin/batches");
+    // Unassigning its exams turns them into free exams, so refresh that list.
+    revalidatePath("/free-exam");
     return { success: true };
   } catch (_error: unknown) {
     return { success: false, error: "Failed to delete" };
@@ -406,6 +408,8 @@ export async function assignExamToBatchAction(
       })
       .returning();
     revalidatePath(`/admin/batches/${batchId}`);
+    // The exam now belongs to a course, so it leaves the free-exam list.
+    revalidatePath("/free-exam");
     return { success: true, data: res[0] };
   } catch (error: unknown) {
     return {
@@ -422,6 +426,8 @@ export async function removeExamFromBatchAction(
   try {
     await db.delete(batchExams).where(eq(batchExams.id, batchExamId));
     revalidatePath(`/admin/batches/${batchId}`);
+    // With no course left, the exam becomes a free exam.
+    revalidatePath("/free-exam");
     return { success: true };
   } catch (error: unknown) {
     return {

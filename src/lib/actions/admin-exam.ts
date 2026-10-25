@@ -55,6 +55,9 @@ export async function createExamAction(data: {
     }
 
     revalidatePath("/admin/exams");
+    // The public free-exam portal is cached, so any change here can add or
+    // drop an exam from it.
+    revalidatePath("/free-exam");
     return { success: true, data: createdExam };
   } catch (error: unknown) {
     return {
@@ -80,6 +83,7 @@ export async function updateExamAction(id: string, data: Partial<ExamDetail>) {
       .returning();
     revalidatePath(`/admin/exams/${id}`);
     revalidatePath("/admin/exams");
+    revalidatePath("/free-exam");
     return { success: true, data: res[0] as unknown as ExamDetail };
   } catch (error: unknown) {
     return {
@@ -93,6 +97,8 @@ export async function deleteExamAction(id: string) {
   try {
     await db.delete(exams).where(eq(exams.id, id));
     revalidatePath("/admin/exams");
+    // A deleted exam must disappear from the public free-exam list too.
+    revalidatePath("/free-exam");
     return { success: true };
   } catch (error: unknown) {
     return {
@@ -110,6 +116,7 @@ export async function publishExamAction(id: string) {
       .where(eq(exams.id, id));
     revalidatePath(`/admin/exams/${id}`);
     revalidatePath("/admin/exams");
+    revalidatePath("/free-exam");
     return { success: true };
   } catch (error: unknown) {
     return {
@@ -131,6 +138,8 @@ export async function togglePublishExamAction(
     revalidatePath(`/admin/exams/${id}/questions`);
     revalidatePath(`/admin/exams/${id}`);
     revalidatePath("/admin/exams");
+    // Unpublishing must drop the exam from the public free-exam portal.
+    revalidatePath("/free-exam");
     return { success: true };
   } catch (error: unknown) {
     return {

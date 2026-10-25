@@ -248,7 +248,27 @@ export async function startFreeGuestExamAction(payload: {
     const guestUserId = `guest_${nanoid(12)}`;
     const guestEmail = `${guestUserId}@free.square.internal`;
 
-    // 1. Create a guest user profile row to satisfy relational constraints
+    // 1. Validate the exam first, with the same rule the free-exam list uses:
+    //    a published exam that no course claims. Checking before any insert
+    //    keeps guest rows from piling up for exams nobody may start.
+    const exam = await db.query.exams.findFirst({
+      where: and(
+        eq(exams.id, payload.examId),
+        eq(exams.isPublished, true),
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(batchExams)
+            .where(eq(batchExams.examId, exams.id)),
+        ),
+      ),
+    });
+
+    if (!exam) {
+      throw new Error("Exam not found");
+    }
+
+    // 2. Create a guest user profile row to satisfy relational constraints
     await db.insert(user).values({
       id: guestUserId,
       name: studentName,
@@ -260,15 +280,6 @@ export async function startFreeGuestExamAction(payload: {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-
-    // 2. Fetch exam info
-    const exam = await db.query.exams.findFirst({
-      where: eq(exams.id, payload.examId),
-    });
-
-    if (!exam) {
-      throw new Error("Exam not found");
-    }
 
     const submissionId = nanoid();
 
