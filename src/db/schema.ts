@@ -1052,6 +1052,11 @@ export const newSubjects = pgTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     name: text("name").notNull(),
+    /**
+     * "১ম পত্র" / "২য় পত্র". Blank when the subject has no paper split, which
+     * keeps one subject one row for the subjects that are not split.
+     */
+    paper: text("paper").default("").notNull(),
     slug: text("slug").notNull(),
     orderNo: integer("order_no").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

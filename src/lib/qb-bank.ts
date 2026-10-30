@@ -7,6 +7,7 @@ import {
   newQuestions,
   newSubjects,
   newTopics,
+  qbInstitutes,
 } from "@/db/schema";
 import type {
   QbFileSummary,
@@ -14,6 +15,7 @@ import type {
   QbFilterSelection,
   QbFilters,
   QbFilterTree,
+  QbQuestionShelf,
   QbUploadedOption,
   QbUploadedPart,
   QbUploadedQuestion,
@@ -42,6 +44,18 @@ interface QbBankQuestion extends QbUploadedQuestion {
 interface QbBankSnapshot {
   readonly questions: readonly QbBankQuestion[];
   readonly filterTree: QbFilterTree;
+  /**
+   * The curated institution list, used only to tell an engineering or medical
+   * upload apart from a university one. It is the same list the archived bank
+   * was classified with, so no new naming rule is invented here.
+   */
+  readonly institutes: readonly QbInstituteRef[];
+}
+
+export interface QbInstituteRef {
+  readonly name: string;
+  readonly slug: string;
+  readonly type: string;
 }
 
 interface SubjectBucket {
@@ -228,6 +242,7 @@ async function fetchQbBankSnapshot(): Promise<QbBankSnapshot> {
       subjectId: newSubjects.id,
       subjectName: newSubjects.name,
       subjectOrder: newSubjects.orderNo,
+      paperName: newSubjects.paper,
       chapterId: newChapters.id,
       chapterName: newChapters.name,
       chapterOrder: newChapters.orderNo,
@@ -276,6 +291,38 @@ async function fetchQbBankSnapshot(): Promise<QbBankSnapshot> {
     .leftJoin(newTopics, eq(newQuestions.topicId, newTopics.id))
     .orderBy(desc(newQuestions.createdAt), desc(newQuestions.id));
 
+  // The shelves a question belongs to. One extra query rather than a join, so
+  // a question with three files still comes back as one row above.
+  const shelfRows = await db
+    .select({
+      questionId: newQuestionSetItems.questionId,
+      setId: newQuestionSets.id,
+      fileName: newQuestionSets.fileName,
+      university: newQuestionSets.university,
+      year: newQuestionSets.year,
+      unit: newQuestionSets.unit,
+      orderNo: newQuestionSetItems.orderNo,
+    })
+    .from(newQuestionSetItems)
+    .innerJoin(
+      newQuestionSets,
+      eq(newQuestionSetItems.setId, newQuestionSets.id),
+    );
+
+  const shelvesByQuestion = new Map<string, QbQuestionShelf[]>();
+  for (const row of shelfRows) {
+    const list = shelvesByQuestion.get(row.questionId) ?? [];
+    list.push({
+      setId: row.setId,
+      fileName: row.fileName,
+      university: row.university,
+      year: row.year,
+      unit: row.unit,
+      orderNo: row.orderNo,
+    });
+    shelvesByQuestion.set(row.questionId, list);
+  }
+
   const questions: QbBankQuestion[] = rows.map((row) => ({
     id: row.id,
     type: row.type,
@@ -288,18 +335,32 @@ async function fetchQbBankSnapshot(): Promise<QbBankSnapshot> {
     subjectId: row.subjectId,
     subjectName: row.subjectName,
     subjectOrder: row.subjectOrder,
+    paperName: row.paperName,
     chapterId: row.chapterId,
     chapterName: row.chapterName,
     chapterOrder: row.chapterOrder,
     topicId: row.topicId,
     topicName: row.topicName,
     topicOrder: row.topicOrder,
+    shelves: shelvesByQuestion.get(row.id) ?? [],
     createdAt: row.createdAt.toISOString(),
     mcqOptions: asArray<QbUploadedOption>(row.mcqOptions),
     cqParts: asArray<QbUploadedPart>(row.cqParts),
   }));
 
-  return { questions, filterTree: buildFilterTree(questions) };
+  const institutes = await db
+    .select({
+      name: qbInstitutes.name,
+      slug: qbInstitutes.slug,
+      type: qbInstitutes.type,
+    })
+    .from(qbInstitutes);
+
+  return {
+    questions,
+    filterTree: buildFilterTree(questions),
+    institutes,
+  };
 }
 
 async function loadQbBankSnapshot(): Promise<QbBankSnapshot> {
@@ -330,6 +391,21 @@ export function invalidateQbBankCache(): void {
   bankState.generation += 1;
   bankState.snapshot = undefined;
   bankState.pending = undefined;
+}
+
+/**
+ * The whole cached bank, for the student catalogue and search.
+ *
+ * The catalogue needs every question's shelf, subject, chapter and topic at
+ * once. Serving it from the same snapshot the admin browser already keeps
+ * means one database read per minute instead of one per page view.
+ */
+export async function getQbSnapshot(): Promise<{
+  readonly questions: readonly QbUploadedQuestion[];
+  readonly institutes: readonly QbInstituteRef[];
+}> {
+  const snapshot = await loadQbBankSnapshot();
+  return { questions: snapshot.questions, institutes: snapshot.institutes };
 }
 
 /**

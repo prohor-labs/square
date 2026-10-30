@@ -84,6 +84,22 @@ export interface QbUploadedPart {
   readonly orderNo: number;
 }
 
+/**
+ * One uploaded file a question sits in, as the student shelves see it.
+ *
+ * A question can belong to several files — the same Physics question can be in
+ * a 2023 paper and a 2024 paper — so it carries a list, not a single id.
+ */
+export interface QbQuestionShelf {
+  readonly setId: string;
+  readonly fileName: string;
+  readonly university: string;
+  readonly year: string;
+  readonly unit: string;
+  /** CSV row order inside that file. */
+  readonly orderNo: number;
+}
+
 export interface QbUploadedQuestion {
   readonly id: string;
   readonly type: "mcq" | "cq";
@@ -95,10 +111,14 @@ export interface QbUploadedQuestion {
   readonly explanationImage: string | null;
   readonly subjectId: string;
   readonly subjectName: string;
+  /** "১ম পত্র" / "২য় পত্র"; blank when the subject has no paper split. */
+  readonly paperName: string;
   readonly chapterId: string;
   readonly chapterName: string;
   readonly topicId: string | null;
   readonly topicName: string | null;
+  /** Every uploaded file this question was seen in. */
+  readonly shelves: readonly QbQuestionShelf[];
   readonly createdAt: string;
   readonly mcqOptions: readonly QbUploadedOption[];
   readonly cqParts: readonly QbUploadedPart[];
@@ -156,8 +176,13 @@ async function requireAdmin(): Promise<void> {
 }
 
 /** A subject is created on first use; slugs are unique across the table. */
-async function resolveSubjectId(name: string): Promise<string> {
-  const base = qbSlug(name) || "general";
+async function resolveSubjectId(name: string, paper = ""): Promise<string> {
+  const trimmedPaper = paper.trim();
+  // The paper is part of the identity: "পদার্থবিজ্ঞান · ১ম পত্র" and
+  // "পদার্থবিজ্ঞান · ২য় পত্র" are two shelves. A subject with no paper keeps
+  // the bare-name slug it has always had, so existing rows are reused.
+  const base =
+    qbSlug(trimmedPaper ? `${name}-${trimmedPaper}` : name) || "general";
 
   const [existing] = await db
     .select({ id: newSubjects.id })
@@ -182,7 +207,7 @@ async function resolveSubjectId(name: string): Promise<string> {
 
   const [created] = await db
     .insert(newSubjects)
-    .values({ name, slug })
+    .values({ name, paper: trimmedPaper, slug })
     .returning({ id: newSubjects.id });
   return created.id;
 }
@@ -299,11 +324,14 @@ export async function importQbRowsAction(
     const key = rowKey(row);
     if (folders.has(key)) continue;
 
+    // A sheet that names only a paper is really naming its subject — older
+    // sheets did that. When both are present the paper becomes its own level.
     const subjectName = (row.subjectName || row.paperName || UNFILED).trim();
+    const paperName = row.subjectName ? (row.paperName ?? "").trim() : "";
     const chapterName = (row.chapterName || UNFILED).trim();
     const topicName = (row.topicName ?? "").trim();
 
-    const subjectId = await resolveSubjectId(subjectName);
+    const subjectId = await resolveSubjectId(subjectName, paperName);
     const chapterId = await resolveChapterId(subjectId, chapterName);
     const topicId = topicName
       ? await resolveTopicId(chapterId, topicName)
