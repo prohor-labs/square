@@ -11,6 +11,7 @@ import {
   Upload,
 } from "@/components/icons";
 import { QbFileManager } from "@/components/qb/qb-file-manager";
+import { QbUniversityPicker } from "@/components/qb/qb-university-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,13 @@ import {
 } from "@/lib/actions/qb-uploads";
 import { toBengaliDigits } from "@/lib/calendar-date";
 import { type ParsedCsvQuestion, parseQuestionsCsv } from "@/lib/csv-parser";
+import {
+  canonicalUnitName,
+  canonicalUniversityName,
+  findQbUniversity,
+  normalizeExamYear,
+  qbUnitsForUniversity,
+} from "@/lib/qb-universities";
 import { cn } from "@/lib/utils";
 
 /** The sheet only needs these columns; the rest are optional. */
@@ -56,6 +64,8 @@ export function QbUploader({
   const [university, setUniversity] = useState("");
   const [year, setYear] = useState("");
   const [unit, setUnit] = useState("");
+  const [customUnit, setCustomUnit] = useState(false);
+  const [customYear, setCustomYear] = useState(false);
   const [rows, setRows] = useState<ParsedCsvQuestion[]>([]);
   const [dragging, setDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -63,18 +73,52 @@ export function QbUploader({
   const [summary, setSummary] = useState<UploadSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const universities = [
-    ...new Set(files.map((file) => file.university.trim()).filter(Boolean)),
+  /** Canonical names already stored in the bank, so repeats are recognised. */
+  const savedUniversities = [
+    ...new Set(
+      files
+        .map((file) => canonicalUniversityName(file.university))
+        .filter(Boolean),
+    ),
   ].sort((a, b) => a.localeCompare(b, "bn"));
-  const units = [
-    ...new Set(files.map((file) => file.unit.trim()).filter(Boolean)),
-  ].sort((a, b) => a.localeCompare(b, "bn"));
+
+  const storedUnits = files
+    .filter((file) => canonicalUniversityName(file.university) === university)
+    .map((file) => file.unit.trim())
+    .filter(Boolean);
+
+  /** Only this university's own units (published split + already used ones). */
+  const unitChoices = qbUnitsForUniversity(university, storedUnits);
+
   const years = [
     ...new Set([
-      ...files.map((file) => file.year.trim()).filter(Boolean),
+      ...files.map((file) => normalizeExamYear(file.year)).filter(Boolean),
       ...YEAR_CHOICES,
     ]),
   ].sort((a, b) => b.localeCompare(a, "bn"));
+
+  const selectedUniversity = findQbUniversity(university);
+  const canonicalUniversity = canonicalUniversityName(university);
+  const canonicalUnit = canonicalUnitName(canonicalUniversity, unit);
+  const canonicalYear = normalizeExamYear(year);
+
+  /** Uploading into an existing university+unit+year must reuse that group. */
+  const groupQuestionCount = files
+    .filter(
+      (file) =>
+        canonicalUniversityName(file.university) === canonicalUniversity &&
+        canonicalUnitName(canonicalUniversity, file.unit) === canonicalUnit &&
+        normalizeExamYear(file.year) === canonicalYear,
+    )
+    .reduce((total, file) => total + file.questionCount, 0);
+
+  const needsUnit =
+    canonicalUniversity.length > 0 &&
+    (unitChoices.length > 0 || Boolean(selectedUniversity));
+  const missingUnit = needsUnit && canonicalUnit.length === 0;
+  const missingYear =
+    canonicalUniversity.length > 0 && canonicalYear.length === 0;
+  const missingUniversity = canonicalUniversity.length === 0;
 
   const reset = () => {
     setOriginalFileName("");
@@ -82,6 +126,8 @@ export function QbUploader({
     setUniversity("");
     setYear("");
     setUnit("");
+    setCustomUnit(false);
+    setCustomYear(false);
     setRows([]);
     setProgress({ done: 0, total: 0 });
     setSummary(null);
@@ -95,6 +141,8 @@ export function QbUploader({
     setUniversity("");
     setYear("");
     setUnit("");
+    setCustomUnit(false);
+    setCustomYear(false);
     setRows([]);
     setProgress({ done: 0, total: 0 });
     if (inputRef.current) inputRef.current.value = "";
@@ -135,7 +183,7 @@ export function QbUploader({
   };
 
   const upload = async () => {
-    if (rows.length === 0 || isUploading) return;
+    if (rows.length === 0 || isUploading || missingUnit || missingYear) return;
 
     setIsUploading(true);
     setSummary(null);
@@ -149,9 +197,9 @@ export function QbUploader({
     const file = {
       fileName: displayName.trim() || originalFileName,
       originalFileName,
-      university: university.trim(),
-      year: year.trim(),
-      unit: unit.trim(),
+      university: canonicalUniversity,
+      year: canonicalYear,
+      unit: canonicalUnit,
     };
 
     try {
@@ -285,63 +333,157 @@ export function QbUploader({
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor={`${uid}-university`}>বিশ্ববিদ্যালয়</Label>
-                <Input
+                <QbUniversityPicker
                   id={`${uid}-university`}
-                  list={`${uid}-universities`}
                   value={university}
-                  maxLength={120}
-                  onChange={(event) => setUniversity(event.target.value)}
-                  placeholder="যেমন: ঢাবি"
+                  existingUniversities={savedUniversities}
+                  onChange={(next) => {
+                    setUniversity(next);
+                    // A new university almost never shares the previous units.
+                    setUnit("");
+                    setCustomUnit(false);
+                  }}
                 />
-                <datalist id={`${uid}-universities`}>
-                  {universities.map((name) => (
-                    <option key={name} value={name} />
-                  ))}
-                </datalist>
+                <p className="text-[10px] leading-snug text-muted-foreground">
+                  {missingUniversity
+                    ? "না বাছলে প্রশ্নটি সাধারণ (বিশ্ববিদ্যালয়ভিত্তিক নয়) হিসেবে যুক্ত হবে।"
+                    : `তালিকা ও ইউনিট: ${canonicalUniversity}`}
+                </p>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor={`${uid}-year`}>বছর</Label>
-                <select
-                  id={`${uid}-year`}
-                  value={year}
-                  onChange={(event) => setYear(event.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <option value="">বছর নির্বাচন</option>
-                  {years.map((value) => (
-                    <option key={value} value={value}>
-                      {toBengaliDigits(value)}
-                    </option>
-                  ))}
-                </select>
+                <Label htmlFor={`${uid}-year`}>পরীক্ষার বছর</Label>
+                {customYear ? (
+                  <div className="flex gap-1.5">
+                    <Input
+                      id={`${uid}-year`}
+                      value={year}
+                      inputMode="numeric"
+                      maxLength={4}
+                      placeholder="যেমন: ২০২৬"
+                      onChange={(event) => setYear(event.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 rounded-md px-2 text-[11px] font-bold"
+                      onClick={() => {
+                        setCustomYear(false);
+                        setYear("");
+                      }}
+                    >
+                      তালিকা
+                    </Button>
+                  </div>
+                ) : (
+                  <select
+                    id={`${uid}-year`}
+                    value={year}
+                    onChange={(event) => {
+                      if (event.target.value === "__new") {
+                        setCustomYear(true);
+                        setYear("");
+                        return;
+                      }
+                      setYear(event.target.value);
+                    }}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <option value="">বছর নির্বাচন</option>
+                    {years.map((value) => (
+                      <option key={value} value={value}>
+                        {toBengaliDigits(value)}
+                      </option>
+                    ))}
+                    <option value="__new">＋ নতুন বছর যোগ করুন</option>
+                  </select>
+                )}
+                {year.length > 0 && canonicalYear.length === 0 ? (
+                  <p className="text-[10px] font-semibold text-destructive">
+                    চার অঙ্কের বছর দিন (যেমন ২০২৬)।
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor={`${uid}-unit`}>ইউনিট</Label>
-                <Input
-                  id={`${uid}-unit`}
-                  list={`${uid}-units`}
-                  value={unit}
-                  maxLength={80}
-                  onChange={(event) => setUnit(event.target.value)}
-                  placeholder="যেমন: ক ইউনিট"
-                />
-                <datalist id={`${uid}-units`}>
-                  {units.map((name) => (
-                    <option key={name} value={name} />
-                  ))}
-                </datalist>
+                {customUnit ? (
+                  <div className="flex gap-1.5">
+                    <Input
+                      id={`${uid}-unit`}
+                      value={unit}
+                      maxLength={80}
+                      placeholder="যেমন: চ ইউনিট"
+                      onChange={(event) => setUnit(event.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 rounded-md px-2 text-[11px] font-bold"
+                      onClick={() => {
+                        setCustomUnit(false);
+                        setUnit("");
+                      }}
+                    >
+                      তালিকা
+                    </Button>
+                  </div>
+                ) : (
+                  <select
+                    id={`${uid}-unit`}
+                    value={unit}
+                    onChange={(event) => {
+                      if (event.target.value === "__custom") {
+                        setCustomUnit(true);
+                        setUnit("");
+                        return;
+                      }
+                      setUnit(event.target.value);
+                    }}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <option value="">ইউনিট নির্বাচন</option>
+                    {unitChoices.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                    <option value="__custom">＋ অন্য ইউনিট (নিজে লিখুন)</option>
+                  </select>
+                )}
+                <p className="text-[10px] leading-snug text-muted-foreground">
+                  {unitChoices.length > 0
+                    ? "এই বিশ্ববিদ্যালয়ের ইউনিটগুলো দেখানো হচ্ছে।"
+                    : "এই বিশ্ববিদ্যালয়ের ইউনিট-তালিকা নেই — নিজে লিখতে পারেন।"}
+                </p>
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 flex-1 text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
+                {missingUniversity
+                  ? "বিশ্ববিদ্যালয় বাছলে ইউনিট ও বছর সেট হবে।"
+                  : groupQuestionCount > 0
+                    ? `এই গ্রুপে আগে থেকেই ${toBengaliDigits(groupQuestionCount)}টি প্রশ্ন আছে — নতুন প্রশ্নগুলো একই গ্রুপে যোগ হবে।`
+                    : `${canonicalUniversity} → ${canonicalUnit || "ইউনিট নেই"} → ${
+                        canonicalYear
+                          ? toBengaliDigits(canonicalYear)
+                          : "বছর নেই"
+                      } — নতুন গ্রুপ তৈরি হবে।`}
+              </p>
+
               <Button
                 type="button"
                 size="sm"
                 onClick={upload}
                 disabled={
-                  isUploading || rows.length === 0 || !displayName.trim()
+                  isUploading ||
+                  rows.length === 0 ||
+                  !displayName.trim() ||
+                  missingUnit ||
+                  missingYear
                 }
                 className="h-8 gap-1.5 rounded-xl text-[11px] font-bold"
               >
@@ -359,6 +501,17 @@ export function QbUploader({
                 )}
               </Button>
             </div>
+
+            {missingUnit || missingYear ? (
+              <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-700">
+                <Danger className="mt-0.5 size-3.5 shrink-0" />
+                {missingUnit && missingYear
+                  ? "আপলোডের আগে এই বিশ্ববিদ্যালয়ের ইউনিট ও পরীক্ষার বছর বেছে নিন।"
+                  : missingUnit
+                    ? "আপলোডের আগে ইউনিট বেছে নিন।"
+                    : "আপলোডের আগে পরীক্ষার বছর বেছে নিন।"}
+              </p>
+            ) : null}
           </div>
         )}
 

@@ -17,6 +17,11 @@ import { auth } from "@/lib/auth";
 import type { ParsedCsvQuestion } from "@/lib/csv-parser";
 import { getQbUploadsData, invalidateQbBankCache } from "@/lib/qb-bank";
 import { qbSlug } from "@/lib/qb-meta-write";
+import {
+  canonicalUnitName,
+  canonicalUniversityName,
+  normalizeExamYear,
+} from "@/lib/qb-universities";
 
 /**
  * The new question bank.
@@ -427,6 +432,14 @@ export async function importQbRowsAction(
 
   let setId = file?.setId ?? null;
 
+  /*
+   * One spelling per university/unit/year. Without this, "ঢাবি" and
+   * "ঢাকা বিশ্ববিদ্যালয়" would become two separate groups on the student side.
+   */
+  const university = canonicalUniversityName(file?.university ?? "");
+  const unit = canonicalUnitName(university, file?.unit ?? "");
+  const year = normalizeExamYear(file?.year ?? "") || (file?.year ?? "").trim();
+
   await db.transaction(async (tx) => {
     if (file && !setId) {
       const [created] = await tx
@@ -437,9 +450,9 @@ export async function importQbRowsAction(
             file.originalFileName?.trim() ||
             "আপলোড করা প্রশ্ন",
           originalFileName: (file.originalFileName ?? "").trim(),
-          university: (file.university ?? "").trim(),
-          year: (file.year ?? "").trim(),
-          unit: (file.unit ?? "").trim(),
+          university,
+          year,
+          unit,
         })
         .returning({ id: newQuestionSets.id });
       setId = created.id;
@@ -759,13 +772,17 @@ export async function updateQbFileAction(
     return { ok: false, error: "ফাইলটি খুঁজে পাওয়া যায়নি।" };
   }
 
+  const university = canonicalUniversityName(input.university);
+  const unit = canonicalUnitName(university, input.unit);
+  const year = normalizeExamYear(input.year) || input.year.trim();
+
   await db
     .update(newQuestionSets)
     .set({
       fileName,
-      university: input.university.trim().slice(0, 120),
-      year: input.year.trim().slice(0, 20),
-      unit: input.unit.trim().slice(0, 80),
+      university: university.slice(0, 120),
+      year: year.slice(0, 20),
+      unit: unit.slice(0, 80),
       updatedAt: new Date(),
     })
     .where(eq(newQuestionSets.id, id));
