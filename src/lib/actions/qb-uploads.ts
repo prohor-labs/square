@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import {
@@ -345,89 +345,61 @@ export async function importQbRowsAction(
     folders.set(key, { chapterId, topicId });
   }
 
-  const chapterIds = [
-    ...new Set([...folders.values()].map((folder) => folder.chapterId)),
-  ];
-  const existing = await db
-    .select({
-      id: newQuestions.id,
-      chapterId: newQuestions.chapterId,
-      questionText: newQuestions.questionText,
-    })
-    .from(newQuestions)
-    .where(inArray(newQuestions.chapterId, chapterIds));
-
-  const questionIdByKey = new Map(
-    existing.map((row) => [
-      `${row.chapterId}\u0000${row.questionText}`,
-      row.id,
-    ]),
-  );
-
   const questionRows: (typeof newQuestions.$inferInsert)[] = [];
   const optionRows: (typeof newMcqOptions.$inferInsert)[] = [];
   const partRows: (typeof newCqParts.$inferInsert)[] = [];
   const linkRows: { questionId: string; orderNo: number }[] = [];
-  const linkedIds = new Set<string>();
-  let skipped = 0;
 
+  /*
+   * Every valid row becomes its own question — repeats included. A sheet can
+   * carry the same question twice on purpose (another paper, a re-upload), and
+   * those are kept instead of being silently dropped or merged.
+   */
   for (let index = 0; index < valid.length; index++) {
     const row = valid[index];
     const folder = folders.get(rowKey(row));
     if (!folder) continue;
 
-    const dedupeKey = `${folder.chapterId}\u0000${row.questionText}`;
-    let questionId = questionIdByKey.get(dedupeKey);
+    const questionId = crypto.randomUUID();
 
-    if (questionId) {
-      skipped++;
-    } else {
-      const createdQuestionId = crypto.randomUUID();
-      questionId = createdQuestionId;
-      questionIdByKey.set(dedupeKey, createdQuestionId);
+    questionRows.push({
+      id: questionId,
+      chapterId: folder.chapterId,
+      topicId: folder.topicId,
+      type: row.type,
+      source: (row.source || "CSV আপলোড").trim(),
+      standard: row.standard,
+      questionText: row.questionText,
+      questionImage: row.questionImage ?? null,
+      explanation: row.explanation ?? null,
+      explanationImage: row.explanationImage ?? null,
+      isFree: false,
+    });
 
-      questionRows.push({
-        id: questionId,
-        chapterId: folder.chapterId,
-        topicId: folder.topicId,
-        type: row.type,
-        source: (row.source || "CSV আপলোড").trim(),
-        standard: row.standard,
-        questionText: row.questionText,
-        questionImage: row.questionImage ?? null,
-        explanation: row.explanation ?? null,
-        explanationImage: row.explanationImage ?? null,
-        isFree: false,
+    if (row.type === "mcq") {
+      row.mcqOptions?.forEach((opt, optionIndex) => {
+        optionRows.push({
+          questionId,
+          optionText: opt.optionText ?? "",
+          image: opt.image ?? null,
+          isCorrect: opt.isCorrect,
+          orderNo: optionIndex + 1,
+        });
       });
-
-      if (row.type === "mcq") {
-        row.mcqOptions?.forEach((opt, optionIndex) => {
-          optionRows.push({
-            questionId: createdQuestionId,
-            optionText: opt.optionText ?? "",
-            image: opt.image ?? null,
-            isCorrect: opt.isCorrect,
-            orderNo: optionIndex + 1,
-          });
+    } else {
+      row.cqParts?.forEach((part, partIndex) => {
+        partRows.push({
+          questionId,
+          partKey: part.partKey,
+          questionText: part.questionText,
+          answerText: part.answerText ?? null,
+          marks: part.marks,
+          orderNo: partIndex + 1,
         });
-      } else {
-        row.cqParts?.forEach((part, partIndex) => {
-          partRows.push({
-            questionId: createdQuestionId,
-            partKey: part.partKey,
-            questionText: part.questionText,
-            answerText: part.answerText ?? null,
-            marks: part.marks,
-            orderNo: partIndex + 1,
-          });
-        });
-      }
+      });
     }
 
-    if (!linkedIds.has(questionId)) {
-      linkedIds.add(questionId);
-      linkRows.push({ questionId, orderNo: validOrder[index] });
-    }
+    linkRows.push({ questionId, orderNo: validOrder[index] });
   }
 
   let setId = file?.setId ?? null;
@@ -478,7 +450,7 @@ export async function importQbRowsAction(
   });
 
   invalidateQbBankCache();
-  return { imported: questionRows.length, skipped, errors, setId };
+  return { imported: questionRows.length, skipped: 0, errors, setId };
 }
 
 /** Everything uploaded from /qb, newest first, optionally filtered. */
