@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
 import { QbPagination } from "@/components/qb/student/qb-pagination";
 import { QbQuestionCard } from "@/components/qb/student/qb-question-card";
 import { toBengaliDigits } from "@/lib/calendar-date";
@@ -9,11 +6,11 @@ import type { QbQuestionsPage } from "@/lib/qb-catalog";
 import { cn } from "@/lib/utils";
 
 /**
- * The question list with its two controls.
+ * The question list and its subject tabs.
  *
  * Subject tabs are plain links (`?subject=…`), so they filter the whole node on
- * the server — pagination, counts and the "মোট" line always agree. Only the
- * answer reveal is client state, because it never needs a round-trip.
+ * the server — pagination, counts and the "মোট" line always agree. Answers are
+ * always visible; there is no reveal switch.
  */
 export function QbQuestionBoard({
   data,
@@ -22,8 +19,6 @@ export function QbQuestionBoard({
   readonly data: QbQuestionsPage;
   readonly pageSize: number;
 }): React.ReactElement {
-  const [showAnswers, setShowAnswers] = useState(true);
-
   const offset = (data.page - 1) * pageSize;
   const subjectQuery = data.activeSubject
     ? `subject=${encodeURIComponent(data.activeSubject)}`
@@ -36,26 +31,12 @@ export function QbQuestionBoard({
   const allCount = data.subjects.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <label className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-bold text-muted-foreground">
-          উত্তর
-          <select
-            value={showAnswers ? "show" : "hide"}
-            onChange={(event) => setShowAnswers(event.target.value === "show")}
-            className="rounded-md bg-transparent text-[11px] font-bold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-          >
-            <option value="show">দেখাও</option>
-            <option value="hide">লুকাও</option>
-          </select>
-        </label>
-      </div>
-
+    <div className="flex flex-col gap-3">
       {data.subjects.length > 1 ? (
         <div
           role="tablist"
           aria-label="বিষয় অনুযায়ী প্রশ্ন"
-          className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-wrap gap-1.5"
         >
           <SubjectTab
             href={tabHref("")}
@@ -96,7 +77,6 @@ export function QbQuestionBoard({
                 key={question.id}
                 question={question}
                 index={offset + index + 1}
-                showCorrectAnswer={showAnswers}
               />
             ))}
           </ol>
@@ -131,7 +111,7 @@ function SubjectTab({
       aria-selected={selected}
       scroll={false}
       className={cn(
-        "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+        "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:text-xs",
         selected
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",

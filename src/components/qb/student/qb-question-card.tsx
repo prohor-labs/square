@@ -105,7 +105,7 @@ export function QbQuestionCard({
         hideHeader={true}
         stemFooter={
           context.length > 0 ? (
-            <p className="text-right text-[10px] font-medium leading-relaxed text-muted-foreground sm:text-[11px]">
+            <p className="text-right text-[10px] font-bold leading-relaxed text-foreground/70 sm:text-[11px]">
               {context.join(" · ")}
             </p>
           ) : undefined
