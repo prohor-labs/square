@@ -1,23 +1,21 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { QbEmpty } from "@/components/qb/student/qb-empty";
-import { QbPagination } from "@/components/qb/student/qb-pagination";
-import { QbQuestionCard } from "@/components/qb/student/qb-question-card";
-import { toBengaliDigits } from "@/lib/calendar-date";
+import { QbQuestionBoard } from "@/components/qb/student/qb-question-board";
 import { QB_PAGE_SIZE, type QbQuestionsPage } from "@/lib/qb-catalog";
 
 /**
- * A page of questions with the pager underneath.
+ * A page of questions with the subject tabs, the answer switch and the pager.
  *
  * Questions arrive already sliced by the server; nothing about the rest of the
- * bank reaches the browser.
+ * bank reaches the browser. Only the "show answers" switch lives in the client.
  */
 export function QbQuestionList({
   data,
 }: {
   readonly data: QbQuestionsPage;
 }): ReactElement {
-  if (data.questions.length === 0) {
+  if (data.questions.length === 0 && data.subjects.length === 0) {
     return (
       <QbEmpty
         title={data.emptyTitle}
@@ -34,32 +32,5 @@ export function QbQuestionList({
     );
   }
 
-  const offset = (data.page - 1) * QB_PAGE_SIZE;
-
-  return (
-    <div className="flex flex-col gap-6">
-      <p className="text-xs font-semibold text-muted-foreground">
-        মোট {toBengaliDigits(data.total)}টি প্রশ্নের মধ্যে{" "}
-        {toBengaliDigits(offset + 1)}–
-        {toBengaliDigits(Math.min(offset + data.questions.length, data.total))}
-        টি দেখানো হচ্ছে
-      </p>
-
-      <ol className="flex flex-col gap-5">
-        {data.questions.map((question, index) => (
-          <QbQuestionCard
-            key={question.id}
-            question={question}
-            index={offset + index + 1}
-          />
-        ))}
-      </ol>
-
-      <QbPagination
-        basePath={data.basePath}
-        page={data.page}
-        pageCount={data.pageCount}
-      />
-    </div>
-  );
+  return <QbQuestionBoard data={data} pageSize={QB_PAGE_SIZE} />;
 }

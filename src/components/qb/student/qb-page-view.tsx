@@ -24,7 +24,6 @@ export function QbPageView({
         icon={icon}
         eyebrow={eyebrow}
         title={data.title}
-        description={data.description}
         count={data.kind === "questions" ? data.total : undefined}
       />
 

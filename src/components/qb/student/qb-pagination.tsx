@@ -8,14 +8,18 @@ export function QbPagination({
   basePath,
   page,
   pageCount,
+  query = "",
 }: {
   readonly basePath: string;
   readonly page: number;
   readonly pageCount: number;
+  /** Extra query string kept on every page link (e.g. `subject=পদার্থবিজ্ঞান`). */
+  readonly query?: string;
 }): ReactElement | null {
   if (pageCount <= 1) return null;
 
-  const href = (target: number): string => `${basePath}?page=${target}`;
+  const href = (target: number): string =>
+    `${basePath}?${query ? `${query}&` : ""}page=${target}`;
   const pages: number[] = [];
   const from = Math.max(1, page - 2);
   const to = Math.min(pageCount, page + 2);

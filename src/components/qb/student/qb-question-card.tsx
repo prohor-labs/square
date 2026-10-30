@@ -15,6 +15,8 @@ export interface QbQuestionCardProps {
   /** Hide the "open page" link when this card already is that page. */
   readonly showPermalink?: boolean;
   readonly examLabel?: string;
+  /** Reveal the correct option. Off = neutral options for practice. */
+  readonly showCorrectAnswer?: boolean;
 }
 
 /**
@@ -29,6 +31,7 @@ export function QbQuestionCard({
   question,
   showPermalink = true,
   examLabel,
+  showCorrectAnswer = true,
 }: QbQuestionCardProps): React.ReactElement {
   const mapped = useMemo<Question>(
     () => ({
@@ -73,39 +76,40 @@ export function QbQuestionCard({
         .filter((part): part is string => Boolean(part?.trim()))
         .join(" · ");
 
-  /** Book → chapter → topic, always on the right and always small. */
+  /** Book → paper → chapter → topic, values only, right-aligned in the card. */
   const context = [
-    question.subjectName ? `বই: ${question.subjectName}` : "",
-    question.chapterName ? `অধ্যায়: ${question.chapterName}` : "",
-    question.topicName ? `টপিক: ${question.topicName}` : "",
-  ].filter((part) => part.length > 0);
+    question.subjectName,
+    question.paperName,
+    question.chapterName,
+    question.topicName,
+  ].filter((part): part is string => Boolean(part?.trim()));
 
   return (
     <li className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-          <span className="rounded-md bg-muted px-2 py-0.5 font-bold text-foreground/90">
-            প্রশ্ন {toBengaliDigits(index)}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+        <span className="rounded-md bg-muted px-2 py-0.5 font-bold text-foreground/90">
+          প্রশ্ন {toBengaliDigits(index)}
+        </span>
+        {badge ? (
+          <span className="rounded-full bg-primary/12 px-2 py-0.5 font-bold text-primary">
+            {badge}
           </span>
-          {badge ? (
-            <span className="rounded-full bg-primary/12 px-2 py-0.5 font-bold text-primary">
-              {badge}
-            </span>
-          ) : null}
-        </div>
-
-        {context.length > 0 ? (
-          <p className="min-w-0 text-[10px] font-medium leading-relaxed text-muted-foreground sm:text-right sm:text-[11px]">
-            {context.join(" · ")}
-          </p>
         ) : null}
       </div>
 
       <UniversalQuestionCard
         question={mapped}
         questionIndex={index - 1}
-        showCorrectAnswer={true}
+        showCorrectAnswer={showCorrectAnswer}
         disableOptionChange={true}
+        hideHeader={true}
+        stemFooter={
+          context.length > 0 ? (
+            <p className="text-right text-[10px] font-medium leading-relaxed text-muted-foreground sm:text-[11px]">
+              {context.join(" · ")}
+            </p>
+          ) : undefined
+        }
       />
 
       {showPermalink ? (

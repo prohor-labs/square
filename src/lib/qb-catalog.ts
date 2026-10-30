@@ -66,6 +66,8 @@ export interface QbNode {
   readonly count: number;
   readonly hint: string;
   readonly href: string;
+  /** Parent name shown above the label (year cards carry their university). */
+  readonly context?: string;
 }
 
 export interface QbCrumb {
@@ -91,6 +93,13 @@ export interface QbQuestionsPage {
   readonly crumbs: readonly QbCrumb[];
   readonly basePath: string;
   readonly questions: readonly QbUploadedQuestion[];
+  /** Subject tabs (book-wise), taken from the questions of this node. */
+  readonly subjects: readonly {
+    readonly label: string;
+    readonly count: number;
+  }[];
+  /** Currently selected subject tab; empty means "all". */
+  readonly activeSubject: string;
   readonly total: number;
   readonly page: number;
   readonly pageCount: number;
@@ -727,6 +736,7 @@ const UNIVERSITY_ROOT: QbCrumb = { label: "প্রশ্নব্যাংক"
 export async function getQbUniversityPage(
   segments: readonly string[],
   page: number,
+  subject = "",
 ): Promise<QbPageData | null> {
   const catalog = await loadCatalog();
   const basePath = "/qb/university";
@@ -806,6 +816,7 @@ export async function getQbUniversityPage(
         count: year.questions.length,
         hint: `${toBengaliDigits(year.questions.length)}টি প্রশ্ন`,
         href: href(unitPath, year.key),
+        context: university.label,
       })),
       emptyTitle: "এই ইউনিটে কোনো সাল নেই",
       emptyBody: "অন্য ইউনিট বেছে দেখুন।",
@@ -823,6 +834,7 @@ export async function getQbUniversityPage(
     questions: year.questions,
     page,
     contextQuery: "",
+    subject,
   });
 }
 
@@ -832,6 +844,7 @@ async function getFlatSectionPage(
   section: "engineering" | "medical",
   segments: readonly string[],
   page: number,
+  subject = "",
 ): Promise<QbPageData | null> {
   const catalog = await loadCatalog();
   const basePath = `/qb/${section}`;
@@ -889,6 +902,7 @@ async function getFlatSectionPage(
         count: year.questions.length,
         hint: `${toBengaliDigits(year.questions.length)}টি প্রশ্ন`,
         href: href(groupPath, year.key),
+        context: group.label,
       })),
       emptyTitle: "এই প্রতিষ্ঠানে কোনো সাল নেই",
       emptyBody: "অন্য প্রতিষ্ঠান বেছে দেখুন।",
@@ -906,21 +920,24 @@ async function getFlatSectionPage(
     questions: year.questions,
     page,
     contextQuery: "",
+    subject,
   });
 }
 
 export async function getQbEngineeringPage(
   segments: readonly string[],
   page: number,
+  subject = "",
 ): Promise<QbPageData | null> {
-  return getFlatSectionPage("engineering", segments, page);
+  return getFlatSectionPage("engineering", segments, page, subject);
 }
 
 export async function getQbMedicalPage(
   segments: readonly string[],
   page: number,
+  subject = "",
 ): Promise<QbPageData | null> {
-  return getFlatSectionPage("medical", segments, page);
+  return getFlatSectionPage("medical", segments, page, subject);
 }
 
 /* ── subject section ──────────────────────────────────────────────────────── */
@@ -928,6 +945,7 @@ export async function getQbMedicalPage(
 export async function getQbSubjectPage(
   segments: readonly string[],
   page: number,
+  subjectFilter = "",
 ): Promise<QbPageData | null> {
   const catalog = await loadCatalog();
   const basePath = "/qb/subject";
@@ -1072,6 +1090,7 @@ export async function getQbSubjectPage(
       questions: chapter.questions,
       page,
       contextQuery: "",
+      subject: subjectFilter,
     });
   }
 
@@ -1085,6 +1104,7 @@ export async function getQbSubjectPage(
       questions: chapter.questions,
       page,
       contextQuery: "",
+      subject: subjectFilter,
     });
   }
 
@@ -1101,6 +1121,7 @@ export async function getQbSubjectPage(
     questions: topic.questions,
     page,
     contextQuery: "",
+    subject: subjectFilter,
   });
 }
 
@@ -1141,8 +1162,36 @@ function questionsPage(args: {
   questions: readonly QbUploadedQuestion[];
   page: number;
   contextQuery: string;
+  /** Subject tab picked by the reader; ignored when no question has it. */
+  subject?: string;
 }): QbQuestionsPage {
-  const paged = paginate(args.questions, args.page);
+  /*
+   * Tabs are per subject (the book), never per paper: the whole node's
+   * questions are grouped by `subject_name` exactly as the CSV spells it.
+   */
+  const subjects = unique(
+    args.questions
+      .map((question) => strip(question.subjectName))
+      .filter(Boolean),
+  )
+    .map((label) => ({
+      label,
+      count: args.questions.filter(
+        (question) => strip(question.subjectName) === label,
+      ).length,
+    }))
+    .sort((a, b) => compareBn(a.label, b.label));
+
+  const activeSubject = subjects.some((item) => item.label === args.subject)
+    ? (args.subject ?? "")
+    : "";
+  const list = activeSubject
+    ? args.questions.filter(
+        (question) => strip(question.subjectName) === activeSubject,
+      )
+    : args.questions;
+
+  const paged = paginate(list, args.page);
   return {
     kind: "questions",
     title: args.title,
@@ -1150,6 +1199,8 @@ function questionsPage(args: {
     crumbs: args.crumbs,
     basePath: args.basePath,
     questions: paged.items,
+    subjects,
+    activeSubject,
     total: paged.total,
     page: paged.page,
     pageCount: paged.pageCount,

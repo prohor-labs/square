@@ -49,6 +49,10 @@ export interface UniversalQuestionCardProps {
   readonly hideHeaderBadge?: boolean;
   readonly hideExplanation?: boolean;
   readonly hideControls?: boolean;
+  /** Hides the whole header row (index, type, source, standard). */
+  readonly hideHeader?: boolean;
+  /** Small line rendered under the stem and above the options. */
+  readonly stemFooter?: React.ReactNode;
   readonly badgeText?: string;
   readonly headerActions?: React.ReactNode;
   readonly footerActions?: React.ReactNode;
@@ -68,6 +72,8 @@ export function UniversalQuestionCard({
   hideHeaderBadge = false,
   hideExplanation = false,
   hideControls = false,
+  hideHeader = false,
+  stemFooter,
   badgeText,
   headerActions,
   footerActions,
@@ -110,7 +116,12 @@ export function UniversalQuestionCard({
       )}
     >
       {/* Header: Index, Badges, and Header Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-2.5 sm:mb-4">
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-2.5 sm:mb-4",
+          hideHeader && "hidden",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-2">
           {badgeText ? (
             <span className="text-xs sm:text-sm font-bold text-foreground/80">
@@ -168,10 +179,8 @@ export function UniversalQuestionCard({
         >
           {sanitizeQuestionContent(questionText)}
         </ReactMarkdown>
-        <QuestionImage
-          src={questionImage}
-          alt="প্রশ্নের চিত্র"
-        />
+        <QuestionImage src={questionImage} alt="প্রশ্নের চিত্র" />
+        {stemFooter ? <div className="mt-2.5">{stemFooter}</div> : null}
       </div>
 
       {/* MCQ Options */}
@@ -379,9 +388,7 @@ export function UniversalQuestionCard({
                 className="text-[11px] sm:text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg gap-1.5 h-7 sm:h-8 px-2 sm:px-2.5"
               >
                 <Lightbulb className="size-3 sm:size-3.5" />
-                {resolvedSolutionOpen
-                  ? "ব্যাখ্যা লুকান"
-                  : "ব্যাখ্যা / সমাধান দেখুন"}
+                {resolvedSolutionOpen ? "ব্যাখ্যা লুকান" : "ব্যাখ্যা / সমাধান দেখুন"}
               </Button>
             ) : (
               <div />
@@ -408,10 +415,7 @@ export function UniversalQuestionCard({
               >
                 {sanitizeQuestionContent(question.explanation)}
               </ReactMarkdown>
-              <QuestionImage
-                src={explanationImage}
-                alt="ব্যাখ্যার চিত্র"
-              />
+              <QuestionImage src={explanationImage} alt="ব্যাখ্যার চিত্র" />
             </div>
           </div>
         )}

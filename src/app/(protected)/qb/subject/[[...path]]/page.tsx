@@ -23,10 +23,14 @@ export default async function QbSubjectRoute({
   const segments = (path ?? []).map(readSegment);
   const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
   const page = Number(rawPage);
+  const rawSubject = Array.isArray(query.subject)
+    ? query.subject[0]
+    : query.subject;
 
   const data = await getQbSubjectPage(
     segments,
     Number.isFinite(page) && page > 0 ? page : 1,
+    rawSubject?.trim() ?? "",
   );
 
   if (!data) notFound();

@@ -48,12 +48,18 @@ export function QbNodeGrid({
       {nodes.map((node, index) => {
         const tint = TINTS[index % TINTS.length];
         const hint = nodeHint(node);
+        /** Year tiles carry their university, so their text sits centred. */
+        const centered = Boolean(node.context);
 
         return (
           <li key={node.key} className="min-w-0">
             <Link
               href={node.href}
-              className={`group relative flex h-full min-h-[8.5rem] flex-col justify-between overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${tint.bg} p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2`}
+              className={`group relative flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${tint.bg} p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 ${
+                centered
+                  ? "items-center justify-center gap-1.5 text-center"
+                  : "justify-between"
+              }`}
             >
               <span
                 aria-hidden="true"
@@ -65,6 +71,13 @@ export function QbNodeGrid({
               />
 
               <span className="relative block min-w-0">
+                {node.context ? (
+                  <span
+                    className={`block break-words text-[10px] font-bold leading-snug opacity-75 ${tint.ink}`}
+                  >
+                    {node.context}
+                  </span>
+                ) : null}
                 <span
                   className={`block break-words text-base font-black leading-snug sm:text-[17px] ${tint.ink}`}
                 >
@@ -79,7 +92,11 @@ export function QbNodeGrid({
                 ) : null}
               </span>
 
-              <span className="relative mt-4 inline-flex w-fit items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-black/65 shadow-sm">
+              <span
+                className={`relative mt-4 inline-flex w-fit items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-black/65 shadow-sm ${
+                  centered ? "mx-auto" : ""
+                }`}
+              >
                 <Edit className="size-3" aria-hidden="true" />
                 {toBengaliDigits(node.count)}
               </span>

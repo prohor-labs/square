@@ -63,7 +63,7 @@ export function QbStickyTabs({
       <div
         role="tablist"
         aria-label="প্রশ্নব্যাংকের বিভাগ"
-        className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="grid grid-cols-4 gap-1.5 sm:flex sm:gap-2 sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((tab) => {
           const selected = active === tab.id;
@@ -76,16 +76,16 @@ export function QbStickyTabs({
               aria-controls={`section-${tab.id}`}
               onClick={() => jump(tab.id)}
               className={cn(
-                "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:px-4 sm:text-sm",
+                "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1.5 text-center text-[10px] font-bold leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:shrink-0 sm:flex-row sm:gap-2 sm:rounded-full sm:px-4 sm:py-2 sm:text-sm",
                 selected
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
-              <span className="whitespace-nowrap">{tab.label}</span>
+              <span className="min-w-0 sm:whitespace-nowrap">{tab.label}</span>
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums",
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-black tabular-nums sm:text-[10px]",
                   selected
                     ? "bg-primary-foreground/20 text-primary-foreground"
                     : "bg-muted text-muted-foreground",
