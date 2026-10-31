@@ -38,8 +38,11 @@ const SAMPLE_CSV = `\uFEFFquestion,type,option1,option2,option3,option4,answer,e
 
 const BATCH_SIZE = 100;
 const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_CHOICES = Array.from({ length: 16 }, (_, index) =>
-  String(CURRENT_YEAR - index),
+/** Admission years on offer: the coming year back to 2000. */
+const FIRST_YEAR = 2000;
+const YEAR_CHOICES = Array.from(
+  { length: CURRENT_YEAR + 1 - FIRST_YEAR + 1 },
+  (_, index) => String(CURRENT_YEAR + 1 - index),
 );
 
 interface UploadSummary {
