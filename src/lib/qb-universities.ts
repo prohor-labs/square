@@ -25,6 +25,8 @@ export interface QbUniversity {
   readonly short: readonly string[];
   /** Units for this university only; empty means "no known unit split". */
   readonly units: readonly string[];
+  /** Former/alternate spellings — searchable and canonicalised, never shown. */
+  readonly aliases?: readonly string[];
 }
 
 const UNITS_DU = ["ক ইউনিট", "খ ইউনিট", "গ ইউনিট", "ঘ ইউনিট"] as const;
@@ -121,9 +123,10 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   },
   {
     id: "rub",
-    bn: "রবীন্দ্র বিশ্ববিদ্যালয়",
-    en: "Rabindra University",
+    bn: "রবীন্দ্র বিশ্ববিদ্যালয়, বাংলাদেশ",
+    en: "Rabindra University, Bangladesh",
     short: ["RUB", "রবি"],
+    aliases: ["রবীন্দ্র বিশ্ববিদ্যালয়"],
     units: [],
   },
   {
@@ -152,6 +155,11 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "বগুড়া বিশ্ববিদ্যালয়",
     en: "University of Bogura",
     short: ["UB"],
+    aliases: [
+      "বগুড়া বিজ্ঞান ও প্রযুক্তি বিশ্ববিদ্যালয়",
+      "Bogura Science and Technology University",
+      "Bogra Science and Technology University",
+    ],
     units: [],
   },
   {
@@ -337,16 +345,21 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   },
   {
     id: "bsmrau",
-    bn: "বঙ্গবন্ধু শেখ মুজিবুর রহমান কৃষি বিশ্ববিদ্যালয়",
-    en: "Bangabandhu Sheikh Mujibur Rahman Agricultural University",
-    short: ["BSMRAU"],
+    bn: "গাজীপুর কৃষি বিশ্ববিদ্যালয়",
+    en: "Gazipur Agricultural University",
+    short: ["GAU", "BSMRAU"],
+    aliases: [
+      "বঙ্গবন্ধু শেখ মুজিবুর রহমান কৃষি বিশ্ববিদ্যালয়",
+      "Bangabandhu Sheikh Mujibur Rahman Agricultural University",
+    ],
     units: [],
   },
   {
     id: "sbau",
-    bn: "শেরে বাংলা কৃষি বিশ্ববিদ্যালয়",
+    bn: "শেরেবাংলা কৃষি বিশ্ববিদ্যালয়",
     en: "Sher-e-Bangla Agricultural University",
     short: ["SBAU", "শেকৃবি"],
+    aliases: ["শেরে বাংলা কৃষি বিশ্ববিদ্যালয়"],
     units: [],
   },
   {
@@ -388,9 +401,13 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   /* ── medical ─────────────────────────────────────────────────────────── */
   {
     id: "bsmmu",
-    bn: "বঙ্গবন্ধু শেখ মুজিব মেডিকেল বিশ্ববিদ্যালয়",
-    en: "Bangabandhu Sheikh Mujib Medical University",
-    short: ["BSMMU", "বামেবি"],
+    bn: "বাংলাদেশ মেডিকেল বিশ্ববিদ্যালয়",
+    en: "Bangladesh Medical University",
+    short: ["BMU", "BSMMU", "বামেবি"],
+    aliases: [
+      "বঙ্গবন্ধু শেখ মুজিব মেডিকেল বিশ্ববিদ্যালয়",
+      "Bangabandhu Sheikh Mujib Medical University",
+    ],
     units: [],
   },
   {
@@ -425,9 +442,10 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   /* ── specialised & national ──────────────────────────────────────────── */
   {
     id: "cvasu",
-    bn: "চট্টগ্রাম ভেটেরিনারি ও অ্যানিম্যাল সায়েন্সেস বিশ্ববিদ্যালয়",
+    bn: "চট্টগ্রাম ভেটেরিনারি ও এনিম্যাল সায়েন্সেস বিশ্ববিদ্যালয়",
     en: "Chittagong Veterinary and Animal Sciences University",
     short: ["CVASU", "চভাসু"],
+    aliases: ["চট্টগ্রাম ভেটেরিনারি ও অ্যানিম্যাল সায়েন্সেস বিশ্ববিদ্যালয়"],
     units: [],
   },
   {
@@ -439,9 +457,13 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   },
   {
     id: "bsmrmu",
-    bn: "বঙ্গবন্ধু শেখ মুজিবুর রহমান মেরিটাইম বিশ্ববিদ্যালয়",
-    en: "Bangabandhu Sheikh Mujibur Rahman Maritime University",
+    bn: "বাংলাদেশ মেরিটাইম বিশ্ববিদ্যালয়",
+    en: "Bangladesh Maritime University",
     short: ["BSMRMU"],
+    aliases: [
+      "বঙ্গবন্ধু শেখ মুজিবুর রহমান মেরিটাইম বিশ্ববিদ্যালয়",
+      "Bangabandhu Sheikh Mujibur Rahman Maritime University",
+    ],
     units: [],
   },
   {
@@ -453,9 +475,10 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   },
   {
     id: "aaub",
-    bn: "বঙ্গবন্ধু শেখ মুজিবুর রহমান অ্যাভিয়েশন অ্যান্ড অ্যারোস্পেস বিশ্ববিদ্যালয়",
-    en: "Bangabandhu Sheikh Mujibur Rahman Aviation and Aerospace University",
+    bn: "এভিয়েশন অ্যান্ড অ্যারোস্পেস বিশ্ববিদ্যালয়, বাংলাদেশ",
+    en: "Aviation and Aerospace University, Bangladesh",
     short: ["AAUB"],
+    aliases: ["বঙ্গবন্ধু শেখ মুজিবুর রহমান অ্যাভিয়েশন অ্যান্ড অ্যারোস্পেস বিশ্ববিদ্যালয়"],
     units: [],
   },
   {
@@ -474,16 +497,18 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   },
   {
     id: "iau",
-    bn: "ইসলামি আরবি বিশ্ববিদ্যালয়",
+    bn: "ইসলামী আরবি বিশ্ববিদ্যালয়",
     en: "Islamic Arabic University",
     short: ["IAU"],
+    aliases: ["ইসলামি আরবি বিশ্ববিদ্যালয়"],
     units: [],
   },
   {
     id: "dcu",
-    bn: "ঢাকা কেন্দ্রীয় বিশ্ববিদ্যালয়",
+    bn: "ঢাকা সেন্ট্রাল বিশ্ববিদ্যালয়",
     en: "Dhaka Central University",
     short: ["DCU"],
+    aliases: ["ঢাকা কেন্দ্রীয় বিশ্ববিদ্যালয়"],
     units: [],
   },
 ];
@@ -508,7 +533,12 @@ export function qbKey(value: string): string {
 
 /** Every searchable string for one university. */
 function searchKeys(university: QbUniversity): string[] {
-  return [university.bn, university.en, ...university.short].map(qbKey);
+  return [
+    university.bn,
+    university.en,
+    ...university.short,
+    ...(university.aliases ?? []),
+  ].map(qbKey);
 }
 
 /** Universities whose Bengali/English name or abbreviation matches the query. */

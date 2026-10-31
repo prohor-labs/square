@@ -25,7 +25,6 @@ import { type ParsedCsvQuestion, parseQuestionsCsv } from "@/lib/csv-parser";
 import {
   canonicalUnitName,
   canonicalUniversityName,
-  findQbUniversity,
   normalizeExamYear,
   qbUnitsForUniversity,
 } from "@/lib/qb-universities";
@@ -97,7 +96,6 @@ export function QbUploader({
     ]),
   ].sort((a, b) => b.localeCompare(a, "bn"));
 
-  const selectedUniversity = findQbUniversity(university);
   const canonicalUniversity = canonicalUniversityName(university);
   const canonicalUnit = canonicalUnitName(canonicalUniversity, unit);
   const canonicalYear = normalizeExamYear(year);
@@ -112,9 +110,12 @@ export function QbUploader({
     )
     .reduce((total, file) => total + file.questionCount, 0);
 
-  const needsUnit =
-    canonicalUniversity.length > 0 &&
-    (unitChoices.length > 0 || Boolean(selectedUniversity));
+  /*
+   * Only universities that actually publish a unit split (or already have one
+   * stored) must pick a unit. Engineering universities admit straight into
+   * departments, so their upload stays valid with no unit at all.
+   */
+  const needsUnit = canonicalUniversity.length > 0 && unitChoices.length > 0;
   const missingUnit = needsUnit && canonicalUnit.length === 0;
   const missingYear =
     canonicalUniversity.length > 0 && canonicalYear.length === 0;
