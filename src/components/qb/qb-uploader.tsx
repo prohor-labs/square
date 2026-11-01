@@ -441,7 +441,7 @@ export function QbUploader({
                 ) : null}
               </div>
 
-              {shelf === "medical" ? null : (
+              {shelf === "university" ? (
                 <div className="space-y-1.5">
                   <Label htmlFor={`${uid}-unit`}>ইউনিট</Label>
                   {customUnit ? (
@@ -495,21 +495,21 @@ export function QbUploader({
                       : "এই বিশ্ববিদ্যালয়ের ইউনিট-তালিকা নেই — নিজে লিখতে পারেন।"}
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="min-w-0 flex-1 text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
                 {missingUniversity
-                  ? "বিশ্ববিদ্যালয় বাছলে ইউনিট ও বছর সেট হবে।"
+                  ? "বিশ্ববিদ্যালয় বাছলে বছর সেট হবে।"
                   : groupQuestionCount > 0
                     ? `এই গ্রুপে আগে থেকেই ${toBengaliDigits(groupQuestionCount)}টি প্রশ্ন আছে — নতুন প্রশ্নগুলো একই গ্রুপে যোগ হবে।`
                     : `${
-                        shelf === "medical"
-                          ? canonicalUniversity
-                          : `${canonicalUniversity} → ${
+                        shelf === "university"
+                          ? `${canonicalUniversity} → ${
                               canonicalUnit || "ইউনিট নেই"
                             }`
+                          : canonicalUniversity
                       } → ${
                         canonicalYear
                           ? toBengaliDigits(canonicalYear)

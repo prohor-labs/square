@@ -110,9 +110,12 @@ export function QbFileManager({
                       <span className="rounded-full bg-muted px-2 py-0.5 font-semibold">
                         {file.year ? toBengaliDigits(file.year) : "বছর নেই"}
                       </span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 font-semibold">
-                        {file.unit || "ইউনিট নেই"}
-                      </span>
+                      {/* Engineering/medical files have no unit — only varsity ones do. */}
+                      {file.unit ? (
+                        <span className="rounded-full bg-muted px-2 py-0.5 font-semibold">
+                          {file.unit}
+                        </span>
+                      ) : null}
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 font-bold text-primary">
                         {toBengaliDigits(file.questionCount)} টি প্রশ্ন
                       </span>
@@ -179,6 +182,8 @@ function QbFileEditDialog({
   const years = yearOptions(files);
   const universities = universityOptions(files);
   const units = unitOptions(files);
+  /** Engineering and medical files carry no unit, so they get no unit field. */
+  const usesUnit = file.unit.trim().length > 0;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -190,7 +195,7 @@ function QbFileEditDialog({
         fileName,
         university,
         year,
-        unit,
+        unit: usesUnit ? unit : "",
       });
 
       if (!result.ok) {
@@ -276,22 +281,24 @@ function QbFileEditDialog({
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor={`${uid}-unit`}>ইউনিট</Label>
-              <Input
-                id={`${uid}-unit`}
-                list={`${uid}-units`}
-                value={unit}
-                maxLength={80}
-                onChange={(event) => setUnit(event.target.value)}
-                placeholder="ক ইউনিট"
-              />
-              <datalist id={`${uid}-units`}>
-                {units.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-            </div>
+            {usesUnit ? (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${uid}-unit`}>ইউনিট</Label>
+                <Input
+                  id={`${uid}-unit`}
+                  list={`${uid}-units`}
+                  value={unit}
+                  maxLength={80}
+                  onChange={(event) => setUnit(event.target.value)}
+                  placeholder="ক ইউনিট"
+                />
+                <datalist id={`${uid}-units`}>
+                  {units.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              </div>
+            ) : null}
           </div>
 
           {error ? (
