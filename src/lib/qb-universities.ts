@@ -27,6 +27,12 @@ export interface QbUniversity {
   readonly units: readonly string[];
   /** Former/alternate spellings — searchable and canonicalised, never shown. */
   readonly aliases?: readonly string[];
+  /**
+   * Student shelf for this university's sets. Left out for the general
+   * university shelf; engineering/medical universities say so explicitly so a
+   * CSV upload lands in the right section without relying on keywords.
+   */
+  readonly section?: "engineering" | "medical";
 }
 
 const UNITS_DU = ["ক ইউনিট", "খ ইউনিট", "গ ইউনিট", "ঘ ইউনিট"] as const;
@@ -297,6 +303,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "বাংলাদেশ প্রকৌশল বিশ্ববিদ্যালয়",
     en: "Bangladesh University of Engineering and Technology",
     short: ["BUET", "বুয়েট"],
+    section: "engineering",
     units: [],
   },
   {
@@ -304,6 +311,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "রাজশাহী প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয়",
     en: "Rajshahi University of Engineering & Technology",
     short: ["RUET", "রুয়েট"],
+    section: "engineering",
     units: [],
   },
   {
@@ -311,6 +319,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "খুলনা প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয়",
     en: "Khulna University of Engineering & Technology",
     short: ["KUET", "কুয়েট"],
+    section: "engineering",
     units: [],
   },
   {
@@ -318,6 +327,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "চট্টগ্রাম প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয়",
     en: "Chittagong University of Engineering & Technology",
     short: ["CUET", "চুয়েট"],
+    section: "engineering",
     units: [],
   },
   {
@@ -325,6 +335,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "ঢাকা প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয়",
     en: "Dhaka University of Engineering & Technology",
     short: ["DUET", "ডুয়েট"],
+    section: "engineering",
     units: [],
   },
   {
@@ -332,6 +343,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "মিলিটারি ইনস্টিটিউট অব সায়েন্স অ্যান্ড টেকনোলজি",
     en: "Military Institute of Science and Technology",
     short: ["MIST"],
+    section: "engineering",
     units: [],
   },
 
@@ -408,6 +420,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
       "বঙ্গবন্ধু শেখ মুজিব মেডিকেল বিশ্ববিদ্যালয়",
       "Bangabandhu Sheikh Mujib Medical University",
     ],
+    section: "medical",
     units: [],
   },
   {
@@ -415,6 +428,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "চট্টগ্রাম মেডিকেল বিশ্ববিদ্যালয়",
     en: "Chittagong Medical University",
     short: ["CMU"],
+    section: "medical",
     units: [],
   },
   {
@@ -422,6 +436,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "রাজশাহী মেডিকেল বিশ্ববিদ্যালয়",
     en: "Rajshahi Medical University",
     short: ["RMU"],
+    section: "medical",
     units: [],
   },
   {
@@ -429,6 +444,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "সিলেট মেডিকেল বিশ্ববিদ্যালয়",
     en: "Sylhet Medical University",
     short: ["SMU"],
+    section: "medical",
     units: [],
   },
   {
@@ -436,6 +452,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "খুলনা মেডিকেল বিশ্ববিদ্যালয়",
     en: "Khulna Medical University",
     short: ["KMU"],
+    section: "medical",
     units: [],
   },
 
@@ -453,6 +470,7 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
     bn: "বাংলাদেশ টেক্সটাইল বিশ্ববিদ্যালয়",
     en: "Bangladesh University of Textiles",
     short: ["BUTEX", "বুটেক্স"],
+    section: "engineering",
     units: [],
   },
   {
@@ -588,6 +606,19 @@ export function canonicalUniversityName(value: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) return "";
   return findQbUniversity(trimmed)?.bn ?? trimmed.replace(/\s+/g, " ");
+}
+
+/**
+ * The student shelf a university's uploads belong to.
+ *
+ * Engineering and medical universities say so in this list; every other
+ * recognised university (general, agriculture, specialised) sits on the plain
+ * university shelf. Unknown names also fall back to that shelf.
+ */
+export function qbShelfForUniversity(
+  value: string,
+): "university" | "engineering" | "medical" {
+  return findQbUniversity(value)?.section ?? "university";
 }
 
 const BENGALI_LETTER_TO_LATIN: Readonly<Record<string, string>> = {

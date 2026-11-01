@@ -2,6 +2,7 @@ import type { QbUploadedQuestion } from "@/lib/actions/qb-uploads";
 import { toBengaliDigits } from "@/lib/calendar-date";
 import { getQbSnapshot, type QbInstituteRef } from "@/lib/qb-bank";
 import { qbSlug } from "@/lib/qb-meta-write";
+import { qbShelfForUniversity } from "@/lib/qb-universities";
 
 /**
  * The student catalogue over the uploaded question bank.
@@ -317,6 +318,17 @@ function classifySet(
 ): QbSetKind {
   const declared = kindOf(questions);
   if (declared === "engineering" || declared === "medical") return declared;
+
+  /*
+   * The curated university list knows each university's own category, so a
+   * BUTEX or MIST upload lands on the engineering shelf even when neither the
+   * sheet nor the name mentions engineering. This wins over the keyword scan
+   * below, which only exists for names that are not in the list.
+   */
+  if (strip(university)) {
+    const shelved = qbShelfForUniversity(university);
+    if (shelved !== "university") return shelved;
+  }
 
   const haystack = normalizeQbText(`${university} ${unit}`);
   if (haystack) {

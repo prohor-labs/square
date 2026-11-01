@@ -26,6 +26,7 @@ import {
   canonicalUnitName,
   canonicalUniversityName,
   normalizeExamYear,
+  qbShelfForUniversity,
   qbUnitsForUniversity,
 } from "@/lib/qb-universities";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,19 @@ const YEAR_CHOICES = Array.from(
   { length: CURRENT_YEAR + 1 - FIRST_YEAR + 1 },
   (_, index) => String(CURRENT_YEAR + 1 - index),
 );
+
+/** Where a file will land on the student side, shown next to the picker. */
+const SHELF_LABEL = {
+  university: "বিশ্ববিদ্যালয়",
+  engineering: "ইঞ্জিনিয়ারিং",
+  medical: "মেডিকেল",
+} as const;
+
+const SHELF_TONE = {
+  university: "bg-primary/12 text-primary",
+  engineering: "bg-sky-500/12 text-sky-700",
+  medical: "bg-emerald-500/12 text-emerald-700",
+} as const;
 
 interface UploadSummary {
   readonly imported: number;
@@ -102,6 +116,7 @@ export function QbUploader({
   const canonicalUniversity = canonicalUniversityName(university);
   const canonicalUnit = canonicalUnitName(canonicalUniversity, unit);
   const canonicalYear = normalizeExamYear(year);
+  const shelf = qbShelfForUniversity(canonicalUniversity);
 
   /** Uploading into an existing university+unit+year must reuse that group. */
   const groupQuestionCount = files
@@ -348,10 +363,24 @@ export function QbUploader({
                     setCustomUnit(false);
                   }}
                 />
-                <p className="text-[10px] leading-snug text-muted-foreground">
-                  {missingUniversity
-                    ? "না বাছলে প্রশ্নটি সাধারণ (বিশ্ববিদ্যালয়ভিত্তিক নয়) হিসেবে যুক্ত হবে।"
-                    : `তালিকা ও ইউনিট: ${canonicalUniversity}`}
+                <p className="flex flex-wrap items-center gap-1.5 text-[10px] leading-snug text-muted-foreground">
+                  {missingUniversity ? (
+                    "না বাছলে প্রশ্নটি সাধারণ (বিশ্ববিদ্যালয়ভিত্তিক নয়) হিসেবে যুক্ত হবে।"
+                  ) : (
+                    <>
+                      <span className="min-w-0 truncate">
+                        {canonicalUniversity}
+                      </span>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-black",
+                          SHELF_TONE[shelf],
+                        )}
+                      >
+                        → {SHELF_LABEL[shelf]} সেকশন
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
 
