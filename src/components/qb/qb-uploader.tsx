@@ -351,7 +351,9 @@ export function QbUploader({
 
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
-                <Label htmlFor={`${uid}-university`}>বিশ্ববিদ্যালয়</Label>
+                <Label htmlFor={`${uid}-university`}>
+                  {shelf === "medical" ? "ক্যাটাগরি" : "বিশ্ববিদ্যালয়"}
+                </Label>
                 <QbUniversityPicker
                   id={`${uid}-university`}
                   value={university}
@@ -439,59 +441,61 @@ export function QbUploader({
                 ) : null}
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor={`${uid}-unit`}>ইউনিট</Label>
-                {customUnit ? (
-                  <div className="flex gap-1.5">
-                    <Input
+              {shelf === "medical" ? null : (
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${uid}-unit`}>ইউনিট</Label>
+                  {customUnit ? (
+                    <div className="flex gap-1.5">
+                      <Input
+                        id={`${uid}-unit`}
+                        value={unit}
+                        maxLength={80}
+                        placeholder="যেমন: চ ইউনিট"
+                        onChange={(event) => setUnit(event.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 shrink-0 rounded-md px-2 text-[11px] font-bold"
+                        onClick={() => {
+                          setCustomUnit(false);
+                          setUnit("");
+                        }}
+                      >
+                        তালিকা
+                      </Button>
+                    </div>
+                  ) : (
+                    <select
                       id={`${uid}-unit`}
                       value={unit}
-                      maxLength={80}
-                      placeholder="যেমন: চ ইউনিট"
-                      onChange={(event) => setUnit(event.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 shrink-0 rounded-md px-2 text-[11px] font-bold"
-                      onClick={() => {
-                        setCustomUnit(false);
-                        setUnit("");
+                      onChange={(event) => {
+                        if (event.target.value === "__custom") {
+                          setCustomUnit(true);
+                          setUnit("");
+                          return;
+                        }
+                        setUnit(event.target.value);
                       }}
+                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
-                      তালিকা
-                    </Button>
-                  </div>
-                ) : (
-                  <select
-                    id={`${uid}-unit`}
-                    value={unit}
-                    onChange={(event) => {
-                      if (event.target.value === "__custom") {
-                        setCustomUnit(true);
-                        setUnit("");
-                        return;
-                      }
-                      setUnit(event.target.value);
-                    }}
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <option value="">ইউনিট নির্বাচন</option>
-                    {unitChoices.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                    <option value="__custom">＋ অন্য ইউনিট (নিজে লিখুন)</option>
-                  </select>
-                )}
-                <p className="text-[10px] leading-snug text-muted-foreground">
-                  {unitChoices.length > 0
-                    ? "এই বিশ্ববিদ্যালয়ের ইউনিটগুলো দেখানো হচ্ছে।"
-                    : "এই বিশ্ববিদ্যালয়ের ইউনিট-তালিকা নেই — নিজে লিখতে পারেন।"}
-                </p>
-              </div>
+                      <option value="">ইউনিট নির্বাচন</option>
+                      {unitChoices.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                      <option value="__custom">＋ অন্য ইউনিট (নিজে লিখুন)</option>
+                    </select>
+                  )}
+                  <p className="text-[10px] leading-snug text-muted-foreground">
+                    {unitChoices.length > 0
+                      ? "এই বিশ্ববিদ্যালয়ের ইউনিটগুলো দেখানো হচ্ছে।"
+                      : "এই বিশ্ববিদ্যালয়ের ইউনিট-তালিকা নেই — নিজে লিখতে পারেন।"}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -500,7 +504,13 @@ export function QbUploader({
                   ? "বিশ্ববিদ্যালয় বাছলে ইউনিট ও বছর সেট হবে।"
                   : groupQuestionCount > 0
                     ? `এই গ্রুপে আগে থেকেই ${toBengaliDigits(groupQuestionCount)}টি প্রশ্ন আছে — নতুন প্রশ্নগুলো একই গ্রুপে যোগ হবে।`
-                    : `${canonicalUniversity} → ${canonicalUnit || "ইউনিট নেই"} → ${
+                    : `${
+                        shelf === "medical"
+                          ? canonicalUniversity
+                          : `${canonicalUniversity} → ${
+                              canonicalUnit || "ইউনিট নেই"
+                            }`
+                      } → ${
                         canonicalYear
                           ? toBengaliDigits(canonicalYear)
                           : "বছর নেই"

@@ -411,47 +411,25 @@ export const QB_UNIVERSITIES: readonly QbUniversity[] = [
   },
 
   /* ── medical ─────────────────────────────────────────────────────────── */
+  /*
+   * Medical admission is one national test split into two categories, not a
+   * per-university exam, so the medical shelf offers the categories themselves
+   * rather than every medical university. A set's `university` is the category
+   * it was uploaded under ("মেডিকেল" / "ডেন্টাল").
+   */
   {
-    id: "bsmmu",
-    bn: "বাংলাদেশ মেডিকেল বিশ্ববিদ্যালয়",
-    en: "Bangladesh Medical University",
-    short: ["BMU", "BSMMU", "বামেবি"],
-    aliases: [
-      "বঙ্গবন্ধু শেখ মুজিব মেডিকেল বিশ্ববিদ্যালয়",
-      "Bangabandhu Sheikh Mujib Medical University",
-    ],
+    id: "medical",
+    bn: "মেডিকেল",
+    en: "Medical (MBBS)",
+    short: ["MBBS", "এমবিবিএস"],
     section: "medical",
     units: [],
   },
   {
-    id: "cmu",
-    bn: "চট্টগ্রাম মেডিকেল বিশ্ববিদ্যালয়",
-    en: "Chittagong Medical University",
-    short: ["CMU"],
-    section: "medical",
-    units: [],
-  },
-  {
-    id: "rmu",
-    bn: "রাজশাহী মেডিকেল বিশ্ববিদ্যালয়",
-    en: "Rajshahi Medical University",
-    short: ["RMU"],
-    section: "medical",
-    units: [],
-  },
-  {
-    id: "smu",
-    bn: "সিলেট মেডিকেল বিশ্ববিদ্যালয়",
-    en: "Sylhet Medical University",
-    short: ["SMU"],
-    section: "medical",
-    units: [],
-  },
-  {
-    id: "kmu",
-    bn: "খুলনা মেডিকেল বিশ্ববিদ্যালয়",
-    en: "Khulna Medical University",
-    short: ["KMU"],
+    id: "dental",
+    bn: "ডেন্টাল",
+    en: "Dental (BDS)",
+    short: ["BDS", "বিডিএস"],
     section: "medical",
     units: [],
   },

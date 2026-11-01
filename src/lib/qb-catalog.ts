@@ -638,12 +638,13 @@ function buildCatalog(
       (set) => set.university,
       (key) => key,
     ),
-    // A medical file's `unit` is where its category is written ("ডেন্টাল"),
-    // so the same shelf doubles as the category without guessing from the name.
+    // A medical file is filed under its category ("মেডিকেল" / "ডেন্টাল"), so the
+    // category — not a university — is what the shelf groups by. Files uploaded
+    // before categories existed wrote that value into `unit`, hence the fallback.
     medicalGroups: buildInstitutionGroups(
       sets,
       "medical",
-      (set) => set.unit,
+      (set) => set.university || set.unit,
       (key) => (key === QB_GENERAL ? "সাধারণ মেডিকেল" : key),
     ),
     subjectGroups: buildSubjectGroups(questions),
