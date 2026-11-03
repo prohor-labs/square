@@ -9,8 +9,16 @@ import {
 /** Below this size every card is kept mounted for instant client filtering. */
 const CLIENT_FILTER_LIMIT = 120;
 
-/** The "all questions" tab shows every matching row, even for a large bank. */
-const ALL_QUESTIONS_LIMIT = Number.MAX_SAFE_INTEGER;
+/**
+ * How many questions one screen of the admin list carries.
+ *
+ * A bank of several thousand rows used to be rendered in full, which blocked
+ * the page for ~30 seconds — long enough that the upload form stopped
+ * responding. The list now starts small and `?show=N` grows it one screen at a
+ * time; the filter bar narrows it when a specific question is needed.
+ */
+const ADMIN_PAGE_SIZE = 100;
+const ADMIN_MAX_PAGES = 5;
 
 /** A query param can arrive twice (`?subject=a&subject=b`); take the first. */
 function readParam(value: string | string[] | undefined): string | undefined {
@@ -39,6 +47,11 @@ export async function QbUploadPage({
     topicId: readParam(params.topic),
   };
 
+  const requested = Number(readParam(params.show) ?? "1");
+  const pages = Number.isFinite(requested)
+    ? Math.min(Math.max(1, Math.trunc(requested)), ADMIN_MAX_PAGES)
+    : 1;
+
   const [browser, files] = await Promise.all([
     getQbBrowserData(filters),
     getQbFileSummaries(),
@@ -46,7 +59,17 @@ export async function QbUploadPage({
   const clientFilter = browser.allTotal <= CLIENT_FILTER_LIMIT;
   const page = clientFilter
     ? null
-    : await getQbUploadsData(filters, ALL_QUESTIONS_LIMIT);
+    : await getQbUploadsData(filters, pages * ADMIN_PAGE_SIZE);
+
+  const showMoreParams = new URLSearchParams();
+  if (filters.subjectId) showMoreParams.set("subject", filters.subjectId);
+  if (filters.chapterId) showMoreParams.set("chapter", filters.chapterId);
+  if (filters.topicId) showMoreParams.set("topic", filters.topicId);
+  showMoreParams.set("show", String(pages + 1));
+  const showMoreHref =
+    pages < ADMIN_MAX_PAGES
+      ? `/admin/qb/add-question?${showMoreParams.toString()}`
+      : undefined;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 pb-16 pt-2 md:py-8">
@@ -66,6 +89,7 @@ export async function QbUploadPage({
         allTotal={browser.allTotal}
         total={clientFilter ? browser.allTotal : (page?.total ?? 0)}
         clientFilter={clientFilter}
+        showMoreHref={showMoreHref}
         files={files}
       />
     </div>

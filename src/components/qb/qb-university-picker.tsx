@@ -173,7 +173,19 @@ export function QbUniversityPicker({
             setActive(0);
             event.currentTarget.select();
           }}
-          onBlur={() => setText(value)}
+          onBlur={() => {
+            /*
+             * Typing a name and then leaving the field is still a pick: when
+             * the query narrows down to one candidate, that is what was meant.
+             * Without this the text silently snapped back to the previous
+             * value and the upload landed in the wrong group.
+             */
+            if (options.length === 1) {
+              choose(options[0]);
+              return;
+            }
+            setText(value);
+          }}
           onKeyDown={handleKeyDown}
           className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-9 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />

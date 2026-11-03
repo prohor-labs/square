@@ -33,10 +33,21 @@ function nodeHint(node: QbNode): string | null {
 }
 
 /**
+ * A card that only groups other shelves — universities ("১টি ইউনিট"), year
+ * lists ("১৪টি সাল") or both.
+ *
+ * Those cards are pure navigation: the year count and the question total only
+ * made them busy, so they carry the name alone, centred.
+ */
+function isShelfCard(node: QbNode): boolean {
+  return /(টি সাল|টি ইউনিট)$/.test(node.hint.trim());
+}
+
+/**
  * The tile grid every shelf level is rendered with.
  *
- * Long Bangla labels wrap instead of overflowing, and the count stays in a
- * white pill so it reads the same on every colour.
+ * Long Bangla labels wrap instead of overflowing, and non-shelf cards keep
+ * their count in a white pill so it reads the same on every colour.
  */
 export function QbNodeGrid({
   nodes,
@@ -47,15 +58,16 @@ export function QbNodeGrid({
     <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
       {nodes.map((node, index) => {
         const tint = TINTS[index % TINTS.length];
-        const hint = nodeHint(node);
-        /** Year tiles carry their university, so their text sits centred. */
-        const centered = Boolean(node.context);
+        const shelf = isShelfCard(node);
+        const hint = shelf ? null : nodeHint(node);
+        /** Shelf cards and year tiles sit centred with no count pill. */
+        const centered = shelf || Boolean(node.context);
 
         return (
           <li key={node.key} className="min-w-0">
             <Link
               href={node.href}
-              className={`group relative flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${tint.bg} p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 ${
+              className={`group relative flex h-full ${shelf ? "min-h-[7rem]" : "min-h-[8.5rem]"} flex-col overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${tint.bg} p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 ${
                 centered
                   ? "items-center justify-center gap-1.5 text-center"
                   : "justify-between"
@@ -92,14 +104,16 @@ export function QbNodeGrid({
                 ) : null}
               </span>
 
-              <span
-                className={`relative mt-4 inline-flex w-fit items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-black/65 shadow-sm ${
-                  centered ? "mx-auto" : ""
-                }`}
-              >
-                <Edit className="size-3" aria-hidden="true" />
-                {toBengaliDigits(node.count)}
-              </span>
+              {shelf ? null : (
+                <span
+                  className={`relative mt-4 inline-flex w-fit items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-black/65 shadow-sm ${
+                    centered ? "mx-auto" : ""
+                  }`}
+                >
+                  <Edit className="size-3" aria-hidden="true" />
+                  {toBengaliDigits(node.count)}
+                </span>
+              )}
             </Link>
           </li>
         );

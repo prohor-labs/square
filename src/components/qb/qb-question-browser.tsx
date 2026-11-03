@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { QbFilterBar } from "@/components/qb/qb-filter-bar";
 import { QbUploadList } from "@/components/qb/qb-upload-list";
@@ -8,6 +9,7 @@ import type {
   QbFilterTree,
   QbUploadedQuestion,
 } from "@/lib/actions/qb-uploads";
+import { toBengaliDigits } from "@/lib/calendar-date";
 
 export interface QbQuestionBrowserProps {
   readonly questions: readonly QbUploadedQuestion[];
@@ -17,6 +19,8 @@ export interface QbQuestionBrowserProps {
   /** Matching count from the server. Client filtering recalculates it. */
   readonly total: number;
   readonly clientFilter: boolean;
+  /** `?show=` link that fetches the next screenful; absent at the last one. */
+  readonly showMoreHref?: string;
 }
 
 /**
@@ -34,6 +38,7 @@ export function QbQuestionBrowser({
   allTotal,
   total,
   clientFilter,
+  showMoreHref,
 }: QbQuestionBrowserProps): ReactElement {
   const [localSelected, setLocalSelected] =
     useState<QbFilterSelection>(selected);
@@ -112,8 +117,20 @@ export function QbQuestionBrowser({
       ) : null}
 
       {!clientFilter && total > questions.length ? (
-        <p className="pt-1 text-center text-[11px] text-muted-foreground">
-          মোট {total} টির মধ্যে সর্বশেষ {questions.length} টি দেখানো হচ্ছে।
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-1 text-center text-[11px] text-muted-foreground">
+          <span>
+            মোট {toBengaliDigits(total)} টির মধ্যে সর্বশেষ{" "}
+            {toBengaliDigits(questions.length)} টি দেখানো হচ্ছে।
+          </span>
+          {showMoreHref ? (
+            <Link
+              href={showMoreHref}
+              scroll={false}
+              className="font-bold text-primary underline-offset-4 hover:underline"
+            >
+              আরও দেখুন
+            </Link>
+          ) : null}
         </p>
       ) : null}
     </section>
