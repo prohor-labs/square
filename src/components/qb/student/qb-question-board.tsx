@@ -28,8 +28,6 @@ export function QbQuestionBoard({
       ? `${data.basePath}?subject=${encodeURIComponent(subject)}`
       : data.basePath;
 
-  const allCount = data.subjects.reduce((sum, item) => sum + item.count, 0);
-
   return (
     <div className="flex flex-col gap-3">
       {data.subjects.length > 1 ? (
@@ -41,7 +39,6 @@ export function QbQuestionBoard({
           <SubjectTab
             href={tabHref("")}
             label="সব বিষয়"
-            count={allCount}
             selected={data.activeSubject.length === 0}
           />
           {data.subjects.map((subject) => (
@@ -49,7 +46,6 @@ export function QbQuestionBoard({
               key={subject.label}
               href={tabHref(subject.label)}
               label={subject.label}
-              count={subject.count}
               selected={data.activeSubject === subject.label}
             />
           ))}
@@ -63,12 +59,11 @@ export function QbQuestionBoard({
       ) : (
         <>
           <p className="text-xs font-semibold text-muted-foreground">
-            মোট {toBengaliDigits(data.total)}টি প্রশ্নের মধ্যে{" "}
             {toBengaliDigits(offset + 1)}–
             {toBengaliDigits(
               Math.min(offset + data.questions.length, data.total),
-            )}
-            টি দেখানো হচ্ছে
+            )}{" "}
+            নম্বর প্রশ্ন দেখানো হচ্ছে
           </p>
 
           <ol className="flex flex-col gap-5">
@@ -96,12 +91,10 @@ export function QbQuestionBoard({
 function SubjectTab({
   href,
   label,
-  count,
   selected,
 }: {
   readonly href: string;
   readonly label: string;
-  readonly count: number;
   readonly selected: boolean;
 }): React.ReactElement {
   return (
@@ -118,16 +111,6 @@ function SubjectTab({
       )}
     >
       <span className="whitespace-nowrap">{label}</span>
-      <span
-        className={cn(
-          "rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums",
-          selected
-            ? "bg-primary-foreground/20 text-primary-foreground"
-            : "bg-muted text-muted-foreground",
-        )}
-      >
-        {toBengaliDigits(count)}
-      </span>
     </Link>
   );
 }

@@ -20,12 +20,7 @@ export function QbPageView({
     <div className="flex flex-col gap-5">
       <QbBreadcrumbs items={data.crumbs} />
 
-      <QbSectionHeading
-        icon={icon}
-        eyebrow={eyebrow}
-        title={data.title}
-        count={data.kind === "questions" ? data.total : undefined}
-      />
+      <QbSectionHeading icon={icon} eyebrow={eyebrow} title={data.title} />
 
       {data.kind === "questions" ? (
         <QbQuestionList data={data} />

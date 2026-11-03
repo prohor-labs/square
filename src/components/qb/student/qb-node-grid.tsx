@@ -62,12 +62,11 @@ export function QbNodeGrid({
         const hint = shelf ? null : nodeHint(node);
         /** Shelf cards and year tiles sit centred with no count pill. */
         const centered = shelf || Boolean(node.context);
-
         return (
           <li key={node.key} className="min-w-0">
             <Link
               href={node.href}
-              className={`group relative flex h-full ${shelf ? "min-h-[7rem]" : "min-h-[8.5rem]"} flex-col overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${tint.bg} p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 ${
+              className={`group relative flex h-full ${centered ? "min-h-[7rem]" : "min-h-[8.5rem]"} flex-col overflow-hidden rounded-[1.35rem] bg-gradient-to-br ${tint.bg} p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 ${
                 centered
                   ? "items-center justify-center gap-1.5 text-center"
                   : "justify-between"
@@ -104,7 +103,7 @@ export function QbNodeGrid({
                 ) : null}
               </span>
 
-              {shelf ? null : (
+              {centered ? null : (
                 <span
                   className={`relative mt-4 inline-flex w-fit items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold text-black/65 shadow-sm ${
                     centered ? "mx-auto" : ""
