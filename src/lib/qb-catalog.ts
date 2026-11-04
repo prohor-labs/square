@@ -1541,3 +1541,244 @@ export async function searchQb(
     totalQuestions: matchedQuestions.length,
   };
 }
+
+/* ── custom exam ──────────────────────────────────────────────────────────── */
+
+export interface QbExamYearOption {
+  readonly key: string;
+  readonly label: string;
+}
+
+export interface QbExamGroupOption {
+  readonly key: string;
+  readonly label: string;
+  readonly years: readonly QbExamYearOption[];
+}
+
+export interface QbExamSectionOption {
+  readonly id: Exclude<QbSectionId, "subject">;
+  readonly label: string;
+  readonly groups: readonly QbExamGroupOption[];
+}
+
+export interface QbExamTopicOption {
+  readonly id: string;
+  readonly name: string;
+}
+
+export interface QbExamChapterOption {
+  readonly id: string;
+  readonly name: string;
+  readonly topics: readonly QbExamTopicOption[];
+}
+
+export interface QbExamSubjectOption {
+  readonly id: string;
+  readonly name: string;
+  readonly chapters: readonly QbExamChapterOption[];
+}
+
+export interface QbExamOptions {
+  readonly sections: readonly QbExamSectionOption[];
+  readonly subjects: readonly QbExamSubjectOption[];
+}
+
+/** The years of a shelf, newest first and without duplicates. */
+function examYearOptions(
+  years: readonly YearGroup[],
+): readonly QbExamYearOption[] {
+  const labels = new Map<string, string>();
+  for (const year of years) labels.set(year.key, year.label);
+  return [...labels.entries()]
+    .sort(([a], [b]) => compareBn(b, a))
+    .map(([key, label]) => ({ key, label }));
+}
+
+/**
+ * Subject / chapter / topic options for the exam filters.
+ *
+ * Built from the questions themselves, so only folders that really exist are
+ * offered. A subject that was uploaded twice (once per paper) keeps both rows
+ * apart with the paper in the label.
+ */
+function examSubjectOptions(
+  questions: readonly QbUploadedQuestion[],
+): readonly QbExamSubjectOption[] {
+  const subjects = new Map<
+    string,
+    {
+      name: string;
+      chapters: Map<string, { name: string; topics: Map<string, string> }>;
+    }
+  >();
+
+  for (const question of questions) {
+    let subject = subjects.get(question.subjectId);
+    if (!subject) {
+      const paper = strip(question.paperName);
+      subject = {
+        name: paper
+          ? `${strip(question.subjectName)} · ${paper}`
+          : strip(question.subjectName) || QB_GENERAL,
+        chapters: new Map(),
+      };
+      subjects.set(question.subjectId, subject);
+    }
+
+    let chapter = subject.chapters.get(question.chapterId);
+    if (!chapter) {
+      chapter = {
+        name: strip(question.chapterName) || QB_GENERAL,
+        topics: new Map(),
+      };
+      subject.chapters.set(question.chapterId, chapter);
+    }
+
+    if (question.topicId) {
+      chapter.topics.set(
+        question.topicId,
+        strip(question.topicName) || QB_GENERAL,
+      );
+    }
+  }
+
+  return [...subjects.entries()]
+    .map(([id, subject]) => ({
+      id,
+      name: subject.name,
+      chapters: [...subject.chapters.entries()]
+        .map(([chapterId, chapter]) => ({
+          id: chapterId,
+          name: chapter.name,
+          topics: [...chapter.topics.entries()]
+            .map(([topicId, name]) => ({ id: topicId, name }))
+            .sort((a, b) => compareBn(a.name, b.name)),
+        }))
+        .sort((a, b) => compareBn(a.name, b.name)),
+    }))
+    .sort((a, b) => compareBn(a.name, b.name));
+}
+
+/** Everything the custom exam picker needs, in one serialisable object. */
+export async function getQbExamOptions(): Promise<QbExamOptions> {
+  const catalog = await loadCatalog();
+
+  return {
+    sections: [
+      {
+        id: "university",
+        label: "বিশ্ববিদ্যালয়",
+        groups: catalog.universityGroups.map((group) => ({
+          key: group.key,
+          label: group.label,
+          years: examYearOptions(group.units.flatMap((unit) => unit.years)),
+        })),
+      },
+      {
+        id: "engineering",
+        label: "ইঞ্জিনিয়ারিং",
+        groups: catalog.engineeringGroups.map((group) => ({
+          key: group.key,
+          label: group.label,
+          years: examYearOptions(group.years),
+        })),
+      },
+      {
+        id: "medical",
+        label: "মেডিকেল",
+        groups: catalog.medicalGroups.map((group) => ({
+          key: group.key,
+          label: group.label,
+          years: examYearOptions(group.years),
+        })),
+      },
+    ],
+    subjects: examSubjectOptions(catalog.questions),
+  };
+}
+
+export interface QbExamPoolFilters {
+  /** `university`, `engineering`, `medical`, or empty for the whole bank. */
+  readonly section?: string;
+  readonly group?: string;
+  readonly year?: string;
+  readonly subjectId?: string;
+  readonly chapterId?: string;
+  readonly topicId?: string;
+}
+
+/**
+ * The questions a custom exam may draw from.
+ *
+ * The same shelf rules as the student pages: a section is a set of uploaded
+ * files, and a year is that file's year. Subject / chapter / topic narrow the
+ * pool afterwards, so a single exam can be "ইঞ্জিনিয়ারিং · বুয়েট · ২০২৩ · পদার্থ".
+ */
+export async function getQbExamPool(
+  filters: QbExamPoolFilters = {},
+): Promise<readonly QbUploadedQuestion[]> {
+  const catalog = await loadCatalog();
+  let pool: readonly QbUploadedQuestion[];
+
+  switch (filters.section) {
+    case "university": {
+      const groups = filters.group
+        ? catalog.universityGroups.filter(
+            (group) => group.key === filters.group,
+          )
+        : catalog.universityGroups;
+      const years = groups.flatMap((group) =>
+        group.units.flatMap((unit) => unit.years),
+      );
+      pool = uniqueQuestions(
+        (filters.year
+          ? years.filter((year) => year.key === filters.year)
+          : years
+        ).flatMap((year) => year.questions),
+      );
+      break;
+    }
+    case "engineering":
+    case "medical": {
+      const groups =
+        filters.section === "engineering"
+          ? catalog.engineeringGroups
+          : catalog.medicalGroups;
+      const picked = filters.group
+        ? groups.filter((group) => group.key === filters.group)
+        : groups;
+      const years = picked.flatMap((group) => group.years);
+      pool = uniqueQuestions(
+        (filters.year
+          ? years.filter((year) => year.key === filters.year)
+          : years
+        ).flatMap((year) => year.questions),
+      );
+      break;
+    }
+    default:
+      pool = uniqueQuestions(catalog.questions);
+  }
+
+  const { subjectId, chapterId, topicId } = filters;
+  if (!subjectId && !chapterId && !topicId) return pool;
+
+  return pool.filter(
+    (question) =>
+      (!subjectId || question.subjectId === subjectId) &&
+      (!chapterId || question.chapterId === chapterId) &&
+      (!topicId || question.topicId === topicId),
+  );
+}
+
+/**
+ * The subjects, chapters and topics that exist inside one section / group /
+ * year. The exam form reloads this list whenever the shelf changes, so a BUET
+ * paper only offers the subjects BUET actually has questions for.
+ */
+export async function getQbExamSubjectOptions(
+  filters: Omit<QbExamPoolFilters, "subjectId" | "chapterId" | "topicId"> = {},
+): Promise<readonly QbExamSubjectOption[]> {
+  const pool = await getQbExamPool(filters);
+  return examSubjectOptions(pool);
+}

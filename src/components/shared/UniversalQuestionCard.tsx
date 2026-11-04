@@ -43,6 +43,8 @@ export interface UniversalQuestionCardProps {
   readonly isSolutionOpen?: boolean;
   readonly showCorrectAnswer?: boolean;
   readonly disableOptionChange?: boolean;
+  /** Live-exam mode only: let the student change the answer they picked. */
+  readonly allowReselect?: boolean;
   readonly minimal?: boolean;
   readonly onSelectOption?: (questionId: string, optionId: string) => void;
   readonly onToggleSolution?: (questionId: string) => void;
@@ -66,6 +68,7 @@ export function UniversalQuestionCard({
   isSolutionOpen = false,
   showCorrectAnswer,
   disableOptionChange = false,
+  allowReselect = false,
   minimal = false,
   onSelectOption,
   onToggleSolution,
@@ -203,13 +206,15 @@ export function UniversalQuestionCard({
                   <button
                     type="button"
                     key={opt.id}
-                    disabled={isAnswered || disableOptionChange}
+                    disabled={
+                      disableOptionChange || (isAnswered && !allowReselect)
+                    }
                     onClick={() => onSelectOption?.(question.id, opt.id)}
                     className={cn(
                       "p-2.5 sm:p-3 rounded-xl sm:rounded-2xl text-[13px] sm:text-sm flex items-center gap-2.5 sm:gap-3 border text-left w-full transition-all",
                       isSelected
                         ? "bg-primary/10 border-primary text-primary font-semibold ring-1 ring-primary shadow-xs cursor-default"
-                        : isAnswered
+                        : isAnswered && !allowReselect
                           ? "bg-muted/20 text-muted-foreground/60 border-border/30 opacity-60 cursor-not-allowed"
                           : "bg-muted/30 hover:bg-muted/70 hover:border-primary/40 text-foreground border-border/50 cursor-pointer active:scale-[0.99]",
                     )}
@@ -219,7 +224,7 @@ export function UniversalQuestionCard({
                         "size-6 sm:size-7 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs shrink-0 border transition-colors",
                         isSelected
                           ? "bg-primary text-primary-foreground border-primary"
-                          : isAnswered
+                          : isAnswered && !allowReselect
                             ? "bg-muted/50 text-muted-foreground/60 border-border/40"
                             : "bg-background text-foreground border-border",
                       )}

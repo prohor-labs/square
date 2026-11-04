@@ -6,7 +6,6 @@ import {
   BookOpen,
   Calendar,
   CalendarTick,
-  Chart,
   Danger,
   FileDown,
   Home,
@@ -120,7 +119,7 @@ export function LandingFooter() {
           <FooterRow title="রিসোর্স">
             <FooterLink href="/free-exam" icon={BookOpen} label="ফ্রি এক্সাম" />
             <FooterLink href="/pdf" icon={FileDown} label="সাজেশন পিডিএফ" />
-            <FooterLink href="/poll" icon={Chart} label="লাইভ পোল" />
+            <FooterLink href="/exam" icon={TaskSquare} label="কাস্টম এক্সাম" />
             <FooterLink href="/routine" icon={CalendarTick} label="কোর্স রুটিন" />
           </FooterRow>
 

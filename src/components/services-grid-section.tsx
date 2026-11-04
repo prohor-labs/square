@@ -4,10 +4,11 @@ import Link from "next/link";
 import {
   BookOpen,
   Calendar,
-  Chart,
+  type Chart,
   FileDown,
   FileText,
   Star,
+  TaskSquare,
 } from "@/components/icons";
 import { Card } from "@/components/ui/card";
 
@@ -21,9 +22,9 @@ interface ServiceItem {
 
 const services: readonly ServiceItem[] = [
   {
-    title: "লাইভ পোল",
-    href: "/poll",
-    icon: Chart,
+    title: "কাস্টম এক্সাম",
+    href: "/exam",
+    icon: TaskSquare,
     bgClass: "bg-blue-500/10 dark:bg-blue-500/20",
     textClass: "text-blue-600 dark:text-blue-400",
   },
