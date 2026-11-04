@@ -742,6 +742,12 @@ export async function getQbLanding(): Promise<QbLanding> {
   };
 }
 
+/** How many questions the uploaded bank holds right now. */
+export async function getQbTotal(): Promise<number> {
+  const snapshot = await getQbSnapshot();
+  return snapshot.questions.length;
+}
+
 /* ── university section ───────────────────────────────────────────────────── */
 
 const UNIVERSITY_ROOT: QbCrumb = { label: "প্রশ্নব্যাংক", href: "/qb" };

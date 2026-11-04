@@ -13,8 +13,8 @@ import {
   QB_SQUARE_BLOBS,
   QbCardShapes,
 } from "@/components/qb/card-skin";
-import { getQbTree } from "@/lib/actions/qb-nav";
 import { toBengaliDigits } from "@/lib/calendar-date";
+import { getQbTotal } from "@/lib/qb-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -65,8 +65,7 @@ const CARD_CLASS =
   "group flex min-h-16 w-full items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:px-5";
 
 export default async function DashboardPage() {
-  const banks = await getQbTree();
-  const questionCount = banks.reduce((sum, b) => sum + b.questions, 0);
+  const questionCount = await getQbTotal();
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-3 pb-16">
@@ -121,7 +120,7 @@ export default async function DashboardPage() {
             className="block text-xs font-medium"
             style={{ color: QB_CARD_COLORS.subText }}
           >
-            মোট {toBengaliDigits(questionCount)}+ প্রশ্ন
+            মোট {toBengaliDigits(questionCount)} প্রশ্ন
           </span>
         </span>
       </Link>
