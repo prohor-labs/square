@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MultiSelect } from "@/components/custom-exam/multi-select";
 import {
   ArrowRight2,
   Clock,
@@ -22,13 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   getQbExamSubjectsAction,
   startCustomExamAction,
 } from "@/lib/actions/qb-exam";
@@ -42,8 +36,6 @@ import {
 } from "@/lib/qb-exam-types";
 import { cn } from "@/lib/utils";
 import type { Question } from "@/types";
-
-const ALL = "all";
 
 const SECTION_CHOICES = [
   { id: "all", label: "সব প্রশ্ন" },
@@ -86,6 +78,52 @@ function clockText(totalSeconds: number): string {
     String(safe % 60).padStart(2, "0"),
   )}`;
 }
+
+/**
+ * The app shell scrolls its own container rather than the window, so a plain
+ * `window.scrollTo` would leave the result page halfway down.
+ */
+function scrollToPageTop(from: HTMLElement | null): void {
+  let node: HTMLElement | null = from;
+  while (node) {
+    const style = window.getComputedStyle(node);
+    if (
+      (style.overflowY === "auto" || style.overflowY === "scroll") &&
+      node.scrollHeight > node.clientHeight
+    ) {
+      node.scrollTop = 0;
+      return;
+    }
+    node = node.parentElement;
+  }
+  window.scrollTo(0, 0);
+}
+
+/** Drops repeated ids, keeping the first name seen and sorting by it. */
+function uniqueById<T extends { readonly id: string; readonly name: string }>(
+  items: readonly T[],
+): T[] {
+  const seen = new Map<string, T>();
+  for (const item of items) {
+    if (!seen.has(item.id)) seen.set(item.id, item);
+  }
+  return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name, "bn"));
+}
+
+/** "পদার্থ" or "পদার্থ · রসায়ন" or "পদার্থ +২" for the exam title. */
+function summarize(names: readonly string[]): string {
+  if (names.length <= 2) return names.join(" · ");
+  return `${names[0]} +${names.length - 1}`;
+}
+
+type ReviewFilter = "all" | "correct" | "wrong" | "skipped";
+
+const REVIEW_FILTERS: readonly { id: ReviewFilter; label: string }[] = [
+  { id: "all", label: "সব" },
+  { id: "correct", label: "সঠিক" },
+  { id: "wrong", label: "ভুল" },
+  { id: "skipped", label: "স্কিপ" },
+];
 
 function toQuestion(question: CustomExamQuestion): Question {
   return {
@@ -226,11 +264,11 @@ export function CustomExamFlow({
 
   // Filters
   const [section, setSection] = useState<string>("all");
-  const [group, setGroup] = useState("");
-  const [year, setYear] = useState("");
-  const [subjectId, setSubjectId] = useState("");
-  const [chapterId, setChapterId] = useState("");
-  const [topicId, setTopicId] = useState("");
+  const [groups, setGroups] = useState<string[]>([]);
+  const [years, setYears] = useState<string[]>([]);
+  const [subjectIds, setSubjectIds] = useState<string[]>([]);
+  const [chapterIds, setChapterIds] = useState<string[]>([]);
+  const [topicIds, setTopicIds] = useState<string[]>([]);
   /** Subject tree for the current shelf; reloaded when section/group/year move. */
   const [subjects, setSubjects] = useState(options.subjects);
   const [scopeLoading, setScopeLoading] = useState(false);
@@ -260,14 +298,39 @@ export function CustomExamFlow({
   const [ad, setAd] = useState<ExamAdCourse | null>(null);
   const lastAdId = useRef<string | null>(null);
 
+  /** Which slice of the solutions the result tabs are showing. */
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
+  const pageRef = useRef<HTMLDivElement | null>(null);
+
   const activeSection = options.sections.find((item) => item.id === section);
-  const groups = activeSection?.groups ?? [];
-  const years = groups.find((item) => item.key === group)?.years ?? [];
-  const subject = subjects.find((item) => item.id === subjectId);
-  const chapters = subject?.chapters ?? [];
-  const chapter = chapters.find((item) => item.id === chapterId);
-  const topics = chapter?.topics ?? [];
-  const scoped = section !== "all" || group !== "" || year !== "";
+  const groupOptions = activeSection?.groups ?? [];
+
+  // Years of every ticked university / institution, newest first, no repeats.
+  const yearOptions = (() => {
+    const labels = new Map<string, string>();
+    for (const group of groupOptions) {
+      if (groups.length > 0 && !groups.includes(group.key)) continue;
+      for (const year of group.years) labels.set(year.key, year.label);
+    }
+    return [...labels.entries()]
+      .sort(([a], [b]) => b.localeCompare(a, "bn"))
+      .map(([key, label]) => ({ key, label }));
+  })();
+
+  const scoped = section !== "all" || groups.length > 0 || years.length > 0;
+
+  // Two subjects can share a chapter only by name, so the union is deduped by
+  // id and every level follows whatever the level above has ticked.
+  const chapters = uniqueById(
+    subjectIds.flatMap(
+      (id) => subjects.find((item) => item.id === id)?.chapters ?? [],
+    ),
+  );
+  const topics = uniqueById(
+    chapterIds.flatMap(
+      (id) => chapters.find((item) => item.id === id)?.topics ?? [],
+    ),
+  );
 
   // The subject list follows the shelf: a paper only offers its own subjects.
   useEffect(() => {
@@ -281,8 +344,8 @@ export function CustomExamFlow({
     setScopeLoading(true);
     getQbExamSubjectsAction({
       section,
-      group: group || undefined,
-      year: year || undefined,
+      groups: groups.length > 0 ? groups : undefined,
+      years: years.length > 0 ? years : undefined,
     })
       .then((list) => {
         if (active) setSubjects(list);
@@ -297,7 +360,7 @@ export function CustomExamFlow({
     return () => {
       active = false;
     };
-  }, [scoped, section, group, year, options.subjects]);
+  }, [scoped, section, groups, years, options.subjects]);
 
   const questionCount =
     countMode === "all"
@@ -314,22 +377,35 @@ export function CustomExamFlow({
   /** A blank custom field is 0, not 1 — the start button waits for a real number. */
   const settingsReady = questionCount >= 1 && minuteCount >= 1;
 
-  const title = useMemo(() => {
+  const title = (() => {
     const parts: string[] = [];
     if (section !== "all") {
       parts.push(
         SECTION_CHOICES.find((item) => item.id === section)?.label ?? "",
       );
     }
-    if (group) parts.push(group);
-    if (year)
-      parts.push(years.find((item) => item.key === year)?.label ?? year);
-    if (subject) parts.push(subject.name);
-    if (chapter) parts.push(chapter.name);
-    if (topicId)
-      parts.push(topics.find((item) => item.id === topicId)?.name ?? "");
+    const groupNames = groupOptions
+      .filter((item) => groups.includes(item.key))
+      .map((item) => item.label);
+    if (groupNames.length > 0) parts.push(summarize(groupNames));
+    const yearNames = yearOptions
+      .filter((item) => years.includes(item.key))
+      .map((item) => item.label);
+    if (yearNames.length > 0) parts.push(summarize(yearNames));
+    const subjectNames = subjects
+      .filter((item) => subjectIds.includes(item.id))
+      .map((item) => item.name);
+    if (subjectNames.length > 0) parts.push(summarize(subjectNames));
+    const chapterNames = chapters
+      .filter((item) => chapterIds.includes(item.id))
+      .map((item) => item.name);
+    if (chapterNames.length > 0) parts.push(summarize(chapterNames));
+    const topicNames = topics
+      .filter((item) => topicIds.includes(item.id))
+      .map((item) => item.name);
+    if (topicNames.length > 0) parts.push(summarize(topicNames));
     return parts.filter(Boolean).join(" · ") || "সব বিষয়ের প্রশ্ন";
-  }, [section, group, year, years, subject, chapter, topicId, topics]);
+  })();
 
   // Countdown; auto-submits when it reaches zero.
   useEffect(() => {
@@ -343,6 +419,7 @@ export function CustomExamFlow({
   useEffect(() => {
     if (step !== "exam" || !exam || secondsLeft > 0) return;
     setTimeTaken(exam.minutes * 60);
+    scrollToPageTop(pageRef.current);
     setStep("result");
   }, [step, exam, secondsLeft]);
 
@@ -368,11 +445,11 @@ export function CustomExamFlow({
       const [result] = await Promise.all([
         startCustomExamAction({
           section,
-          group: group || undefined,
-          year: year || undefined,
-          subjectId: subjectId || undefined,
-          chapterId: chapterId || undefined,
-          topicId: topicId || undefined,
+          groups: groups.length > 0 ? groups : undefined,
+          years: years.length > 0 ? years : undefined,
+          subjectIds: subjectIds.length > 0 ? subjectIds : undefined,
+          chapterIds: chapterIds.length > 0 ? chapterIds : undefined,
+          topicIds: topicIds.length > 0 ? topicIds : undefined,
           count: questionCount,
           minutes: minuteCount,
           negative,
@@ -392,6 +469,7 @@ export function CustomExamFlow({
       setExam(result.exam);
       setExamTitle(title);
       setAnswers({});
+      setReviewFilter("all");
       setSecondsLeft(result.exam.minutes * 60);
       setTimeTaken(0);
       setStep("exam");
@@ -409,14 +487,15 @@ export function CustomExamFlow({
     if (!exam) return;
     setTimeTaken(exam.minutes * 60 - secondsLeft);
     setConfirmSubmit(false);
+    scrollToPageTop(pageRef.current);
     setStep("result");
   }
 
   /** Drops the subject chain; its options belong to the previous shelf. */
   function clearSubject() {
-    setSubjectId("");
-    setChapterId("");
-    setTopicId("");
+    setSubjectIds([]);
+    setChapterIds([]);
+    setTopicIds([]);
   }
 
   function restart() {
@@ -425,6 +504,8 @@ export function CustomExamFlow({
     setSecondsLeft(0);
     setTimeTaken(0);
     setError(null);
+    setReviewFilter("all");
+    scrollToPageTop(pageRef.current);
     setStep("config");
   }
 
@@ -451,6 +532,26 @@ export function CustomExamFlow({
       : 0;
     return { correct, wrong, skipped, marks, percent };
   }, [exam, answers]);
+
+  /** Every question with the verdict the result tabs filter on. */
+  const review = useMemo(() => {
+    if (!exam) return [];
+    return exam.questions.map((question, index) => {
+      const chosen = answers[question.id];
+      const correctOption = question.options.find((item) => item.isCorrect);
+      const status: ReviewFilter = !chosen
+        ? "skipped"
+        : correctOption?.id === chosen
+          ? "correct"
+          : "wrong";
+      return { question, index, chosen, status };
+    });
+  }, [exam, answers]);
+
+  const reviewShown =
+    reviewFilter === "all"
+      ? review
+      : review.filter((item) => item.status === reviewFilter);
 
   /* ── config ─────────────────────────────────────────────────────────────── */
 
@@ -495,8 +596,8 @@ export function CustomExamFlow({
                     type="button"
                     onClick={() => {
                       setSection(choice.id);
-                      setGroup("");
-                      setYear("");
+                      setGroups([]);
+                      setYears([]);
                       clearSubject();
                     }}
                     className={sectionPill(section === choice.id)}
@@ -515,52 +616,55 @@ export function CustomExamFlow({
                       ? "বিশ্ববিদ্যালয়"
                       : section === "medical"
                         ? "ক্যাটাগরি"
-                        : "প্রতিষ্ঠান"}
+                        : "প্রতিষ্ঠান"}{" "}
+                    (একাধিক)
                   </span>
-                  <Select
-                    value={group || ALL}
-                    onValueChange={(value) => {
-                      setGroup(value === ALL ? "" : value);
-                      setYear("");
+                  <MultiSelect
+                    label={
+                      section === "university"
+                        ? "বিশ্ববিদ্যালয়"
+                        : section === "medical"
+                          ? "ক্যাটাগরি"
+                          : "প্রতিষ্ঠান"
+                    }
+                    title={
+                      section === "university"
+                        ? "কোন কোন বিশ্ববিদ্যালয়?"
+                        : section === "medical"
+                          ? "কোন কোন ক্যাটাগরি?"
+                          : "কোন কোন প্রতিষ্ঠান?"
+                    }
+                    placeholder="সব"
+                    options={groupOptions.map((item) => ({
+                      id: item.key,
+                      name: item.label,
+                    }))}
+                    values={groups}
+                    onChange={(next) => {
+                      setGroups(next);
+                      setYears([]);
                       clearSubject();
                     }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="সব" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL}>সব</SelectItem>
-                      {groups.map((item) => (
-                        <SelectItem key={item.key} value={item.key}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
 
                 <div className="min-w-0">
-                  <span className={fieldLabel}>সাল</span>
-                  <Select
-                    value={year || ALL}
-                    onValueChange={(value) => {
-                      setYear(value === ALL ? "" : value);
+                  <span className={fieldLabel}>সাল (একাধিক)</span>
+                  <MultiSelect
+                    label="সাল"
+                    title="কোন কোন সাল?"
+                    placeholder="সব সাল"
+                    options={yearOptions.map((item) => ({
+                      id: item.key,
+                      name: item.label,
+                    }))}
+                    values={years}
+                    onChange={(next) => {
+                      setYears(next);
                       clearSubject();
                     }}
-                    disabled={group.length === 0}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="সব সাল" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL}>সব সাল</SelectItem>
-                      {years.map((item) => (
-                        <SelectItem key={item.key} value={item.key}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    disabled={groups.length === 0}
+                  />
                 </div>
               </div>
             ) : null}
@@ -572,65 +676,41 @@ export function CustomExamFlow({
             ২. বিষয় (ঐচ্ছিক){scopeLoading ? " · লোড হচ্ছে…" : ""}
           </span>
           <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
-            <Select
-              value={subjectId || ALL}
-              onValueChange={(value) => {
-                setSubjectId(value === ALL ? "" : value);
-                setChapterId("");
-                setTopicId("");
+            <MultiSelect
+              label="বিষয়"
+              title="কোন কোন বিষয়?"
+              placeholder="সব বিষয়"
+              options={subjects}
+              values={subjectIds}
+              onChange={(next) => {
+                setSubjectIds(next);
+                setChapterIds([]);
+                setTopicIds([]);
               }}
-            >
-              <SelectTrigger className="w-full text-xs sm:text-sm">
-                <SelectValue placeholder="সব বিষয়" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>সব বিষয়</SelectItem>
-                {subjects.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
 
-            <Select
-              value={chapterId || ALL}
-              onValueChange={(value) => {
-                setChapterId(value === ALL ? "" : value);
-                setTopicId("");
+            <MultiSelect
+              label="অধ্যায়"
+              title="কোন কোন অধ্যায়?"
+              placeholder="সব অধ্যায়"
+              options={chapters}
+              values={chapterIds}
+              onChange={(next) => {
+                setChapterIds(next);
+                setTopicIds([]);
               }}
               disabled={chapters.length === 0}
-            >
-              <SelectTrigger className="w-full text-xs sm:text-sm">
-                <SelectValue placeholder="সব অধ্যায়" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>সব অধ্যায়</SelectItem>
-                {chapters.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
 
-            <Select
-              value={topicId || ALL}
-              onValueChange={(value) => setTopicId(value === ALL ? "" : value)}
+            <MultiSelect
+              label="টপিক"
+              title="কোন কোন টপিক?"
+              placeholder="সব টপিক"
+              options={topics}
+              values={topicIds}
+              onChange={setTopicIds}
               disabled={topics.length === 0}
-            >
-              <SelectTrigger className="w-full text-xs sm:text-sm">
-                <SelectValue placeholder="সব টপিক" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>সব টপিক</SelectItem>
-                {topics.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
         </section>
 
@@ -792,7 +872,10 @@ export function CustomExamFlow({
     const progress = (answered / exam.questions.length) * 100;
 
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-10">
+      <div
+        ref={pageRef}
+        className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-10"
+      >
         <div className="sticky top-2 z-10 rounded-2xl border border-border bg-card p-3 shadow-sm sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
@@ -898,7 +981,10 @@ export function CustomExamFlow({
   /* ── result ─────────────────────────────────────────────────────────────── */
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-10">
+    <div
+      ref={pageRef}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-4 pb-10"
+    >
       <div className="rounded-2xl border border-border bg-card p-4 shadow-xs sm:p-6">
         <div className="flex flex-wrap items-center gap-4">
           <div
@@ -953,28 +1039,77 @@ export function CustomExamFlow({
         ) : null}
       </div>
 
-      <h3 className="px-1 text-sm font-bold">সব প্রশ্নের উত্তর ও ব্যাখ্যা</h3>
+      <h3 className="px-1 text-sm font-bold">উত্তর ও ব্যাখ্যা</h3>
 
-      {exam.questions.map((question, number) => {
-        const chosen = answers[question.id];
-        const correctOption = question.options.find((item) => item.isCorrect);
-        const status = !chosen
-          ? { label: "উত্তর দেননি", tone: "text-muted-foreground" }
-          : correctOption?.id === chosen
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+        {REVIEW_FILTERS.map((filter) => {
+          const count =
+            filter.id === "all"
+              ? exam.questions.length
+              : filter.id === "correct"
+                ? outcome.correct
+                : filter.id === "wrong"
+                  ? outcome.wrong
+                  : outcome.skipped;
+          const active = reviewFilter === filter.id;
+
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => setReviewFilter(filter.id)}
+              aria-pressed={active}
+              className={cn(
+                "flex items-center justify-center gap-1 rounded-xl border px-1 py-1.5 text-[10px] font-bold transition-colors sm:gap-1.5 sm:px-3 sm:text-xs",
+                active
+                  ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+              )}
+            >
+              <span>{filter.label}</span>
+              <span
+                className={cn(
+                  "tabular-nums",
+                  !active &&
+                    (filter.id === "correct"
+                      ? "text-emerald-600"
+                      : filter.id === "wrong"
+                        ? "text-destructive"
+                        : ""),
+                )}
+              >
+                {numberText(count)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {reviewShown.length === 0 ? (
+        <p className="rounded-2xl border border-border bg-card p-6 text-center text-xs font-semibold text-muted-foreground">
+          এই তালিকায় কোনো প্রশ্ন নেই।
+        </p>
+      ) : null}
+
+      {reviewShown.map(({ question, index, chosen, status }) => {
+        const statusView =
+          status === "correct"
             ? { label: "সঠিক", tone: "text-emerald-600" }
-            : { label: "ভুল", tone: "text-destructive" };
+            : status === "wrong"
+              ? { label: "ভুল", tone: "text-destructive" }
+              : { label: "উত্তর দেননি", tone: "text-muted-foreground" };
 
         return (
           <div key={question.id} className="flex flex-col gap-1.5">
             <p className="px-1 text-[11px] font-bold">
               <span className="text-muted-foreground">
-                প্রশ্ন {numberText(number + 1)} ·{" "}
+                প্রশ্ন {numberText(index + 1)} ·{" "}
               </span>
-              <span className={status.tone}>{status.label}</span>
+              <span className={statusView.tone}>{statusView.label}</span>
             </p>
             <UniversalQuestionCard
               question={toQuestion(question)}
-              questionIndex={number}
+              questionIndex={index}
               selectedOptionId={chosen}
               showCorrectAnswer
               isSolutionOpen

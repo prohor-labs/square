@@ -15,14 +15,14 @@ import type { CustomExam, CustomExamRequest } from "@/lib/qb-exam-types";
  */
 export async function getQbExamSubjectsAction(filters: {
   section?: string;
-  group?: string;
-  year?: string;
+  groups?: readonly string[];
+  years?: readonly string[];
 }): Promise<readonly QbExamSubjectOption[]> {
   try {
     return await getQbExamSubjectOptions({
       section: filters.section,
-      group: filters.group,
-      year: filters.year,
+      groups: filters.groups,
+      years: filters.years,
     });
   } catch {
     return [];

@@ -85,11 +85,11 @@ export async function buildCustomExam(
 ): Promise<CustomExam | null> {
   const pool = await getQbExamPool({
     section: request.section,
-    group: request.group,
-    year: request.year,
-    subjectId: request.subjectId,
-    chapterId: request.chapterId,
-    topicId: request.topicId,
+    groups: request.groups,
+    years: request.years,
+    subjectIds: request.subjectIds,
+    chapterIds: request.chapterIds,
+    topicIds: request.topicIds,
   });
 
   const playable = pool.filter(isPlayable);

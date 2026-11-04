@@ -1700,11 +1700,13 @@ export async function getQbExamOptions(): Promise<QbExamOptions> {
 export interface QbExamPoolFilters {
   /** `university`, `engineering`, `medical`, or empty for the whole bank. */
   readonly section?: string;
-  readonly group?: string;
-  readonly year?: string;
-  readonly subjectId?: string;
-  readonly chapterId?: string;
-  readonly topicId?: string;
+  /** Any of these universities / institutions; empty means the whole section. */
+  readonly groups?: readonly string[];
+  /** Any of these years; empty means every year on the shelf. */
+  readonly years?: readonly string[];
+  readonly subjectIds?: readonly string[];
+  readonly chapterIds?: readonly string[];
+  readonly topicIds?: readonly string[];
 }
 
 /**
@@ -1722,19 +1724,12 @@ export async function getQbExamPool(
 
   switch (filters.section) {
     case "university": {
-      const groups = filters.group
-        ? catalog.universityGroups.filter(
-            (group) => group.key === filters.group,
-          )
-        : catalog.universityGroups;
+      const groups = pickExamGroups(catalog.universityGroups, filters.groups);
       const years = groups.flatMap((group) =>
         group.units.flatMap((unit) => unit.years),
       );
       pool = uniqueQuestions(
-        (filters.year
-          ? years.filter((year) => year.key === filters.year)
-          : years
-        ).flatMap((year) => year.questions),
+        pickExamYears(years, filters.years).flatMap((year) => year.questions),
       );
       break;
     }
@@ -1744,15 +1739,10 @@ export async function getQbExamPool(
         filters.section === "engineering"
           ? catalog.engineeringGroups
           : catalog.medicalGroups;
-      const picked = filters.group
-        ? groups.filter((group) => group.key === filters.group)
-        : groups;
+      const picked = pickExamGroups(groups, filters.groups);
       const years = picked.flatMap((group) => group.years);
       pool = uniqueQuestions(
-        (filters.year
-          ? years.filter((year) => year.key === filters.year)
-          : years
-        ).flatMap((year) => year.questions),
+        pickExamYears(years, filters.years).flatMap((year) => year.questions),
       );
       break;
     }
@@ -1760,15 +1750,36 @@ export async function getQbExamPool(
       pool = uniqueQuestions(catalog.questions);
   }
 
-  const { subjectId, chapterId, topicId } = filters;
-  if (!subjectId && !chapterId && !topicId) return pool;
+  const { subjectIds, chapterIds, topicIds } = filters;
+  if (!subjectIds?.length && !chapterIds?.length && !topicIds?.length) {
+    return pool;
+  }
 
   return pool.filter(
     (question) =>
-      (!subjectId || question.subjectId === subjectId) &&
-      (!chapterId || question.chapterId === chapterId) &&
-      (!topicId || question.topicId === topicId),
+      (!subjectIds?.length || subjectIds.includes(question.subjectId)) &&
+      (!chapterIds?.length || chapterIds.includes(question.chapterId)) &&
+      (!topicIds?.length ||
+        (question.topicId !== null && topicIds.includes(question.topicId))),
   );
+}
+
+/** The years the form ticked, or every year when none is ticked. */
+function pickExamYears<T extends { key: string }>(
+  years: readonly T[],
+  wanted: readonly string[] | undefined,
+): readonly T[] {
+  if (!wanted?.length) return years;
+  return years.filter((year) => wanted.includes(year.key));
+}
+
+/** The universities / institutions the form ticked, or every one of them. */
+function pickExamGroups<T extends { key: string }>(
+  groups: readonly T[],
+  wanted: readonly string[] | undefined,
+): readonly T[] {
+  if (!wanted?.length) return groups;
+  return groups.filter((group) => wanted.includes(group.key));
 }
 
 /**
@@ -1777,7 +1788,10 @@ export async function getQbExamPool(
  * paper only offers the subjects BUET actually has questions for.
  */
 export async function getQbExamSubjectOptions(
-  filters: Omit<QbExamPoolFilters, "subjectId" | "chapterId" | "topicId"> = {},
+  filters: Omit<
+    QbExamPoolFilters,
+    "subjectIds" | "chapterIds" | "topicIds"
+  > = {},
 ): Promise<readonly QbExamSubjectOption[]> {
   const pool = await getQbExamPool(filters);
   return examSubjectOptions(pool);

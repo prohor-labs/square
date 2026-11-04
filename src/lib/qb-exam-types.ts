@@ -40,11 +40,13 @@ export interface CustomExam {
 
 export interface CustomExamRequest {
   readonly section?: string;
-  readonly group?: string;
-  readonly year?: string;
-  readonly subjectId?: string;
-  readonly chapterId?: string;
-  readonly topicId?: string;
+  /** Any of these universities / institutions; empty means the whole section. */
+  readonly groups?: readonly string[];
+  /** Any of these years; empty means every year on the shelf. */
+  readonly years?: readonly string[];
+  readonly subjectIds?: readonly string[];
+  readonly chapterIds?: readonly string[];
+  readonly topicIds?: readonly string[];
   readonly count?: number;
   readonly minutes?: number;
   readonly negative?: number;
