@@ -928,14 +928,14 @@ export function CustomExamFlow({
               questionIndex={number}
               selectedOptionId={answers[question.id]}
               showCorrectAnswer={false}
-              allowReselect
               hideHeader
               hideControls
               onSelectOption={(_questionId, optionId) =>
-                setAnswers((previous) => ({
-                  ...previous,
-                  [question.id]: optionId,
-                }))
+                setAnswers((previous) =>
+                  previous[question.id]
+                    ? previous
+                    : { ...previous, [question.id]: optionId },
+                )
               }
             />
           </section>
