@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ExamPdfDownload } from "@/components/custom-exam/exam-pdf";
 import { MultiSelect } from "@/components/custom-exam/multi-select";
 import {
   ArrowRight2,
@@ -1024,12 +1025,19 @@ export function CustomExamFlow({
               <span>সময় {clockText(timeTaken)}</span>
             </p>
           </div>
-          <Button
-            onClick={restart}
-            className="h-9 w-full rounded-xl text-xs font-bold sm:w-auto"
-          >
-            নতুন পরীক্ষা
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <ExamPdfDownload
+              exam={exam}
+              title={examTitle}
+              fileName="square-exam"
+            />
+            <Button
+              onClick={restart}
+              className="h-9 w-full rounded-xl text-xs font-bold sm:w-auto"
+            >
+              নতুন পরীক্ষা
+            </Button>
+          </div>
         </div>
 
         {exam.negative > 0 ? (
