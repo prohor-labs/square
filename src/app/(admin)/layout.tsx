@@ -18,6 +18,10 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
+  if (session.user.role !== "admin") {
+    redirect("/dashboard");
+  }
+
   const dict = dictionary;
   const lang = "en";
 

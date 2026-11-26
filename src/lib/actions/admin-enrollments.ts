@@ -11,7 +11,17 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
+async function requireAdminId(): Promise<string> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.role !== "admin") {
+    throw new Error("Unauthorized");
+  }
+  return session.user.id;
+}
+
 export async function getEnrollmentRequests() {
+  await requireAdminId();
+
   const reqs = await db.query.batchEnrollmentRequests.findMany({
     with: {
       user: true,
@@ -23,14 +33,7 @@ export async function getEnrollmentRequests() {
 }
 
 export async function approveEnrollmentRequest(requestId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const adminId = session?.user?.id;
-
-  if (!adminId) {
-    throw new Error("Unauthorized");
-  }
+  const adminId = await requireAdminId();
 
   await db.transaction(async (tx) => {
     // 1. Mark request as approved
@@ -65,20 +68,14 @@ export async function approveEnrollmentRequest(requestId: string) {
 
   revalidatePath("/admin/enrollments");
   revalidatePath("/my-courses");
+  revalidatePath("/dashboard");
 }
 
 export async function rejectEnrollmentRequest(
   requestId: string,
   reason: string,
 ) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const adminId = session?.user?.id;
-
-  if (!adminId) {
-    throw new Error("Unauthorized");
-  }
+  const adminId = await requireAdminId();
 
   await db
     .update(batchEnrollmentRequests)

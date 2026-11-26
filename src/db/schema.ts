@@ -430,6 +430,15 @@ export const batchDetails = pgTable("batch_details", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const batchTelegramInvites = pgTable("batch_telegram_invites", {
+  batchId: text("batch_id")
+    .primaryKey()
+    .references(() => batches.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 // Membership is separate from exam assignment — enables:
 // user → batch_members → batch → batch_exams → exam (authorization chain)
 export const batchMembers = pgTable(
@@ -886,6 +895,10 @@ export const batchesRelations = relations(batches, ({ one, many }) => ({
     fields: [batches.id],
     references: [batchDetails.batchId],
   }),
+  telegramInvite: one(batchTelegramInvites, {
+    fields: [batches.id],
+    references: [batchTelegramInvites.batchId],
+  }),
   members: many(batchMembers),
   routines: many(examRoutines),
   batchExams: many(batchExams),
@@ -916,6 +929,16 @@ export const batchDetailsRelations = relations(batchDetails, ({ one }) => ({
     references: [batches.id],
   }),
 }));
+
+export const batchTelegramInvitesRelations = relations(
+  batchTelegramInvites,
+  ({ one }) => ({
+    batch: one(batches, {
+      fields: [batchTelegramInvites.batchId],
+      references: [batches.id],
+    }),
+  }),
+);
 
 export const batchEnrollmentsRelations = relations(
   batchEnrollments,

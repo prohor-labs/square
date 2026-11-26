@@ -76,6 +76,9 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
   const [telegramGroupUrl, setTelegramGroupUrl] = useState(
     details.telegramGroupUrl || curriculumObj.telegramGroupUrl || "",
   );
+  const [privateTelegramGroupUrl, setPrivateTelegramGroupUrl] = useState(
+    batch.privateTelegramGroupUrl || "",
+  );
 
   // Dynamic Lists
   const [features, setFeatures] = useState<CourseFeature[]>(
@@ -186,6 +189,7 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
       routinePdfUrl: routinePdfUrl || null,
       routineUrl: routinePdfUrl || null,
       telegramGroupUrl: telegramGroupUrl || null,
+      privateTelegramGroupUrl: privateTelegramGroupUrl || null,
     });
 
     setLoading(false);
@@ -419,6 +423,24 @@ export function BatchSettingsTab({ batch }: { batch: BatchDetail }) {
               className="rounded-xl"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+          <Label htmlFor="privateTelegramGroupUrl">
+            প্রাইভেট Telegram গ্রুপ লিঙ্ক
+          </Label>
+          <Input
+            id="privateTelegramGroupUrl"
+            type="url"
+            inputMode="url"
+            value={privateTelegramGroupUrl}
+            onChange={(e) => setPrivateTelegramGroupUrl(e.target.value)}
+            placeholder="https://t.me/+..."
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">
+            শুধু এই কোর্সে এনরোল করা শিক্ষার্থীরা ড্যাশবোর্ডে লিংকটি দেখবেন।
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-6 pt-3">

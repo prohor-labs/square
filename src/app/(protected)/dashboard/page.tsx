@@ -4,6 +4,7 @@ import {
   Chart,
   Clipboard,
   Danger,
+  Send,
   SquareLogo,
   Video,
 } from "@/components/icons";
@@ -13,8 +14,10 @@ import {
   QB_SQUARE_BLOBS,
   QbCardShapes,
 } from "@/components/qb/card-skin";
+import { getCachedSession } from "@/lib/auth-session";
 import { toBengaliDigits } from "@/lib/calendar-date";
 import { getQbTotal } from "@/lib/qb-catalog";
+import { getStudentTelegramGroups } from "@/lib/telegram-groups";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +68,13 @@ const CARD_CLASS =
   "group flex min-h-16 w-full items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:px-5";
 
 export default async function DashboardPage() {
-  const questionCount = await getQbTotal();
+  const session = await getCachedSession();
+  const [questionCount, telegramGroups] = await Promise.all([
+    getQbTotal(),
+    session?.user
+      ? getStudentTelegramGroups(session.user.id)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-3 pb-16">
@@ -124,6 +133,60 @@ export default async function DashboardPage() {
           </span>
         </span>
       </Link>
+
+      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
+            <Send className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-extrabold sm:text-lg">
+              আমার প্রাইভেট Telegram গ্রুপ
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+              তোমার এনরোল করা কোর্সের গ্রুপ লিংক এখানে পাবে।
+            </p>
+          </div>
+        </div>
+
+        {telegramGroups.length > 0 ? (
+          <div className="mt-4 grid gap-2.5">
+            {telegramGroups.map((group) => (
+              <a
+                key={group.batchId}
+                href={group.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex min-h-16 items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-blue-500/40 hover:bg-blue-500/5 hover:shadow-md sm:px-4"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                  <Send className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold sm:text-base">
+                    {group.courseName}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    প্রাইভেট কোর্স গ্রুপ
+                  </span>
+                </span>
+                <span className="shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition-colors group-hover:bg-blue-700">
+                  গ্রুপে যোগ দিন
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-5 text-center">
+            <p className="text-sm font-semibold text-foreground">
+              এখনও কোনো প্রাইভেট গ্রুপ লিংক নেই
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              কোর্সে এনরোল করে অ্যাডমিন গ্রুপ লিংক দিলে এটি এখানে দেখাবে।
+            </p>
+          </div>
+        )}
+      </section>
 
       {/* Shortcuts */}
       <nav className="flex flex-col gap-2.5">

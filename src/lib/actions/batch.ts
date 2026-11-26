@@ -3,6 +3,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { db } from "@/db";
 import {
   batchDetails,
@@ -10,11 +11,19 @@ import {
   batchExams,
   batches,
   batchMembers,
+  batchTelegramInvites,
 } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import type { CourseFeature } from "@/lib/course-features";
 import type { CourseMentor } from "@/lib/course-mentors";
 import { toCourseMentors } from "@/lib/course-mentors";
+import { normalizePrivateTelegramUrl } from "@/lib/telegram-groups";
 import { normalizeHscBatch } from "@/lib/utils";
+
+async function requireAdmin(): Promise<boolean> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user?.role === "admin";
+}
 
 export async function getBatchesAction() {
   try {
@@ -32,9 +41,16 @@ export async function getBatchesAction() {
 
 export async function createBatchAction(formData: FormData) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     const id = nanoid();
     const slug = formData.get("slug") as string;
     const isPublished = formData.get("isPublished") === "false" ? false : true;
+    const privateTelegramGroupUrl = normalizePrivateTelegramUrl(
+      formData.get("privateTelegramGroupUrl") as string | null,
+    );
 
     await db.transaction(async (tx) => {
       await tx.insert(batches).values({
@@ -59,6 +75,13 @@ export async function createBatchAction(formData: FormData) {
         mentorIds: [],
         faqs: [],
       });
+
+      if (privateTelegramGroupUrl) {
+        await tx.insert(batchTelegramInvites).values({
+          batchId: id,
+          url: privateTelegramGroupUrl,
+        });
+      }
     });
     revalidatePath("/admin/batches");
     return { success: true };
@@ -72,6 +95,10 @@ export async function createBatchAction(formData: FormData) {
 
 export async function deleteBatchAction(batchId: string) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     await db.delete(batches).where(eq(batches.id, batchId));
     revalidatePath("/admin/batches");
     // Unassigning its exams turns them into free exams, so refresh that list.
@@ -84,6 +111,10 @@ export async function deleteBatchAction(batchId: string) {
 
 export async function updateBatchAction(formData: FormData) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     const batchId = formData.get("batchId") as string;
     const originalPriceRaw = formData.get("originalPrice") as string;
     const rawHscBatch = formData.get("hscBatch") as string;
@@ -130,6 +161,7 @@ export async function updateBatchDetailsAction(
     routineUrl?: string | null;
     routinePdfUrl?: string | null;
     telegramGroupUrl?: string | null;
+    privateTelegramGroupUrl?: string | null;
     demoVideoUrl?: string | null;
     duration?: string | null;
     rating?: string | null;
@@ -137,6 +169,15 @@ export async function updateBatchDetailsAction(
   },
 ) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
+    const privateTelegramGroupUrl =
+      payload.privateTelegramGroupUrl !== undefined
+        ? normalizePrivateTelegramUrl(payload.privateTelegramGroupUrl)
+        : undefined;
+
     await db.transaction(async (tx) => {
       // 1. Update batches table
       const batchUpdate: Record<string, any> = { updatedAt: new Date() };
@@ -244,6 +285,22 @@ export async function updateBatchDetailsAction(
           demoVideoUrl: detailsData.demoVideoUrl,
         });
       }
+
+      if (privateTelegramGroupUrl !== undefined) {
+        if (privateTelegramGroupUrl) {
+          await tx
+            .insert(batchTelegramInvites)
+            .values({ batchId, url: privateTelegramGroupUrl })
+            .onConflictDoUpdate({
+              target: batchTelegramInvites.batchId,
+              set: { url: privateTelegramGroupUrl, updatedAt: new Date() },
+            });
+        } else {
+          await tx
+            .delete(batchTelegramInvites)
+            .where(eq(batchTelegramInvites.batchId, batchId));
+        }
+      }
     });
 
     revalidatePath(`/admin/batches/${batchId}`);
@@ -254,6 +311,7 @@ export async function updateBatchDetailsAction(
     revalidatePath("/courses");
     revalidatePath("/");
     revalidatePath("/my-courses");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error: unknown) {
     return {
@@ -282,10 +340,15 @@ export async function getAllBatchesAction() {
 
 export async function getBatchDetailAction(id: string) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     const batch = await db.query.batches.findFirst({
       where: eq(batches.id, id),
       with: {
         details: true,
+        telegramInvite: true,
         members: {
           with: { user: true },
         },
@@ -370,6 +433,7 @@ export async function getBatchDetailAction(id: string) {
       success: true,
       data: {
         ...batch,
+        privateTelegramGroupUrl: batch.telegramInvite?.url ?? null,
         details: normalizedDetails,
         members: membersWithRequests,
       },
@@ -396,6 +460,10 @@ export async function assignExamToBatchAction(
   },
 ) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     const res = await db
       .insert(batchExams)
       .values({
@@ -424,6 +492,10 @@ export async function removeExamFromBatchAction(
   batchId: string,
 ) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     await db.delete(batchExams).where(eq(batchExams.id, batchExamId));
     revalidatePath(`/admin/batches/${batchId}`);
     // With no course left, the exam becomes a free exam.
@@ -443,6 +515,10 @@ export async function addMemberToBatchAction(
   role: "student" | "moderator" | "instructor" = "student",
 ) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     const res = await db
       .insert(batchMembers)
       .values({
@@ -452,6 +528,7 @@ export async function addMemberToBatchAction(
       })
       .returning();
     revalidatePath(`/admin/batches/${batchId}`);
+    revalidatePath("/dashboard");
     return { success: true, data: res[0] };
   } catch (error: unknown) {
     return {
@@ -466,8 +543,13 @@ export async function removeMemberFromBatchAction(
   batchId: string,
 ) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     await db.delete(batchMembers).where(eq(batchMembers.id, batchMemberId));
     revalidatePath(`/admin/batches/${batchId}`);
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error: unknown) {
     return {
@@ -479,6 +561,10 @@ export async function removeMemberFromBatchAction(
 
 export async function getBatchMembersAction(batchId: string) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     const members = await db.query.batchMembers.findMany({
       where: eq(batchMembers.batchId, batchId),
       with: { user: true },
@@ -503,6 +589,10 @@ export async function updateBatchExamAction(
   },
 ) {
   try {
+    if (!(await requireAdmin())) {
+      return { success: false, error: "অননুমোদিত অ্যাক্সেস।" };
+    }
+
     // Spread conditionally: an explicit null means "clear the schedule", so it
     // has to reach drizzle. Using `?? undefined` would silently drop it.
     const patch: Partial<typeof batchExams.$inferInsert> = {};

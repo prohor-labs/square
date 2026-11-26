@@ -129,6 +129,26 @@ export default function NewBatchPage() {
           </label>
         </div>
 
+        <div className="space-y-2 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+          <label
+            htmlFor="privateTelegramGroupUrl"
+            className="text-sm font-medium"
+          >
+            প্রাইভেট Telegram গ্রুপ লিঙ্ক (ঐচ্ছিক)
+          </label>
+          <Input
+            id="privateTelegramGroupUrl"
+            name="privateTelegramGroupUrl"
+            type="url"
+            inputMode="url"
+            placeholder="https://t.me/+..."
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">
+            এই কোর্সে এনরোল করা শিক্ষার্থীরা ড্যাশবোর্ডে গ্রুপ লিংকটি দেখবেন।
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="price" className="text-sm font-medium">

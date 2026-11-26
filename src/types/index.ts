@@ -496,6 +496,7 @@ export interface BatchExamDetail {
 }
 
 export interface BatchDetail extends Batch {
+  readonly privateTelegramGroupUrl?: string | null;
   readonly members?: readonly BatchMember[];
   readonly batchExams?: readonly BatchExamDetail[];
 }
